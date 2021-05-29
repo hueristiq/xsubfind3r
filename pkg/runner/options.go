@@ -33,7 +33,7 @@ func ParseOptions(options *Options) (*Options, error) {
 	}
 
 	version := "1.0.0"
-	configPath := directory + "/.config/sigsubfinder/conf.yaml"
+	configPath := directory + "/.config/sigsubfind3r/conf.yaml"
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		configuration := Configuration{

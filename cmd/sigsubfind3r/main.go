@@ -17,7 +17,6 @@ type options struct {
 	sourcesList bool
 	noColor     bool
 	silent      bool
-	verbosity   int
 }
 
 var (
@@ -63,9 +62,9 @@ func init() {
 		h += "  -ls, --list-sources      list all the sources available\n"
 		h += "  -nc, --no-color          no color mode: Don't use colors in output\n"
 		h += "  -s,  --silent            silent mode: Output subdomains only\n"
-		h += "  -us, --use-sources       comma(,) separated list of sources to use\n\n"
+		h += "  -us, --use-sources       comma(,) separated list of sources to use\n"
 
-		fmt.Fprintf(os.Stderr, h)
+		fmt.Println(h)
 	}
 
 	flag.Parse()
@@ -123,7 +122,7 @@ func main() {
 		if co.silent {
 			fmt.Println(n.Value)
 		} else {
-			fmt.Println(fmt.Sprintf("[%s] %s", au.BrightBlue(n.Source), n.Value))
+			fmt.Printf("[%s] %s\n", au.BrightBlue(n.Source), n.Value)
 		}
 	}
 }
