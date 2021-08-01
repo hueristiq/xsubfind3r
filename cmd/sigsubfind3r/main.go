@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/logrusorgru/aurora/v3"
+	"github.com/signedsecurity/sigsubfind3r/internal/configuration"
 	"github.com/signedsecurity/sigsubfind3r/pkg/runner"
 )
 
@@ -21,20 +22,9 @@ type options struct {
 
 var (
 	co options
-	so runner.Options
+	so configuration.Options
 	au aurora.Aurora
 )
-
-func banner() {
-	fmt.Fprintln(os.Stderr, aurora.BrightBlue(`
-     _                 _      __ _           _ _____
- ___(_) __ _ ___ _   _| |__  / _(_)_ __   __| |___ / _ __
-/ __| |/ _`+"`"+` / __| | | | '_ \| |_| | '_ \ / _`+"`"+` | |_ \| '__|
-\__ \ | (_| \__ \ |_| | |_) |  _| | | | | (_| |___) | |
-|___/_|\__, |___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| V1.0.0
-       |___/
-`).Bold())
-}
 
 func init() {
 	flag.StringVar(&so.Domain, "d", "", "")
@@ -51,7 +41,7 @@ func init() {
 	flag.StringVar(&so.SourcesUse, "use-sources", "", "")
 
 	flag.Usage = func() {
-		banner()
+		fmt.Fprintln(os.Stderr, configuration.BANNER)
 
 		h := "USAGE:\n"
 		h += "  sigsubfind3r [OPTIONS]\n"
@@ -64,7 +54,7 @@ func init() {
 		h += "  -s,  --silent            silent mode: Output subdomains only\n"
 		h += "  -uS, --use-sources       comma(,) separated list of sources to use\n"
 
-		fmt.Println(h)
+		fmt.Fprintln(os.Stderr, h)
 	}
 
 	flag.Parse()
@@ -73,21 +63,20 @@ func init() {
 }
 
 func main() {
-	options, err := runner.ParseOptions(&so)
-	if err != nil {
+	if err := so.Parse(); err != nil {
 		log.Fatalln(err)
 	}
 
 	if !co.silent {
-		banner()
+		fmt.Fprintln(os.Stderr, configuration.BANNER)
 	}
 
 	if co.sourcesList {
-		fmt.Println("[", au.BrightBlue("INF"), "] current list of the available", au.Underline(strconv.Itoa(len(options.YAMLConfig.Sources))+" sources").Bold())
+		fmt.Println("[", au.BrightBlue("INF"), "] current list of the available", au.Underline(strconv.Itoa(len(so.YAMLConfig.Sources))+" sources").Bold())
 		fmt.Println("[", au.BrightBlue("INF"), "] sources marked with an * needs key or token")
 		fmt.Println("")
 
-		keys := options.YAMLConfig.GetKeys()
+		keys := so.YAMLConfig.GetKeys()
 		needsKey := make(map[string]interface{})
 		keysElem := reflect.ValueOf(&keys).Elem()
 
@@ -95,7 +84,7 @@ func main() {
 			needsKey[strings.ToLower(keysElem.Type().Field(i).Name)] = keysElem.Field(i).Interface()
 		}
 
-		for _, source := range options.YAMLConfig.Sources {
+		for _, source := range so.YAMLConfig.Sources {
 			if _, ok := needsKey[source]; ok {
 				fmt.Println(">", source, "*")
 			} else {
@@ -111,7 +100,7 @@ func main() {
 		fmt.Println("")
 	}
 
-	runner := runner.New(options)
+	runner := runner.New(&so)
 
 	subdomains, err := runner.Run()
 	if err != nil {

@@ -3,16 +3,17 @@ package runner
 import (
 	"strings"
 
+	"github.com/signedsecurity/sigsubfind3r/internal/configuration"
 	"github.com/signedsecurity/sigsubfind3r/pkg/agent"
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources"
 )
 
 type Runner struct {
-	Options *Options
+	Options *configuration.Options
 	Agent   *agent.Agent
 }
 
-func New(options *Options) *Runner {
+func New(options *configuration.Options) *Runner {
 	var uses, exclusions []string
 
 	if options.SourcesUse != "" {

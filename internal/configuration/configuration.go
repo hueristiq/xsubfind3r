@@ -1,9 +1,12 @@
-package runner
+package configuration
 
 import (
+	"fmt"
+	"log"
 	"math/rand"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources"
 	"gopkg.in/yaml.v3"
@@ -26,54 +29,74 @@ type Options struct {
 	YAMLConfig Configuration
 }
 
-func ParseOptions(options *Options) (*Options, error) {
-	directory, err := os.UserHomeDir()
-	if err != nil {
-		return options, err
-	}
+const (
+	VERSION string = "1.0.0"
+)
 
-	version := "1.0.0"
-	configPath := directory + "/.config/sigsubfind3r/conf.yaml"
+var (
+	BANNER string = fmt.Sprintf(`
+     _                 _      __ _           _ _____
+ ___(_) __ _ ___ _   _| |__  / _(_)_ __   __| |___ / _ __
+/ __| |/ _`+"`"+` / __| | | | '_ \| |_| | '_ \ / _`+"`"+` | |_ \| '__|
+\__ \ | (_| \__ \ |_| | |_) |  _| | | | | (_| |___) | |
+|___/_|\__, |___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v%s
+       |___/
+`, VERSION)
 
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+	CONFDIR string = func() (directory string) {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		directory = filepath.Join(home, ".config", "sigsubfind3r")
+
+		return
+	}()
+)
+
+func (options *Options) Parse() (err error) {
+	confYAMLFile := filepath.Join(CONFDIR, "conf.yaml")
+
+	if _, err := os.Stat(confYAMLFile); os.IsNotExist(err) {
 		configuration := Configuration{
-			Version: version,
+			Version: VERSION,
 			Sources: sources.All,
 		}
 
-		directory, _ := path.Split(configPath)
+		directory, _ := path.Split(confYAMLFile)
 
 		err := makeDirectory(directory)
 		if err != nil {
-			return options, err
+			return err
 		}
 
-		err = configuration.MarshalWrite(configPath)
+		err = configuration.MarshalWrite(confYAMLFile)
 		if err != nil {
-			return options, err
+			return err
 		}
 
 		options.YAMLConfig = configuration
 	} else {
-		configuration, err := UnmarshalRead(configPath)
+		configuration, err := UnmarshalRead(confYAMLFile)
 		if err != nil {
-			return options, err
+			return err
 		}
 
-		if configuration.Version != version {
+		if configuration.Version != VERSION {
 			configuration.Sources = sources.All
-			configuration.Version = version
+			configuration.Version = VERSION
 
-			err := configuration.MarshalWrite(configPath)
+			err := configuration.MarshalWrite(confYAMLFile)
 			if err != nil {
-				return options, err
+				return err
 			}
 		}
 
 		options.YAMLConfig = configuration
 	}
 
-	return options, nil
+	return
 }
 
 func makeDirectory(directory string) error {

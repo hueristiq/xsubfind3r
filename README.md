@@ -13,11 +13,11 @@ sigsubfind3r -h
 ```
 
 ```text
-     _                 _      __ _           _
- ___(_) __ _ ___ _   _| |__  / _(_)_ __   __| | ___ _ __
-/ __| |/ _` / __| | | | '_ \| |_| | '_ \ / _` |/ _ \ '__|
-\__ \ | (_| \__ \ |_| | |_) |  _| | | | | (_| |  __/ |
-|___/_|\__, |___/\__,_|_.__/|_| |_|_| |_|\__,_|\___|_| V1.0.0
+     _                 _      __ _           _ _____
+ ___(_) __ _ ___ _   _| |__  / _(_)_ __   __| |___ / _ __
+/ __| |/ _` / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
+\__ \ | (_| \__ \ |_| | |_) |  _| | | | | (_| |___) | |
+|___/_|\__, |___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v1.0.0
        |___/
 
 USAGE:
@@ -25,12 +25,11 @@ USAGE:
 
 OPTIONS:
   -d,  --domain            domain to find subdomains for
-  -es, --exclude-sources   comma(,) separated list of sources to exclude
-  -ls, --list-sources      list all the sources available
-  -nc, --no-color          no color mode: Don't use colors in output
+  -eS, --exclude-sources   comma(,) separated list of sources to exclude
+  -lS, --list-sources      list all the sources available
+  -nC, --no-color          no color mode: Don't use colors in output
   -s,  --silent            silent mode: Output subdomains only
-  -us, --use-sources       comma(,) separated list of sources to use
-
+  -uS, --use-sources       comma(,) separated list of sources to use
 ```
 
 **DESCLAIMER:** wayback and github sources are a bit slow.
@@ -71,7 +70,7 @@ The API keys are stored in the `$HOME/.config/sigsubfind3r/conf.yaml` file - cre
 Example:
 
 ```yaml
-version: 1.3.0
+version: 1.0.0
 sources:
     - alienvault
     - anubis
