@@ -8,10 +8,11 @@ sigsubfind3r is a passive subdomain discovery tool - it gathers a list of subdom
 
 To display help message for sigsubfind3r use the `-h` flag:
 
+```bash
+sigsubfind3r -h
 ```
-$ sigsubfind3r -h
 
-
+```text
      _                 _      __ _           _
  ___(_) __ _ ___ _   _| |__  / _(_)_ __   __| | ___ _ __
 / __| |/ _` / __| | | | '_ \| |_| | '_ \ / _` |/ _ \ '__|
@@ -45,17 +46,17 @@ You can download the pre-built binary for your platform from this repository's [
 sigsubfind3r requires **go1.14+** to install successfully. Run the following command to get the repo:-
 
 ```bash
-▶ GO111MODULE=on go get -u -v github.com/signedsecurity/sigsubfind3r/cmd/sigsubfind3r
+GO111MODULE=on go get -u -v github.com/signedsecurity/sigsubfind3r/cmd/sigsubfind3r
 ```
 
 #### From Github
 
 ```bash
-▶ git clone https://github.com/signedsecurity/sigsubfind3r.git
-▶ cd sigsubfind3r/cmd/sigsubfind3r/
-▶ go build . 
-▶ mv sigsubfind3r /usr/local/bin/
-▶ sigsubfind3r -h
+git clone https://github.com/signedsecurity/sigsubfind3r.git && \
+cd sigsubfind3r/cmd/sigsubfind3r/ && \
+go build . && \
+mv sigsubfind3r /usr/local/bin/ && \
+sigsubfind3r -h
 ```
 
 ## Post Installation

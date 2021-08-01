@@ -39,15 +39,15 @@ func banner() {
 func init() {
 	flag.StringVar(&so.Domain, "d", "", "")
 	flag.StringVar(&so.Domain, "domain", "", "")
-	flag.StringVar(&so.SourcesExclude, "es", "", "")
+	flag.StringVar(&so.SourcesExclude, "eS", "", "")
 	flag.StringVar(&so.SourcesExclude, "exclude-sources", "", "")
-	flag.BoolVar(&co.sourcesList, "ls", false, "")
+	flag.BoolVar(&co.sourcesList, "lS", false, "")
 	flag.BoolVar(&co.sourcesList, "list-sources", false, "")
-	flag.BoolVar(&co.noColor, "nc", false, "")
+	flag.BoolVar(&co.noColor, "nC", false, "")
 	flag.BoolVar(&co.noColor, "no-color", false, "")
 	flag.BoolVar(&co.silent, "s", false, "")
 	flag.BoolVar(&co.silent, "silent", false, "")
-	flag.StringVar(&so.SourcesUse, "us", "", "")
+	flag.StringVar(&so.SourcesUse, "uS", "", "")
 	flag.StringVar(&so.SourcesUse, "use-sources", "", "")
 
 	flag.Usage = func() {
@@ -58,11 +58,11 @@ func init() {
 
 		h += "\nOPTIONS:\n"
 		h += "  -d,  --domain            domain to find subdomains for\n"
-		h += "  -es, --exclude-sources   comma(,) separated list of sources to exclude\n"
-		h += "  -ls, --list-sources      list all the sources available\n"
-		h += "  -nc, --no-color          no color mode: Don't use colors in output\n"
+		h += "  -eS, --exclude-sources   comma(,) separated list of sources to exclude\n"
+		h += "  -lS, --list-sources      list all the sources available\n"
+		h += "  -nC, --no-color          no color mode: Don't use colors in output\n"
 		h += "  -s,  --silent            silent mode: Output subdomains only\n"
-		h += "  -us, --use-sources       comma(,) separated list of sources to use\n"
+		h += "  -uS, --use-sources       comma(,) separated list of sources to use\n"
 
 		fmt.Println(h)
 	}
