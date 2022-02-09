@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources"
 	"gopkg.in/yaml.v3"
@@ -18,6 +19,7 @@ type Configuration struct {
 	Keys    struct {
 		Chaos  []string `yaml:"chaos"`
 		GitHub []string `yaml:"github"`
+		Intelx []string `yaml:"intelx"`
 	}
 }
 
@@ -30,7 +32,7 @@ type Options struct {
 }
 
 const (
-	VERSION string = "1.1.0"
+	VERSION string = "1.2.0"
 )
 
 var (
@@ -150,6 +152,16 @@ func (config *Configuration) GetKeys() sources.Keys {
 
 	if len(config.Keys.GitHub) > 0 {
 		keys.GitHub = config.Keys.GitHub
+	}
+
+	intelxKeysCount := len(config.Keys.Intelx)
+	if intelxKeysCount > 0 {
+		intelxKeys := config.Keys.Intelx[rand.Intn(intelxKeysCount)]
+		parts := strings.Split(intelxKeys, ":")
+		if len(parts) == 2 {
+			keys.IntelXHost = parts[0]
+			keys.IntelXKey = parts[1]
+		}
 	}
 
 	return keys
