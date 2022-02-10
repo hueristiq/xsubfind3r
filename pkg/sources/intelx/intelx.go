@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/enenumxela/urlx/pkg/urlx"
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources"
 )
 
@@ -87,7 +88,8 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 
 			status = response.Status
 			for _, hostname := range response.Selectors {
-				subdomains <- sources.Subdomain{Source: source.Name(), Value: hostname.Selectvalue}
+				URL, _ := urlx.Parse(hostname.Selectvalue)
+				subdomains <- sources.Subdomain{Source: source.Name(), Value: URL.Domain}
 			}
 		}
 	}()
