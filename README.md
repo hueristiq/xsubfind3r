@@ -17,7 +17,7 @@ sigsubfind3r -h
  ___(_) __ _ ___ _   _| |__  / _(_)_ __   __| |___ / _ __
 / __| |/ _` / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
 \__ \ | (_| \__ \ |_| | |_) |  _| | | | | (_| |___) | |
-|___/_|\__, |___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v1.1.0
+|___/_|\__, |___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v1.2.0
        |___/
 
 USAGE:
@@ -42,10 +42,10 @@ You can download the pre-built binary for your platform from this repository's [
 
 #### From Source
 
-sigsubfind3r requires **go1.14+** to install successfully. Run the following command to get the repo:-
+sigsubfind3r requires **go1.17+** to install successfully. Run the following command to get the repo:-
 
 ```bash
-GO111MODULE=on go get -u -v github.com/signedsecurity/sigsubfind3r/cmd/sigsubfind3r
+go install -v github.com/signedsecurity/sigsubfind3r/cmd/sigsubfind3r@latest
 ```
 
 #### From Github
@@ -64,13 +64,14 @@ sigsubfind3r will work after [installation](#installation). However, to configur
 
 * chaos
 * github
+* intelx
 
 The API keys are stored in the `$HOME/.config/sigsubfind3r/conf.yaml` file - created upon first run - and uses the YAML format. Multiple API keys can be specified for each of these services.
 
 Example:
 
 ```yaml
-version: 1.1.0
+version: 1.2.0
 sources:
     - alienvault
     - anubis
@@ -81,6 +82,7 @@ sources:
     - crtsh
     - github
     - hackertarget
+    - intelx
     - rapiddns
     - riddler
     - sonar
@@ -96,6 +98,8 @@ keys:
     github:
         - d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39
         - asdsd54bbc1aabb208c9acfbd2dd41ce7fc9db39
+    intelx:
+        - 2.intelx.io:00000000-0000-0000-0000-000000000000
 ```
 ## Contribution
 
