@@ -13,6 +13,7 @@ import (
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources/crtsh"
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources/github"
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources/hackertarget"
+	"github.com/signedsecurity/sigsubfind3r/pkg/sources/intelx"
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources/rapiddns"
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources/riddler"
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources/sonar"
@@ -53,6 +54,8 @@ func New(uses, exclusions []string) *Agent {
 			agent.sources[source] = &github.Source{}
 		case "hackertarget":
 			agent.sources[source] = &hackertarget.Source{}
+		case "intelx":
+			agent.sources[source] = &intelx.Source{}
 		case "rapiddns":
 			agent.sources[source] = &rapiddns.Source{}
 		case "riddler":

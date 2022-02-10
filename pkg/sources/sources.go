@@ -11,6 +11,7 @@ var All = []string{
 	"crtsh",
 	"github",
 	"hackertarget",
+	"intelx",
 	"rapiddns",
 	"riddler",
 	"sonar",

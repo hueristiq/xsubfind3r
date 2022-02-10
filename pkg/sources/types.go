@@ -17,8 +17,11 @@ type Source interface {
 }
 
 type Keys struct {
-	Chaos  string   `json:"chaos"`
-	GitHub []string `json:"github"`
+	Chaos      string   `json:"chaos"`
+	GitHub     []string `json:"github"`
+	Intelx     string   `json:"intelx"` // unused, add just for the purpose of adding * on listing sources
+	IntelXHost string   `json:"intelXHost"`
+	IntelXKey  string   `json:"intelXKey"`
 }
 
 type Session struct {
