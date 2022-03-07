@@ -32,7 +32,7 @@ type Options struct {
 }
 
 const (
-	VERSION string = "1.2.1"
+	VERSION string = "1.2.2"
 )
 
 var (

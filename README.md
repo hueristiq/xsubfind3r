@@ -17,7 +17,7 @@ sigsubfind3r -h
  ___(_) __ _ ___ _   _| |__  / _(_)_ __   __| |___ / _ __
 / __| |/ _` / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
 \__ \ | (_| \__ \ |_| | |_) |  _| | | | | (_| |___) | |
-|___/_|\__, |___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v1.2.1
+|___/_|\__, |___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v1.2.2
        |___/
 
 USAGE:
@@ -71,10 +71,11 @@ The API keys are stored in the `$HOME/.config/sigsubfind3r/conf.yaml` file - cre
 Example:
 
 ```yaml
-version: 1.2.1
+version: 1.2.2
 sources:
     - alienvault
     - anubis
+    - archiveis
     - bufferover
     - cebaidu
     - certspotterv0
