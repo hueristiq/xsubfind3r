@@ -88,7 +88,11 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 
 			status = response.Status
 			for _, hostname := range response.Selectors {
-				URL, _ := urlx.Parse(hostname.Selectvalue)
+				URL, err := urlx.Parse(hostname.Selectvalue)
+				if err != nil {
+					continue
+				}
+
 				subdomains <- sources.Subdomain{Source: source.Name(), Value: URL.Domain}
 			}
 		}
