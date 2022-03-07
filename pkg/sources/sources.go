@@ -4,6 +4,7 @@ package sources
 var All = []string{
 	"alienvault",
 	"anubis",
+	"archiveis",
 	"bufferover",
 	"cebaidu",
 	"certspotterv0",

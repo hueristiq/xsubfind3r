@@ -6,6 +6,7 @@ import (
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources"
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources/alienvault"
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources/anubis"
+	"github.com/signedsecurity/sigsubfind3r/pkg/sources/archiveis"
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources/bufferover"
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources/cebaidu"
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources/certspotterv0"
@@ -40,6 +41,8 @@ func New(uses, exclusions []string) *Agent {
 			agent.sources[source] = &alienvault.Source{}
 		case "anubis":
 			agent.sources[source] = &anubis.Source{}
+		case "archiveis":
+			agent.sources[source] = &archiveis.Source{}
 		case "bufferover":
 			agent.sources[source] = &bufferover.Source{}
 		case "cebaidu":
