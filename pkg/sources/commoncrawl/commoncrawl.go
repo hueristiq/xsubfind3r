@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/enenumxela/urlx/pkg/urlx"
 	"github.com/signedsecurity/sigsubfind3r/pkg/sources"
@@ -34,7 +35,7 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 	go func() {
 		defer close(subdomains)
 
-		res, err := session.SimpleGet("http://index.commoncrawl.org/collinfo.json")
+		res, err := session.SimpleGet("https://index.commoncrawl.org/collinfo.json")
 		if err != nil {
 			return
 		}
@@ -42,38 +43,49 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 		var apiRresults CommonAPIResult
 
 		if err := json.Unmarshal(res.Body(), &apiRresults); err != nil {
+			fmt.Println(err)
 			return
 		}
 
+		wg := new(sync.WaitGroup)
+
 		for _, u := range apiRresults {
-			var headers = map[string]string{"Host": "index.commoncrawl.org"}
+			wg.Add(1)
 
-			res, err := session.Get(fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url", u.API, domain), "", headers)
-			if err != nil {
-				continue
-			}
+			go func(api string) {
+				defer wg.Done()
 
-			sc := bufio.NewScanner(bytes.NewReader(res.Body()))
+				var headers = map[string]string{"Host": "index.commoncrawl.org"}
 
-			for sc.Scan() {
-				var result CommonResult
-
-				if err := json.Unmarshal(sc.Bytes(), &result); err != nil {
+				res, err := session.Get(fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url", api, domain), "", headers)
+				if err != nil {
 					return
 				}
 
-				if result.Error != "" {
-					continue
-				}
+				sc := bufio.NewScanner(bytes.NewReader(res.Body()))
 
-				URL, err := urlx.Parse(result.URL)
-				if err != nil {
-					continue
-				}
+				for sc.Scan() {
+					var result CommonResult
 
-				subdomains <- sources.Subdomain{Source: source.Name(), Value: URL.Domain}
-			}
+					if err := json.Unmarshal(sc.Bytes(), &result); err != nil {
+						return
+					}
+
+					if result.Error != "" {
+						continue
+					}
+
+					URL, err := urlx.Parse(result.URL)
+					if err != nil {
+						continue
+					}
+
+					subdomains <- sources.Subdomain{Source: source.Name(), Value: URL.Domain}
+				}
+			}(u.API)
 		}
+
+		wg.Wait()
 	}()
 
 	return subdomains

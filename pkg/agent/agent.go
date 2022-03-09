@@ -107,11 +107,11 @@ func (agent *Agent) Run(domain string, keys *sources.Keys) chan sources.Subdomai
 			wg.Add(1)
 
 			go func(source string, runner sources.Source) {
+				defer wg.Done()
+
 				for resp := range runner.Run(domain, session) {
 					results <- resp
 				}
-
-				wg.Done()
 			}(source, runner)
 		}
 
