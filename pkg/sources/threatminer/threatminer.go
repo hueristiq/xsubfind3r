@@ -21,7 +21,10 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 	go func() {
 		defer close(subdomains)
 
-		res, _ := session.SimpleGet(fmt.Sprintf("https://api.threatminer.org/v2/domain.php?q=%s&rt=5", domain))
+		res, err := session.SimpleGet(fmt.Sprintf("https://api.threatminer.org/v2/domain.php?q=%s&rt=5", domain))
+		if err != nil {
+			return
+		}
 
 		var results response
 

@@ -96,7 +96,10 @@ func (agent *Agent) Run(domain string, keys *sources.Keys) chan sources.Subdomai
 	go func() {
 		defer close(results)
 
-		session, _ := sources.NewSession(domain, keys)
+		session, err := sources.NewSession(domain, keys)
+		if err != nil {
+			return
+		}
 
 		wg := new(sync.WaitGroup)
 

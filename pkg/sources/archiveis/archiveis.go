@@ -14,7 +14,10 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 	go func() {
 		defer close(subdomains)
 
-		res, _ := session.SimpleGet(fmt.Sprintf("https://archive.is/*.%s", domain))
+		res, err := session.SimpleGet(fmt.Sprintf("https://archive.is/*.%s", domain))
+		if err != nil {
+			return
+		}
 
 		src := string(res.Body())
 

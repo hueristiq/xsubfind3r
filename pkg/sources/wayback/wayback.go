@@ -17,7 +17,10 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 	go func() {
 		defer close(subdomains)
 
-		res, _ := session.SimpleGet(fmt.Sprintf("http://web.archive.org/cdx/search/cdx?url=*.%s/*&output=txt&fl=original&collapse=urlkey", domain))
+		res, err := session.SimpleGet(fmt.Sprintf("http://web.archive.org/cdx/search/cdx?url=*.%s/*&output=txt&fl=original&collapse=urlkey", domain))
+		if err != nil {
+			return
+		}
 
 		scanner := bufio.NewScanner(bytes.NewReader(res.Body()))
 

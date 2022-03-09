@@ -14,7 +14,10 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 	go func() {
 		defer close(subdomains)
 
-		res, _ := session.SimpleGet(fmt.Sprintf("https://rapiddns.io/subdomain/%s?full=1", domain))
+		res, err := session.SimpleGet(fmt.Sprintf("https://rapiddns.io/subdomain/%s?full=1", domain))
+		if err != nil {
+			return
+		}
 
 		for _, subdomain := range session.Extractor.FindAllString(string(res.Body()), -1) {
 			subdomains <- sources.Subdomain{Source: source.Name(), Value: subdomain}

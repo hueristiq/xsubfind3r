@@ -19,7 +19,10 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 	go func() {
 		defer close(subdomains)
 
-		res, _ := session.SimpleGet(fmt.Sprintf("https://sonar.omnisint.io/subdomains/%s", domain))
+		res, err := session.SimpleGet(fmt.Sprintf("https://sonar.omnisint.io/subdomains/%s", domain))
+		if err != nil {
+			return
+		}
 
 		var results []interface{}
 

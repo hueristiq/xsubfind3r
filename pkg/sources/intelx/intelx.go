@@ -3,7 +3,6 @@ package intelx
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/enenumxela/urlx/pkg/urlx"
@@ -53,20 +52,17 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 
 		body, err := json.Marshal(reqBody)
 		if err != nil {
-			log.Fatalln(err)
 			return
 		}
 
 		res, err := session.SimplePost(searchURL, "application/json", body)
 		if err != nil {
-			log.Fatalln(err)
 			return
 		}
 
 		var response searchResponseType
 
 		if err := json.Unmarshal(res.Body(), &response); err != nil {
-			log.Fatalln(err)
 			return
 		}
 
@@ -75,14 +71,12 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 		for status == 0 || status == 3 {
 			res, err = session.Get(resultsURL, "", nil)
 			if err != nil {
-				log.Fatalln(err)
 				return
 			}
 
 			var response searchResultType
 
 			if err := json.Unmarshal(res.Body(), &response); err != nil {
-				log.Fatalln(err)
 				return
 			}
 

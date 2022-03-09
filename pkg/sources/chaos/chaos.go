@@ -26,13 +26,16 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 			return
 		}
 
-		res, _ := session.Request(
+		res, err := session.Request(
 			fasthttp.MethodGet,
 			fmt.Sprintf("https://dns.projectdiscovery.io/dns/%s/subdomains", domain),
 			"",
 			map[string]string{"Authorization": session.Keys.Chaos},
 			nil,
 		)
+		if err != nil {
+			return
+		}
 
 		var results response
 

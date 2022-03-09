@@ -15,7 +15,10 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 	go func() {
 		defer close(subdomains)
 
-		res, _ := session.SimpleGet(fmt.Sprintf("https://jldc.me/anubis/subdomains/%s", domain))
+		res, err := session.SimpleGet(fmt.Sprintf("https://jldc.me/anubis/subdomains/%s", domain))
+		if err != nil {
+			return
+		}
 
 		var results []string
 

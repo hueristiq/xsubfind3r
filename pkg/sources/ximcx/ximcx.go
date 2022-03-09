@@ -23,7 +23,10 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 	go func() {
 		defer close(subdomains)
 
-		res, _ := session.SimpleGet(fmt.Sprintf("http://sbd.ximcx.cn/DomainServlet?domain=%s", domain))
+		res, err := session.SimpleGet(fmt.Sprintf("http://sbd.ximcx.cn/DomainServlet?domain=%s", domain))
+		if err != nil {
+			return
+		}
 
 		var results response
 

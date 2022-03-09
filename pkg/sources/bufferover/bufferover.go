@@ -33,8 +33,10 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 }
 
 func (source *Source) getData(sourceURL string, session *sources.Session, subdomains chan sources.Subdomain) {
-
-	res, _ := session.SimpleGet(sourceURL)
+	res, err := session.SimpleGet(sourceURL)
+	if err != nil {
+		return
+	}
 
 	var results response
 

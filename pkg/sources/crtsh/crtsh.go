@@ -21,7 +21,10 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 	go func() {
 		defer close(subdomains)
 
-		res, _ := session.SimpleGet(fmt.Sprintf("https://crt.sh/?q=%%25.%s&output=json", domain))
+		res, err := session.SimpleGet(fmt.Sprintf("https://crt.sh/?q=%%25.%s&output=json", domain))
+		if err != nil {
+			return
+		}
 
 		var results []response
 

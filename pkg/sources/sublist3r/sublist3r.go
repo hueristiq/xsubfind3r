@@ -15,7 +15,10 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 	go func() {
 		defer close(subdomains)
 
-		res, _ := session.SimpleGet(fmt.Sprintf("https://api.sublist3r.com/search.php?domain=%s", domain))
+		res, err := session.SimpleGet(fmt.Sprintf("https://api.sublist3r.com/search.php?domain=%s", domain))
+		if err != nil {
+			return
+		}
 
 		body := res.Body()
 
