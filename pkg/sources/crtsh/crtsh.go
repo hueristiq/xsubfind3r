@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/signedsecurity/sigsubfind3r/pkg/sources"
+	"github.com/hueristiq/subfind3r/pkg/sources"
 )
 
 type response struct {

@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hueristiq/subfind3r/internal/configuration"
+	"github.com/hueristiq/subfind3r/pkg/runner"
 	"github.com/logrusorgru/aurora/v3"
-	"github.com/signedsecurity/sigsubfind3r/internal/configuration"
-	"github.com/signedsecurity/sigsubfind3r/pkg/runner"
 )
 
 type options struct {
@@ -44,7 +44,7 @@ func init() {
 		fmt.Fprintln(os.Stderr, configuration.BANNER)
 
 		h := "USAGE:\n"
-		h += "  sigsubfind3r [OPTIONS]\n"
+		h += "  subfind3r [OPTIONS]\n"
 
 		h += "\nOPTIONS:\n"
 		h += "  -d,  --domain            domain to find subdomains for\n"

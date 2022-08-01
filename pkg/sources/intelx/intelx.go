@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/enenumxela/urlx/pkg/urlx"
-	"github.com/signedsecurity/sigsubfind3r/pkg/sources"
+	"github.com/hueristiq/subfind3r/pkg/sources"
 )
 
 type searchResponseType struct {

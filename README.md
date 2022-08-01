@@ -1,27 +1,26 @@
-# sigsubfind3r
+# subfind3r
 
-[![release](https://img.shields.io/github/release/signedsecurity/sigsubfind3r?style=flat&color=0040ff)](https://github.com/signedsecurity/sigsubfind3r/releases) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-0040ff.svg) [![open issues](https://img.shields.io/github/issues-raw/signedsecurity/sigsubfind3r.svg?style=flat&color=0040ff)](https://github.com/signedsecurity/sigsubfind3r/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/signedsecurity/sigsubfind3r.svg?style=flat&color=0040ff)](https://github.com/signedsecurity/sigsubfind3r/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?colorB=0040FF)](https://github.com/signedsecurity/sigsubfind3r/blob/master/LICENSE) [![twitter](https://img.shields.io/badge/twitter-@signedsecurity-0040ff.svg)](https://twitter.com/signedsecurity)
+[![release](https://img.shields.io/github/release/hueristiq/subfind3r?style=flat&color=0040ff)](https://github.com/hueristiq/subfind3r/releases) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-0040ff.svg) [![open issues](https://img.shields.io/github/issues-raw/hueristiq/subfind3r.svg?style=flat&color=0040ff)](https://github.com/hueristiq/subfind3r/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/hueristiq/subfind3r.svg?style=flat&color=0040ff)](https://github.com/hueristiq/subfind3r/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?colorB=0040FF)](https://github.com/hueristiq/subfind3r/blob/master/LICENSE) [![twitter](https://img.shields.io/badge/twitter-@itshueristiq-0040ff.svg)](https://twitter.com/itshueristiq)
 
-sigsubfind3r is a passive subdomain discovery tool - it gathers a list of subdomains passively using a curated list of passive online sources.
+subfind3r is a passive subdomain discovery tool - it gathers a list of subdomains passively using a curated list of passive online sources.
 
 ## Usage
 
-To display help message for sigsubfind3r use the `-h` flag:
+To display help message for subfind3r use the `-h` flag:
 
 ```bash
-sigsubfind3r -h
+subfind3r -h
 ```
 
 ```text
-     _                 _      __ _           _ _____
- ___(_) __ _ ___ _   _| |__  / _(_)_ __   __| |___ / _ __
-/ __| |/ _` / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
-\__ \ | (_| \__ \ |_| | |_) |  _| | | | | (_| |___) | |
-|___/_|\__, |___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v1.4.0
-       |___/
+           _      __ _           _ _____      
+ ___ _   _| |__  / _(_)_ __   __| |___ / _ __ 
+/ __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
+\__ \ |_| | |_) |  _| | | | | (_| |___) | |   
+|___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v1.4.0
 
 USAGE:
-  sigsubfind3r [OPTIONS]
+  subfind3r [OPTIONS]
 
 OPTIONS:
   -d,  --domain            domain to find subdomains for
@@ -38,35 +37,35 @@ OPTIONS:
 
 #### From Binary
 
-You can download the pre-built binary for your platform from this repository's [releases](https://github.com/signedsecurity/sigsubfind3r/releases/) page, extract, then move it to your `$PATH`and you're ready to go.
+You can download the pre-built binary for your platform from this repository's [releases](https://github.com/hueristiq/subfind3r/releases/) page, extract, then move it to your `$PATH`and you're ready to go.
 
 #### From Source
 
-sigsubfind3r requires **go1.17+** to install successfully. Run the following command to get the repo:-
+subfind3r requires **go1.17+** to install successfully. Run the following command to get the repo:-
 
 ```bash
-go install -v github.com/signedsecurity/sigsubfind3r/cmd/sigsubfind3r@latest
+go install -v github.com/hueristiq/subfind3r/cmd/subfind3r@latest
 ```
 
 #### From Github
 
 ```bash
-git clone https://github.com/signedsecurity/sigsubfind3r.git && \
-cd sigsubfind3r/cmd/sigsubfind3r/ && \
+git clone https://github.com/hueristiq/subfind3r.git && \
+cd subfind3r/cmd/subfind3r/ && \
 go build . && \
-mv sigsubfind3r /usr/local/bin/ && \
-sigsubfind3r -h
+mv subfind3r /usr/local/bin/ && \
+subfind3r -h
 ```
 
 ## Post Installation
 
-sigsubfind3r will work after [installation](#installation). However, to configure sigsubfind3r to work with certain services you will need to have setup API keys. Currently these services include:
+subfind3r will work after [installation](#installation). However, to configure subfind3r to work with certain services you will need to have setup API keys. Currently these services include:
 
 * chaos
 * github
 * intelx
 
-The API keys are stored in the `$HOME/.config/sigsubfind3r/conf.yaml` file - created upon first run - and uses the YAML format. Multiple API keys can be specified for each of these services.
+The API keys are stored in the `$HOME/.config/subfind3r/conf.yaml` file - created upon first run - and uses the YAML format. Multiple API keys can be specified for each of these services.
 
 Example:
 
@@ -104,4 +103,4 @@ keys:
 ```
 ## Contribution
 
-[Issues](https://github.com/signedsecurity/sigsubfind3r/issues) and [Pull Requests](https://github.com/signedsecurity/sigsubfind3r/pulls) are welcome! 
+[Issues](https://github.com/hueristiq/subfind3r/issues) and [Pull Requests](https://github.com/hueristiq/subfind3r/pulls) are welcome! 

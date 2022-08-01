@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/signedsecurity/sigsubfind3r/pkg/sources"
+	"github.com/hueristiq/subfind3r/pkg/sources"
 	"github.com/tomnomnom/linkheader"
 	"github.com/valyala/fasthttp"
 )

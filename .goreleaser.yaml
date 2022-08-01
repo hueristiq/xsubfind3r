@@ -4,8 +4,8 @@ before:
 
 builds:
     -
-        binary: sigsubfind3r
-        main: cmd/sigsubfind3r/main.go
+        binary: subfind3r
+        main: cmd/subfind3r/main.go
         goos:
             - linux
             - windows

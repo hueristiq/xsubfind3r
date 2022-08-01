@@ -3,9 +3,9 @@ package runner
 import (
 	"strings"
 
-	"github.com/signedsecurity/sigsubfind3r/internal/configuration"
-	"github.com/signedsecurity/sigsubfind3r/pkg/agent"
-	"github.com/signedsecurity/sigsubfind3r/pkg/sources"
+	"github.com/hueristiq/subfind3r/internal/configuration"
+	"github.com/hueristiq/subfind3r/pkg/agent"
+	"github.com/hueristiq/subfind3r/pkg/sources"
 )
 
 type Runner struct {
