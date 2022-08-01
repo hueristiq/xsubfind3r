@@ -24,4 +24,4 @@ jobs:
             -
                 name: Build
                 run: go build -v .
-                working-directory: ./
+                working-directory: ./cmd/subfind3r
