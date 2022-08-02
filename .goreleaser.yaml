@@ -4,8 +4,8 @@ before:
 
 builds:
     -
-        binary: subfind3r
-        main: cmd/subfind3r/main.go
+        binary: hqsubfind3r
+        main: cmd/hqsubfind3r/main.go
         goos:
             - linux
             - windows

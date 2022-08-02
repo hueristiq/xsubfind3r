@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/enenumxela/urlx/pkg/urlx"
-	"github.com/hueristiq/subfind3r/pkg/sources"
+	"github.com/hueristiq/hqsubfind3r/pkg/sources"
 )
 
 type Source struct{}

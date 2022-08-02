@@ -1,4 +1,4 @@
-module github.com/hueristiq/subfind3r
+module github.com/hueristiq/hqsubfind3r
 
 go 1.18
 

@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hueristiq/subfind3r/pkg/sources"
+	"github.com/hueristiq/hqsubfind3r/pkg/sources"
 	"gopkg.in/yaml.v3"
 )
 
@@ -37,12 +37,12 @@ const (
 
 var (
 	BANNER string = fmt.Sprintf(`
-           _      __ _           _ _____      
- ___ _   _| |__  / _(_)_ __   __| |___ / _ __ 
-/ __| | | | '_ \| |_| | '_ \ / _`+"`"+` | |_ \| '__|
-\__ \ |_| | |_) |  _| | | | | (_| |___) | |   
-|___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v%s
-`, VERSION)
+ _                     _      __ _           _ _____      
+| |__   __ _ ___ _   _| |__  / _(_)_ __   __| |___ / _ __ 
+| '_ \ / _`+"`"+` / __| | | | '_ \| |_| | '_ \ / _`+"`"+` | |_ \| '__|
+| | | | (_| \__ \ |_| | |_) |  _| | | | | (_| |___) | |   
+|_| |_|\__, |___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v%s
+          |_|`, VERSION)
 
 	CONFDIR string = func() (directory string) {
 		home, err := os.UserHomeDir()
@@ -50,7 +50,7 @@ var (
 			log.Fatalln(err)
 		}
 
-		directory = filepath.Join(home, ".config", "subfind3r")
+		directory = filepath.Join(home, ".config", "hqsubfind3r")
 
 		return
 	}()

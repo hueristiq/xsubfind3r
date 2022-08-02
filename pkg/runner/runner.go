@@ -3,9 +3,9 @@ package runner
 import (
 	"strings"
 
-	"github.com/hueristiq/subfind3r/internal/configuration"
-	"github.com/hueristiq/subfind3r/pkg/agent"
-	"github.com/hueristiq/subfind3r/pkg/sources"
+	"github.com/hueristiq/hqsubfind3r/internal/configuration"
+	"github.com/hueristiq/hqsubfind3r/pkg/agent"
+	"github.com/hueristiq/hqsubfind3r/pkg/sources"
 )
 
 type Runner struct {

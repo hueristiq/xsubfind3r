@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/hueristiq/subfind3r/pkg/sources"
+	"github.com/hueristiq/hqsubfind3r/pkg/sources"
 	"github.com/valyala/fasthttp"
 )
 

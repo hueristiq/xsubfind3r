@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hueristiq/subfind3r/internal/configuration"
-	"github.com/hueristiq/subfind3r/pkg/runner"
+	"github.com/hueristiq/hqsubfind3r/internal/configuration"
+	"github.com/hueristiq/hqsubfind3r/pkg/runner"
 	"github.com/logrusorgru/aurora/v3"
 )
 
@@ -44,7 +44,7 @@ func init() {
 		fmt.Fprintln(os.Stderr, configuration.BANNER)
 
 		h := "USAGE:\n"
-		h += "  subfind3r [OPTIONS]\n"
+		h += "  hqsubfind3r [OPTIONS]\n"
 
 		h += "\nOPTIONS:\n"
 		h += "  -d,  --domain            domain to find subdomains for\n"
