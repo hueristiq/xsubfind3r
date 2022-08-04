@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/enenumxela/urlx/pkg/urlx"
 	"github.com/hueristiq/hqsubfind3r/pkg/sources"
+	"github.com/hueristiq/url"
 )
 
 type searchResponseType struct {
@@ -82,7 +82,7 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 
 			status = response.Status
 			for _, hostname := range response.Selectors {
-				URL, err := urlx.Parse(hostname.Selectvalue)
+				URL, err := url.Parse(url.Options{URL: hostname.Selectvalue})
 				if err != nil {
 					continue
 				}

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/enenumxela/urlx/pkg/urlx"
 	"github.com/hueristiq/hqsubfind3r/pkg/sources"
+	"github.com/hueristiq/url"
 )
 
 type Source struct{}
@@ -75,7 +75,7 @@ func (source *Source) Run(domain string, session *sources.Session) chan sources.
 						continue
 					}
 
-					URL, err := urlx.Parse(result.URL)
+					URL, err := url.Parse(url.Options{URL: result.URL})
 					if err != nil {
 						continue
 					}
