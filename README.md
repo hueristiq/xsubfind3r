@@ -111,7 +111,7 @@ The API keys are stored in the `$HOME/.hueristiq/xurlfind3r/config.yaml` file - 
 Example:
 
 ```yaml
-version: 1.4.0
+version: 0.0.0
 sources:
     - alienvault
     - anubis
