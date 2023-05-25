@@ -1,26 +1,27 @@
 package configuration
 
 import (
-	"fmt"
-	"log"
 	"math/rand"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
-	"github.com/hueristiq/hqsubfind3r/pkg/sources"
+	hqlog "github.com/hueristiq/hqgoutils/log"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/logrusorgru/aurora/v3"
 	"gopkg.in/yaml.v3"
 )
+
+type Keys struct {
+	Chaos  []string `yaml:"chaos"`
+	Github []string `yaml:"github"`
+	Intelx []string `yaml:"intelx"`
+}
 
 type Configuration struct {
 	Version string   `yaml:"version"`
 	Sources []string `yaml:"sources"`
-	Keys    struct {
-		Chaos  []string `yaml:"chaos"`
-		GitHub []string `yaml:"github"`
-		Intelx []string `yaml:"intelx"`
-	}
+	Keys    Keys     `yaml:"keys"`
 }
 
 type Options struct {
@@ -32,131 +33,112 @@ type Options struct {
 }
 
 const (
-	VERSION string = "1.5.0"
+	NAME        string = "xsubfind3r"
+	VERSION     string = "0.0.0"
+	DESCRIPTION string = "A CLI utility to find domain's known subdomains."
 )
 
 var (
-	BANNER string = fmt.Sprintf(`
- _                     _      __ _           _ _____      
-| |__   __ _ ___ _   _| |__  / _(_)_ __   __| |___ / _ __ 
-| '_ \ / _`+"`"+` / __| | | | '_ \| |_| | '_ \ / _`+"`"+` | |_ \| '__|
-| | | | (_| \__ \ |_| | |_) |  _| | | | | (_| |___) | |   
-|_| |_|\__, |___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v%s
-          |_|`, VERSION)
+	BANNER = aurora.Sprintf(
+		aurora.BrightBlue(`
+                _      __ _           _ _____      
+__  _____ _   _| |__  / _(_)_ __   __| |___ / _ __ 
+\ \/ / __| | | | '_ \| |_| | '_ \ / _`+"`"+` | |_ \| '__|
+ >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |   
+/_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| %s
 
-	CONFDIR string = func() (directory string) {
+%s
+`).Bold(),
+		aurora.BrightYellow("v"+VERSION).Bold(),
+		aurora.BrightGreen(DESCRIPTION).Italic(),
+	)
+	rootDirectoryName        = ".hueristiq"
+	projectRootDirectoryName = NAME
+	ProjectRootDirectoryPath = func(rootDirectoryName, projectRootDirectoryName string) string {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			log.Fatalln(err)
+			hqlog.Fatal().Msg(err.Error())
 		}
 
-		directory = filepath.Join(home, ".config", "hqsubfind3r")
-
-		return
-	}()
+		return filepath.Join(home, rootDirectoryName, projectRootDirectoryName)
+	}(rootDirectoryName, projectRootDirectoryName)
+	configurationFileName = "config.yaml"
+	ConfigurationFilePath = filepath.Join(ProjectRootDirectoryPath, configurationFileName)
+	Default               = Configuration{
+		Version: VERSION,
+		Sources: sources.List,
+		Keys: Keys{
+			Chaos:  []string{},
+			Github: []string{},
+			Intelx: []string{},
+		},
+	}
 )
 
-func (options *Options) Parse() (err error) {
-	confYAMLFile := filepath.Join(CONFDIR, "conf.yaml")
+func Read() (configuration Configuration, err error) {
+	var (
+		file *os.File
+	)
 
-	if _, err := os.Stat(confYAMLFile); os.IsNotExist(err) {
-		configuration := Configuration{
-			Version: VERSION,
-			Sources: sources.All,
-		}
-
-		directory, _ := path.Split(confYAMLFile)
-
-		err := makeDirectory(directory)
-		if err != nil {
-			return err
-		}
-
-		err = configuration.MarshalWrite(confYAMLFile)
-		if err != nil {
-			return err
-		}
-
-		options.YAMLConfig = configuration
-	} else {
-		configuration, err := UnmarshalRead(confYAMLFile)
-		if err != nil {
-			return err
-		}
-
-		if configuration.Version != VERSION {
-			configuration.Sources = sources.All
-			configuration.Version = VERSION
-
-			err := configuration.MarshalWrite(confYAMLFile)
-			if err != nil {
-				return err
-			}
-		}
-
-		options.YAMLConfig = configuration
+	file, err = os.Open(ConfigurationFilePath)
+	if err != nil {
+		return
 	}
+
+	defer file.Close()
+
+	err = yaml.NewDecoder(file).Decode(&configuration)
 
 	return
 }
 
-func makeDirectory(directory string) error {
-	if _, err := os.Stat(directory); os.IsNotExist(err) {
+func Write(configuration *Configuration) (err error) {
+	var (
+		file       *os.File
+		identation = 4
+	)
+
+	directory := filepath.Dir(ConfigurationFilePath)
+
+	if _, err = os.Stat(directory); os.IsNotExist(err) {
 		if directory != "" {
-			err = os.MkdirAll(directory, os.ModePerm)
-			if err != nil {
-				return err
+			if err = os.MkdirAll(directory, os.ModePerm); err != nil {
+				return
 			}
 		}
 	}
 
-	return nil
-}
-
-func (config *Configuration) MarshalWrite(file string) error {
-	f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+	file, err = os.OpenFile(ConfigurationFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
-		return err
+		return
 	}
 
-	enc := yaml.NewEncoder(f)
-	enc.SetIndent(4)
-	err = enc.Encode(&config)
-	f.Close()
-	return err
+	defer file.Close()
+
+	enc := yaml.NewEncoder(file)
+	enc.SetIndent(identation)
+	err = enc.Encode(&configuration)
+
+	return
 }
 
-func UnmarshalRead(file string) (Configuration, error) {
-	config := Configuration{}
-
-	f, err := os.Open(file)
-	if err != nil {
-		return config, err
-	}
-
-	err = yaml.NewDecoder(f).Decode(&config)
-
-	f.Close()
-
-	return config, err
-}
-
-func (config *Configuration) GetKeys() sources.Keys {
+func (configuration *Configuration) GetKeys() sources.Keys {
 	keys := sources.Keys{}
 
-	chaosKeysCount := len(config.Keys.Chaos)
+	chaosKeysCount := len(configuration.Keys.Chaos)
 	if chaosKeysCount > 0 {
-		keys.Chaos = config.Keys.Chaos[rand.Intn(chaosKeysCount)]
+		keys.Chaos = configuration.Keys.Chaos[rand.Intn(chaosKeysCount)] //nolint:gosec // Works perfectly
 	}
 
-	if len(config.Keys.GitHub) > 0 {
-		keys.GitHub = config.Keys.GitHub
+	if len(configuration.Keys.Github) > 0 {
+		keys.Github = configuration.Keys.Github
 	}
 
-	intelxKeysCount := len(config.Keys.Intelx)
+	intelxKeysCount := len(configuration.Keys.Intelx)
 	if intelxKeysCount > 0 {
-		intelxKeys := config.Keys.Intelx[rand.Intn(intelxKeysCount)]
+		intelxKeys := configuration.Keys.Intelx[rand.Intn(intelxKeysCount)] //nolint:gosec // Works perfectly
 		parts := strings.Split(intelxKeys, ":")
+
 		if len(parts) == 2 {
 			keys.IntelXHost = parts[0]
 			keys.IntelXKey = parts[1]

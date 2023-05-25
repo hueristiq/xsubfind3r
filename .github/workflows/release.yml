@@ -1,40 +1,35 @@
-name: release 🎉
+name: 🎉 release
 
 on:
     create:
+        branches:
+            - main
         tags:
             - v*.*.*
-    workflow_dispatch:
 
 jobs:
     release:
-        name: release
+        name: Release
         runs-on: ubuntu-latest
         steps:
             -
-                name: Check out code
+                name: Set up Go
+                uses: actions/setup-go@v4
+                with:
+                    go-version:  '>=1.20'
+            -
+                name: Checkout code
                 uses: actions/checkout@v3
                 with:
                     fetch-depth: 0
             -
-                name: Set up Go
-                uses: actions/setup-go@v3
+                name: Run GoReleaser
+                uses: goreleaser/goreleaser-action@v4
                 with:
-                    go-version: '>=1.17.0'
-            -
-                name: Get dependencies 
-                run: |
-                    go get -v -t -d ./...
-                    if [ -f Gopkg.toml ]; then
-                        curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-                        dep ensure
-                    fi
-            -
-                name: "Create release on GitHub"
-                uses: goreleaser/goreleaser-action@v3
+                    args: "release --clean"
+                    version: latest
                 env:
                     GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-                with:
-                    args: "release --rm-dist"
-                    version: latest
-                    distribution: goreleaser
+                    SLACK_WEBHOOK: "${{ secrets.SLACK_WEBHOOK }}"
+                    DISCORD_WEBHOOK_ID: "${{ secrets.DISCORD_WEBHOOK_ID }}"
+                    DISCORD_WEBHOOK_TOKEN: "${{ secrets.DISCORD_WEBHOOK_TOKEN }}"

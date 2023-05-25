@@ -1,71 +1,112 @@
-# hqsubfind3r
+# xsubfind3r
 
-[![release](https://img.shields.io/github/release/hueristiq/hqsubfind3r?style=flat&color=0040ff)](https://github.com/hueristiq/hqsubfind3r/releases) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-0040ff.svg) [![open issues](https://img.shields.io/github/issues-raw/hueristiq/hqsubfind3r.svg?style=flat&color=0040ff)](https://github.com/hueristiq/hqsubfind3r/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/hueristiq/hqsubfind3r.svg?style=flat&color=0040ff)](https://github.com/hueristiq/hqsubfind3r/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?colorB=0040FF)](https://github.com/hueristiq/hqsubfind3r/blob/master/LICENSE) [![twitter](https://img.shields.io/badge/twitter-@itshueristiq-0040ff.svg)](https://twitter.com/itshueristiq)
+![made with go](https://img.shields.io/badge/made%20with-Go-0000FF.svg) [![release](https://img.shields.io/github/release/hueristiq/xsubfind3r?style=flat&color=0000FF)](https://github.com/hueristiq/xsubfind3r/releases) [![license](https://img.shields.io/badge/license-MIT-gray.svg?color=0000FF)](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-0000FF.svg) [![open issues](https://img.shields.io/github/issues-raw/hueristiq/xsubfind3r.svg?style=flat&color=0000FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/hueristiq/xsubfind3r.svg?style=flat&color=0000FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:closed) [![contribution](https://img.shields.io/badge/contributions-welcome-0000FF.svg)](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md)
 
-hqsubfind3r is a passive subdomain discovery tool - it gathers a list of subdomains passively using a curated list of passive online sources.
+`xsubfind3r` is a command-line interface (CLI) utility to find domain's known subdomains passively.
 
-## Usage
+## Resource
 
-To display help message for hqsubfind3r use the `-h` flag:
+* [Features](#features)
+* [Installation](#installation)
+	* [Install release binaries](#install-release-binaries)
+	* [Install source](#install-sources)
+		* [`go install ...`](#go-install)
+		* [`go build ...` the development Version](#go-build--the-development-version)
+* [Post Installation](#post-installation)
+* [Usage](#usage)
+* [Contribution](#contribution)
+* [Licensing](#licensing)
 
-```bash
-hqsubfind3r -h
-```
+## Features
 
-```text
- _                     _      __ _           _ _____      
-| |__   __ _ ___ _   _| |__  / _(_)_ __   __| |___ / _ __ 
-| '_ \ / _` / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
-| | | | (_| \__ \ |_| | |_) |  _| | | | | (_| |___) | |   
-|_| |_|\__, |___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v1.5.0
-          |_|
-USAGE:
-  hqsubfind3r [OPTIONS]
-
-OPTIONS:
-  -d,  --domain            domain to find subdomains for
-  -eS, --exclude-sources   comma(,) separated list of sources to exclude
-  -lS, --list-sources      list all the sources available
-  -nC, --no-color          no color mode: Don't use colors in output
-  -s,  --silent            silent mode: Output subdomains only
-  -uS, --use-sources       comma(,) separated list of sources to use
-```
-
-**DESCLAIMER:** wayback and github sources are a bit slow.
+* Curated list of 21 passive sources to maximize results
+* Optimized for speed and lightweight on resources
 
 ## Installation
 
-#### From Binary
+### Install release binaries
 
-You can download the pre-built binary for your platform from this repository's [releases](https://github.com/hueristiq/hqsubfind3r/releases/) page, extract, then move it to your `$PATH`and you're ready to go.
+Visit the [releases page](https://github.com/hueristiq/xsubfind3r/releases) and find the appropriate archive for your operating system and architecture. Download the archive from your browser or copy its URL and retrieve it with `wget` or `curl`:
 
-#### From Source
+* ...with `wget`:
 
-hqsubfind3r requires **go1.17+** to install successfully. Run the following command to get the repo:-
+	```bash
+	wget https://github.com/hueristiq/xsubfind3r/releases/download/v<version>/xsubfind3r-<version>-linux-amd64.tar.gz
+	```
+
+* ...or, with `curl`:
+
+	```bash
+	curl -OL https://github.com/hueristiq/xsubfind3r/releases/download/v<version>/xsubfind3r-<version>-linux-amd64.tar.gz
+	```
+
+...then, extract the binary:
 
 ```bash
-go install -v github.com/hueristiq/hqsubfind3r/cmd/hqsubfind3r@latest
+tar xf xsubfind3r-<version>-linux-amd64.tar.gz
 ```
 
-#### From Github
+> **TIP:** The above steps, download and extract, can be combined into a single step with this onliner
+> 
+> ```bash
+> curl -sL https://github.com/hueristiq/xsubfind3r/releases/download/v<version>/xsubfind3r-<version>-linux-amd64.tar.gz | tar -xzv
+> ```
+
+**NOTE:** On Windows systems, you should be able to double-click the zip archive to extract the `xsubfind3r` executable.
+
+...move the `xsubfind3r` binary to somewhere in your `PATH`. For example, on GNU/Linux and OS X systems:
 
 ```bash
-git clone https://github.com/hueristiq/hqsubfind3r.git && \
-cd hqsubfind3r/cmd/hqsubfind3r/ && \
-go build . && \
-mv hqsubfind3r /usr/local/bin/ && \
-hqsubfind3r -h
+sudo mv xsubfind3r /usr/local/bin/
 ```
+
+**NOTE:** Windows users can follow [How to: Add Tool Locations to the PATH Environment Variable](https://msdn.microsoft.com/en-us/library/office/ee537574(v=office.14).aspx) in order to add `xsubfind3r` to their `PATH`.
+
+### Install source
+
+Before you install from source, you need to make sure that Go is installed on your system. You can install Go by following the official instructions for your operating system. For this, we will assume that Go is already installed.
+
+#### `go install ...`
+
+```bash
+go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
+```
+
+#### `go build ...` the development Version
+
+* Clone the repository
+
+	```bash
+	git clone https://github.com/hueristiq/xsubfind3r.git 
+	```
+
+* Build the utility
+
+	```bash
+	cd xsubfind3r/cmd/xsubfind3r && \
+	go build .
+	```
+
+* Move the `xsubfind3r` binary to somewhere in your `PATH`. For example, on GNU/Linux and OS X systems:
+
+	```bash
+	sudo mv xsubfind3r /usr/local/bin/
+	```
+
+	**NOTE:** Windows users can follow [How to: Add Tool Locations to the PATH Environment Variable](https://msdn.microsoft.com/en-us/library/office/ee537574(v=office.14).aspx) in order to add `xsubfind3r` to their `PATH`.
+
+
+**NOTE:** While the development version is a good way to take a peek at `xsubfind3r`'s latest features before they get released, be aware that it may have bugs. Officially released versions will generally be more stable.
 
 ## Post Installation
 
-hqsubfind3r will work after [installation](#installation). However, to configure hqsubfind3r to work with certain services you will need to have setup API keys. Currently these services include:
+`xsubfind3r` will work after [installation](#installation). However, to configure `xsubfind3r` to work with certain sources will require API keys to work. Currently these services include:
 
 * chaos
 * github
 * intelx
 
-The API keys are stored in the `$HOME/.config/hqsubfind3r/conf.yaml` file - created upon first run - and uses the YAML format. Multiple API keys can be specified for each of these services.
+The API keys are stored in the `$HOME/.hueristiq/xurlfind3r/config.yaml` file - created upon first run - and uses the YAML format.
 
 Example:
 
@@ -101,6 +142,47 @@ keys:
     intelx:
         - 2.intelx.io:00000000-0000-0000-0000-000000000000
 ```
+
+## Usage
+
+To display help message for `xsubfind3r` use the `-h` flag:
+
+```bash
+xsubfind3r -h
+```
+
+help message:
+
+```text
+                _      __ _           _ _____      
+__  _____ _   _| |__  / _(_)_ __   __| |___ / _ __ 
+\ \/ / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
+ >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |   
+/_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v0.0.0
+
+A CLI utility to find domain's known subdomains.
+
+USAGE:
+  xsubfind3r [OPTIONS]
+
+TARGET:
+  -d, --domain string             target domain
+
+SOURCES:
+ -s,  --sources bool              list available sources
+      --exclude-sources strings   comma(,) separated list of sources to exclude
+      --use-sources strings       comma(,) separated list of sources to use
+
+OUTPUT:
+  -m, --monochrome                no colored output mode
+  -o, --output string             output file to write found URLs
+  -v, --verbosity                 debug, info, warning, error, fatal or silent (default: info)
+```
+
 ## Contribution
 
-[Issues](https://github.com/hueristiq/hqsubfind3r/issues) and [Pull Requests](https://github.com/hueristiq/hqsubfind3r/pulls) are welcome! 
+[Issues](https://github.com/hueristiq/xsubfind3r/issues) and [Pull Requests](https://github.com/hueristiq/xsubfind3r/pulls) are welcome! Check out the [contribution guidelines](./CONTRIBUTING.md).
+
+## Licensing
+
+This utility is distributed under the [MIT license](./LICENSE).
