@@ -63,7 +63,7 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			reqURL := fmt.Sprintf("https://%s:%s@search.censys.io/api/v1/search/certificates", username, password)
 
 			res, err = httpclient.Request(fasthttp.MethodPost, reqURL, "", headers, reqData)
-			fmt.Println(res)
+
 			if err != nil {
 				return
 			}

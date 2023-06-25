@@ -21,8 +21,6 @@ import (
 var (
 	au aurora.Aurora
 
-	YAMLConfigFile string
-
 	domain string
 
 	sourcesToExclude []string
@@ -32,6 +30,8 @@ var (
 	monochrome bool
 	output     string
 	verbosity  string
+
+	YAMLConfigFile string
 )
 
 func init() {

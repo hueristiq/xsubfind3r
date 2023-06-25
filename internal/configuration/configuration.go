@@ -73,10 +73,13 @@ func CreateUpdate(path string) (err error) {
 		Version: VERSION,
 		Sources: sources.List,
 		Keys: sources.Keys{
-			Chaos:   []string{},
-			GitHub:  []string{},
-			Intelx:  []string{},
-			URLScan: []string{},
+			Bevigil:  []string{},
+			Censys:   []string{},
+			Chaos:    []string{},
+			Fullhunt: []string{},
+			GitHub:   []string{},
+			Intelx:   []string{},
+			URLScan:  []string{},
 		},
 	}
 
