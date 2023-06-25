@@ -3,9 +3,10 @@ module github.com/hueristiq/xsubfind3r
 go 1.20
 
 require (
+	dario.cat/mergo v1.0.0
 	github.com/corpix/uarand v0.2.0
-	github.com/hueristiq/hqgoutils v0.0.0-20230520130214-98e4015932b8
-	github.com/imdario/mergo v0.3.15
+	github.com/hueristiq/hqgolog v0.0.0-20230623113334-a6018965a34f
+	github.com/hueristiq/hqgourl v0.0.0-20230623114406-412908c09f47
 	github.com/logrusorgru/aurora/v3 v3.0.0
 	github.com/spf13/pflag v1.0.5
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
@@ -17,7 +18,7 @@ require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/klauspost/compress v1.15.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/term v0.8.0 // indirect
+	golang.org/x/net v0.11.0 // indirect
+	golang.org/x/sys v0.9.0 // indirect
+	golang.org/x/term v0.9.0 // indirect
 )

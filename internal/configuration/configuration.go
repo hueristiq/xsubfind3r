@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	hqlog "github.com/hueristiq/hqgoutils/log"
+	"github.com/hueristiq/hqgolog"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/logrusorgru/aurora/v3"
 	"gopkg.in/yaml.v3"
@@ -57,7 +57,7 @@ __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 	ProjectRootDirectoryPath = func(rootDirectoryName, projectRootDirectoryName string) string {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			hqlog.Fatal().Msg(err.Error())
+			hqgolog.Fatal().Msg(err.Error())
 		}
 
 		return filepath.Join(home, rootDirectoryName, projectRootDirectoryName)

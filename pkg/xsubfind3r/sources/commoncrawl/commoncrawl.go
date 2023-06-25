@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sync"
 
-	hqurl "github.com/hueristiq/hqgoutils/url"
+	"github.com/hueristiq/hqgourl"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/valyala/fasthttp"
@@ -82,7 +82,7 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 						continue
 					}
 
-					parsedURL, err := hqurl.Parse(result.URL)
+					parsedURL, err := hqgourl.Parse(result.URL)
 					if err != nil {
 						continue
 					}

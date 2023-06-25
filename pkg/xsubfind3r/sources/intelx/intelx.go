@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	hqurl "github.com/hueristiq/hqgoutils/url"
+	"github.com/hueristiq/hqgourl"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/valyala/fasthttp"
@@ -92,9 +92,9 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			status = response.Status
 
 			for _, hostname := range response.Selectors {
-				var parsedURL *hqurl.URL
+				var parsedURL *hqgourl.URL
 
-				parsedURL, err = hqurl.Parse(hostname.Selectvalue)
+				parsedURL, err = hqgourl.Parse(hostname.Selectvalue)
 				if err != nil {
 					continue
 				}

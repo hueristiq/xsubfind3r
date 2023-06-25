@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"strings"
 
-	hqlog "github.com/hueristiq/hqgoutils/log"
-	"github.com/hueristiq/hqgoutils/log/formatter"
-	"github.com/hueristiq/hqgoutils/log/levels"
+	"dario.cat/mergo"
+	"github.com/hueristiq/hqgolog"
+	"github.com/hueristiq/hqgolog/formatter"
+	"github.com/hueristiq/hqgolog/levels"
 	"github.com/hueristiq/xsubfind3r/internal/configuration"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r"
-	"github.com/imdario/mergo"
 	"github.com/logrusorgru/aurora/v3"
 	"github.com/spf13/pflag"
 )
@@ -66,8 +66,8 @@ func init() {
 	pflag.Parse()
 
 	// Initialize logger
-	hqlog.DefaultLogger.SetMaxLevel(levels.LevelStr(verbosity))
-	hqlog.DefaultLogger.SetFormatter(formatter.NewCLI(&formatter.CLIOptions{
+	hqgolog.DefaultLogger.SetMaxLevel(levels.LevelStr(verbosity))
+	hqgolog.DefaultLogger.SetFormatter(formatter.NewCLI(&formatter.CLIOptions{
 		Colorize: !monochrome,
 	}))
 
@@ -83,26 +83,26 @@ func init() {
 			config = configuration.Default
 
 			if err = configuration.Write(&config); err != nil {
-				hqlog.Fatal().Msg(err.Error())
+				hqgolog.Fatal().Msg(err.Error())
 			}
 		} else {
-			hqlog.Fatal().Msg(err.Error())
+			hqgolog.Fatal().Msg(err.Error())
 		}
 	} else {
 		config, err = configuration.Read()
 		if err != nil {
-			hqlog.Fatal().Msg(err.Error())
+			hqgolog.Fatal().Msg(err.Error())
 		}
 
 		if config.Version != configuration.VERSION {
 			if err = mergo.Merge(&config, configuration.Default); err != nil {
-				hqlog.Fatal().Msg(err.Error())
+				hqgolog.Fatal().Msg(err.Error())
 			}
 
 			config.Version = configuration.VERSION
 
 			if err = configuration.Write(&config); err != nil {
-				hqlog.Fatal().Msg(err.Error())
+				hqgolog.Fatal().Msg(err.Error())
 			}
 		}
 	}
@@ -117,16 +117,16 @@ func main() {
 
 	config, err := configuration.Read()
 	if err != nil {
-		hqlog.Fatal().Msg(err.Error())
+		hqgolog.Fatal().Msg(err.Error())
 	}
 
 	keys := config.GetKeys()
 
 	// Handle sources listing
 	if listSources {
-		hqlog.Info().Msgf("current list of the available %v sources", au.Underline(strconv.Itoa(len(config.Sources))).Bold())
-		hqlog.Info().Msg("sources marked with an * needs key or token")
-		hqlog.Print().Msg("")
+		hqgolog.Info().Msgf("current list of the available %v sources", au.Underline(strconv.Itoa(len(config.Sources))).Bold())
+		hqgolog.Info().Msg("sources marked with an * needs key or token")
+		hqgolog.Print().Msg("")
 
 		needsKey := make(map[string]interface{})
 		keysElem := reflect.ValueOf(&keys).Elem()
@@ -137,20 +137,20 @@ func main() {
 
 		for _, source := range config.Sources {
 			if _, ok := needsKey[source]; ok {
-				hqlog.Print().Msgf("> %s *", source)
+				hqgolog.Print().Msgf("> %s *", source)
 			} else {
-				hqlog.Print().Msgf("> %s", source)
+				hqgolog.Print().Msgf("> %s", source)
 			}
 		}
 
-		hqlog.Print().Msg("")
+		hqgolog.Print().Msg("")
 		os.Exit(0)
 	}
 
 	// Handle URLs finding
 	if verbosity != string(levels.LevelSilent) {
-		hqlog.Info().Msgf("finding subdomains for %v.", au.Underline(domain).Bold())
-		hqlog.Print().Msg("")
+		hqgolog.Info().Msgf("finding subdomains for %v.", au.Underline(domain).Bold())
+		hqgolog.Print().Msg("")
 	}
 
 	options := &xsubfind3r.Options{
@@ -168,13 +168,13 @@ func main() {
 
 		if _, err := os.Stat(directory); os.IsNotExist(err) {
 			if err = os.MkdirAll(directory, os.ModePerm); err != nil {
-				hqlog.Fatal().Msg(err.Error())
+				hqgolog.Fatal().Msg(err.Error())
 			}
 		}
 
 		file, err := os.OpenFile(output, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			hqlog.Fatal().Msg(err.Error())
+			hqgolog.Fatal().Msg(err.Error())
 		}
 
 		defer file.Close()
@@ -183,23 +183,23 @@ func main() {
 
 		for subdomains := range subdomains {
 			if verbosity == string(levels.LevelSilent) {
-				hqlog.Print().Msg(subdomains.Value)
+				hqgolog.Print().Msg(subdomains.Value)
 			} else {
-				hqlog.Print().Msgf("[%s] %s", au.BrightBlue(subdomains.Source), subdomains.Value)
+				hqgolog.Print().Msgf("[%s] %s", au.BrightBlue(subdomains.Source), subdomains.Value)
 			}
 
 			fmt.Fprintln(writer, subdomains.Value)
 		}
 
 		if err = writer.Flush(); err != nil {
-			hqlog.Fatal().Msg(err.Error())
+			hqgolog.Fatal().Msg(err.Error())
 		}
 	} else {
 		for subdomains := range subdomains {
 			if verbosity == string(levels.LevelSilent) {
-				hqlog.Print().Msg(subdomains.Value)
+				hqgolog.Print().Msg(subdomains.Value)
 			} else {
-				hqlog.Print().Msgf("[%s] %s", au.BrightBlue(subdomains.Source), subdomains.Value)
+				hqgolog.Print().Msgf("[%s] %s", au.BrightBlue(subdomains.Source), subdomains.Value)
 			}
 		}
 	}
