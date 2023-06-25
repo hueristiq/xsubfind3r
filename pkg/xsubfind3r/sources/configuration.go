@@ -13,6 +13,7 @@ type Configuration struct {
 
 type Keys struct {
 	Bevigil []string `yaml:"bevigil"`
+	Censys  []string `yaml:"censys"`
 	Chaos   []string `yaml:"chaos"`
 	GitHub  []string `yaml:"github"`
 	Intelx  []string `yaml:"intelx"`

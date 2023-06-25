@@ -11,6 +11,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/bevigil"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/bufferover"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/cebaidu"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/censys"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/certspotterv0"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/chaos"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/commoncrawl"
@@ -69,6 +70,8 @@ func New(options *Options) (finder *Finder) {
 			finder.Sources[source] = &bufferover.Source{}
 		case "cebaidu":
 			finder.Sources[source] = &cebaidu.Source{}
+		case "censys":
+			finder.Sources[source] = &censys.Source{}
 		case "certspotterv0":
 			finder.Sources[source] = &certspotterv0.Source{}
 		case "chaos":
