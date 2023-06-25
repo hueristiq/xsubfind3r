@@ -40,11 +40,11 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 	go func() {
 		defer close(subdomains)
 
-		if len(config.Keys.Github) < 1 {
+		if len(config.Keys.GitHub) < 1 {
 			return
 		}
 
-		tokens := NewTokenManager(config.Keys.Github)
+		tokens := NewTokenManager(config.Keys.GitHub)
 
 		searchURL := fmt.Sprintf("https://api.github.com/search/code?per_page=100&q=%s&sort=created&order=asc", config.Domain)
 		source.Enumerate(config, searchURL, domainRegexp(config.Domain), tokens, subdomains)

@@ -120,8 +120,6 @@ func main() {
 		hqgolog.Fatal().Msg(err.Error())
 	}
 
-	keys := config.GetKeys()
-
 	// Handle sources listing
 	if listSources {
 		hqgolog.Info().Msgf("current list of the available %v sources", au.Underline(strconv.Itoa(len(config.Sources))).Bold())
@@ -129,7 +127,7 @@ func main() {
 		hqgolog.Print().Msg("")
 
 		needsKey := make(map[string]interface{})
-		keysElem := reflect.ValueOf(&keys).Elem()
+		keysElem := reflect.ValueOf(&config.Keys).Elem()
 
 		for i := 0; i < keysElem.NumField(); i++ {
 			needsKey[strings.ToLower(keysElem.Type().Field(i).Name)] = keysElem.Field(i).Interface()
@@ -157,7 +155,7 @@ func main() {
 		Domain:           domain,
 		SourcesToExclude: sourcesToExclude,
 		SourcesToUSe:     sourcesToUse,
-		Keys:             keys,
+		Keys:             config.Keys,
 	}
 
 	finder := xsubfind3r.New(options)

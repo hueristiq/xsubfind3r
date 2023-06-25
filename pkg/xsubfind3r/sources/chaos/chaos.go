@@ -24,11 +24,13 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 		defer close(subdomains)
 
 		var (
+			key string
 			err error
 			res *fasthttp.Response
 		)
 
-		if config.Keys.Chaos == "" {
+		key, err = sources.PickRandom(config.Keys.URLScan)
+		if key == "" || err != nil {
 			return
 		}
 
@@ -36,7 +38,7 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			fasthttp.MethodGet,
 			fmt.Sprintf("https://dns.projectdiscovery.io/dns/%s/subdomains", config.Domain),
 			"",
-			map[string]string{"Authorization": config.Keys.Chaos},
+			map[string]string{"Authorization": key},
 			nil,
 		)
 		if err != nil {

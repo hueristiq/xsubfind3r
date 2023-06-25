@@ -1,10 +1,8 @@
 package configuration
 
 import (
-	"math/rand"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/hueristiq/hqgolog"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
@@ -12,16 +10,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Keys struct {
-	Chaos  []string `yaml:"chaos"`
-	Github []string `yaml:"github"`
-	Intelx []string `yaml:"intelx"`
-}
-
 type Configuration struct {
-	Version string   `yaml:"version"`
-	Sources []string `yaml:"sources"`
-	Keys    Keys     `yaml:"keys"`
+	Version string       `yaml:"version"`
+	Sources []string     `yaml:"sources"`
+	Keys    sources.Keys `yaml:"keys"`
 }
 
 type Options struct {
@@ -67,10 +59,11 @@ __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 	Default               = Configuration{
 		Version: VERSION,
 		Sources: sources.List,
-		Keys: Keys{
-			Chaos:  []string{},
-			Github: []string{},
-			Intelx: []string{},
+		Keys: sources.Keys{
+			Chaos:   []string{},
+			GitHub:  []string{},
+			Intelx:  []string{},
+			URLScan: []string{},
 		},
 	}
 )
@@ -120,30 +113,4 @@ func Write(configuration *Configuration) (err error) {
 	err = enc.Encode(&configuration)
 
 	return
-}
-
-func (configuration *Configuration) GetKeys() sources.Keys {
-	keys := sources.Keys{}
-
-	chaosKeysCount := len(configuration.Keys.Chaos)
-	if chaosKeysCount > 0 {
-		keys.Chaos = configuration.Keys.Chaos[rand.Intn(chaosKeysCount)] //nolint:gosec // Works perfectly
-	}
-
-	if len(configuration.Keys.Github) > 0 {
-		keys.Github = configuration.Keys.Github
-	}
-
-	intelxKeysCount := len(configuration.Keys.Intelx)
-	if intelxKeysCount > 0 {
-		intelxKeys := configuration.Keys.Intelx[rand.Intn(intelxKeysCount)] //nolint:gosec // Works perfectly
-		parts := strings.Split(intelxKeys, ":")
-
-		if len(parts) == 2 {
-			keys.IntelXHost = parts[0]
-			keys.IntelXKey = parts[1]
-		}
-	}
-
-	return keys
 }
