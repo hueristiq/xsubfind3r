@@ -151,7 +151,7 @@ func rawURL(htmlURL string) string {
 
 func domainRegexp(domain string) *regexp.Regexp {
 	rdomain := strings.ReplaceAll(domain, ".", "\\.")
-	return regexp.MustCompile("(\\w+[.])*" + rdomain)
+	return regexp.MustCompile("(\\w[a-zA-Z0-9][a-zA-Z0-9-\\.]*)" + rdomain)
 }
 
 func (source *Source) Name() string {
