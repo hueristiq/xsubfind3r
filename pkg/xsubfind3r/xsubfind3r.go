@@ -16,6 +16,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/chaos"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/commoncrawl"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/crtsh"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/fullhunt"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/github"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/hackertarget"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/intelx"
@@ -80,6 +81,8 @@ func New(options *Options) (finder *Finder) {
 			finder.Sources[source] = &commoncrawl.Source{}
 		case "crtsh":
 			finder.Sources[source] = &crtsh.Source{}
+		case "fullhunt":
+			finder.Sources[source] = &fullhunt.Source{}
 		case "github":
 			finder.Sources[source] = &github.Source{}
 		case "hackertarget":
