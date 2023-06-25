@@ -8,6 +8,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/alienvault"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/anubis"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/archiveis"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/bevigil"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/bufferover"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/cebaidu"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/certspotterv0"
@@ -62,6 +63,8 @@ func New(options *Options) (finder *Finder) {
 			finder.Sources[source] = &anubis.Source{}
 		case "archiveis":
 			finder.Sources[source] = &archiveis.Source{}
+		case "bevigil":
+			finder.Sources[source] = &bevigil.Source{}
 		case "bufferover":
 			finder.Sources[source] = &bufferover.Source{}
 		case "cebaidu":

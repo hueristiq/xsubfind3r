@@ -4,6 +4,7 @@ var List = []string{
 	"alienvault",
 	"anubis",
 	"archiveis",
+	"bevigil",
 	"bufferover",
 	"cebaidu",
 	"certspotterv0",
