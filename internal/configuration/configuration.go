@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/hueristiq/hqgolog"
+	"dario.cat/mergo"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/logrusorgru/aurora/v3"
 	"gopkg.in/yaml.v3"
@@ -16,18 +16,39 @@ type Configuration struct {
 	Keys    sources.Keys `yaml:"keys"`
 }
 
-type Options struct {
-	Domain         string
-	SourcesExclude string
-	SourcesUse     string
+func (configuration *Configuration) Write(path string) (err error) {
+	var (
+		file *os.File
+	)
 
-	YAMLConfig Configuration
+	directory := filepath.Dir(path)
+	identation := 4
+
+	if _, err = os.Stat(directory); os.IsNotExist(err) {
+		if directory != "" {
+			if err = os.MkdirAll(directory, os.ModePerm); err != nil {
+				return
+			}
+		}
+	}
+
+	file, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		return
+	}
+
+	defer file.Close()
+
+	enc := yaml.NewEncoder(file)
+	enc.SetIndent(identation)
+	err = enc.Encode(&configuration)
+
+	return
 }
 
 const (
-	NAME        string = "xsubfind3r"
-	VERSION     string = "0.0.0"
-	DESCRIPTION string = "A CLI utility to find domain's known subdomains."
+	NAME    string = "xsubfind3r"
+	VERSION string = "0.0.0"
 )
 
 var (
@@ -38,25 +59,17 @@ __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 \ \/ / __| | | | '_ \| |_| | '_ \ / _`+"`"+` | |_ \| '__|
  >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |   
 /_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| %s
-
-%s
 `).Bold(),
 		aurora.BrightYellow("v"+VERSION).Bold(),
-		aurora.BrightGreen(DESCRIPTION).Italic(),
 	)
-	rootDirectoryName        = ".hueristiq"
-	projectRootDirectoryName = NAME
-	ProjectRootDirectoryPath = func(rootDirectoryName, projectRootDirectoryName string) string {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			hqgolog.Fatal().Msg(err.Error())
-		}
+)
 
-		return filepath.Join(home, rootDirectoryName, projectRootDirectoryName)
-	}(rootDirectoryName, projectRootDirectoryName)
-	configurationFileName = "config.yaml"
-	ConfigurationFilePath = filepath.Join(ProjectRootDirectoryPath, configurationFileName)
-	Default               = Configuration{
+func CreateUpdate(path string) (err error) {
+	var (
+		config Configuration
+	)
+
+	defaultConfig := Configuration{
 		Version: VERSION,
 		Sources: sources.List,
 		Keys: sources.Keys{
@@ -66,51 +79,57 @@ __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 			URLScan: []string{},
 		},
 	}
-)
 
-func Read() (configuration Configuration, err error) {
-	var (
-		file *os.File
-	)
-
-	file, err = os.Open(ConfigurationFilePath)
+	_, err = os.Stat(path)
 	if err != nil {
-		return
-	}
+		if os.IsNotExist(err) {
+			config = defaultConfig
 
-	defer file.Close()
+			if err = config.Write(path); err != nil {
+				return
+			}
+		} else {
+			return
+		}
+	} else {
+		config, err = Read(path)
+		if err != nil {
+			return
+		}
 
-	err = yaml.NewDecoder(file).Decode(&configuration)
+		if config.Version != VERSION ||
+			len(config.Sources) != len(sources.List) {
+			if err = mergo.Merge(&config, defaultConfig); err != nil {
+				return
+			}
 
-	return
-}
+			config.Version = VERSION
+			config.Sources = sources.List
 
-func Write(configuration *Configuration) (err error) {
-	var (
-		file       *os.File
-		identation = 4
-	)
-
-	directory := filepath.Dir(ConfigurationFilePath)
-
-	if _, err = os.Stat(directory); os.IsNotExist(err) {
-		if directory != "" {
-			if err = os.MkdirAll(directory, os.ModePerm); err != nil {
+			if err = config.Write(path); err != nil {
 				return
 			}
 		}
 	}
 
-	file, err = os.OpenFile(ConfigurationFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+	return
+}
+
+func Read(path string) (configuration Configuration, err error) {
+	var (
+		file *os.File
+	)
+
+	file, err = os.Open(path)
 	if err != nil {
 		return
 	}
 
 	defer file.Close()
 
-	enc := yaml.NewEncoder(file)
-	enc.SetIndent(identation)
-	err = enc.Encode(&configuration)
+	if err = yaml.NewDecoder(file).Decode(&configuration); err != nil {
+		return
+	}
 
 	return
 }

@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"dario.cat/mergo"
 	"github.com/hueristiq/hqgolog"
 	"github.com/hueristiq/hqgolog/formatter"
 	"github.com/hueristiq/hqgolog/levels"
@@ -22,23 +21,35 @@ import (
 var (
 	au aurora.Aurora
 
-	domain           string
-	listSources      bool
+	YAMLConfigFile string
+
+	domain string
+
 	sourcesToExclude []string
+	listSources      bool
 	sourcesToUse     []string
-	monochrome       bool
-	output           string
-	verbosity        string
+
+	monochrome bool
+	output     string
+	verbosity  string
 )
 
 func init() {
+	// defaults
+	defaultYAMLConfigFile := "~/.hueristiq/xsubfind3r/config.yaml"
+
+	// Handle CLI arguments, flags & help message (pflag)
 	pflag.StringVarP(&domain, "domain", "d", "", "")
+
+	pflag.StringSliceVarP(&sourcesToExclude, "exclude-sources", "e", []string{}, "")
 	pflag.BoolVarP(&listSources, "sources", "s", false, "")
-	pflag.StringSliceVar(&sourcesToExclude, "exclude-sources", []string{}, "")
-	pflag.StringSliceVar(&sourcesToUse, "use-sources", []string{}, "")
-	pflag.BoolVarP(&monochrome, "monochrome", "m", false, "")
+	pflag.StringSliceVarP(&sourcesToUse, "use-sources", "u", []string{}, "")
+
+	pflag.BoolVar(&monochrome, "no-color", false, "")
 	pflag.StringVarP(&output, "output", "o", "", "")
 	pflag.StringVarP(&verbosity, "verbosity", "v", string(levels.LevelInfo), "")
+
+	pflag.StringVarP(&YAMLConfigFile, "configuration", "c", defaultYAMLConfigFile, "")
 
 	pflag.CommandLine.SortFlags = false
 	pflag.Usage = func() {
@@ -48,82 +59,65 @@ func init() {
 		h += "  xsubfind3r [OPTIONS]\n"
 
 		h += "\nTARGET:\n"
-		h += "  -d, --domain string             target domain\n"
+		h += " -d, --domain string              target domain\n"
 
 		h += "\nSOURCES:\n"
-		h += " -s,  --sources bool              list available sources\n"
-		h += "      --exclude-sources strings   comma(,) separated list of sources to exclude\n"
-		h += "      --use-sources strings       comma(,) separated list of sources to use\n"
+		h += " -e,  --exclude-sources string    sources to exclude\n"
+		h += " -s,  --sources bool              list sources\n"
+		h += " -u,  --use-sources string        sources to use\n"
 
 		h += "\nOUTPUT:\n"
-		h += "  -m, --monochrome                no colored output mode\n"
-		h += "  -o, --output string             output file to write found URLs\n"
-		h += fmt.Sprintf("  -v, --verbosity                 debug, info, warning, error, fatal or silent (default: %s)\n\n", string(levels.LevelInfo))
+		h += "     --no-color bool              no colored mode\n"
+		h += " -o, --output string              output subdomains file path\n"
+		h += fmt.Sprintf(" -v, --verbosity string           debug, info, warning, error, fatal or silent (default: %s)\n", string(levels.LevelInfo))
+
+		h += "\nCONFIGURATION:\n"
+		h += fmt.Sprintf(" -c,  --configuration string      configuration file path (default: %s)\n", defaultYAMLConfigFile)
 
 		fmt.Fprintln(os.Stderr, h)
 	}
 
 	pflag.Parse()
 
-	// Initialize logger
+	// Initialize logger (hqgolog)
 	hqgolog.DefaultLogger.SetMaxLevel(levels.LevelStr(verbosity))
 	hqgolog.DefaultLogger.SetFormatter(formatter.NewCLI(&formatter.CLIOptions{
 		Colorize: !monochrome,
 	}))
 
-	// Handle configuration on initial run
-	var (
-		err    error
-		config configuration.Configuration
-	)
-
-	_, err = os.Stat(configuration.ConfigurationFilePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			config = configuration.Default
-
-			if err = configuration.Write(&config); err != nil {
-				hqgolog.Fatal().Msg(err.Error())
-			}
-		} else {
-			hqgolog.Fatal().Msg(err.Error())
-		}
-	} else {
-		config, err = configuration.Read()
+	// Create | Update configuration
+	if strings.HasPrefix(YAMLConfigFile, "~") {
+		home, err := os.UserHomeDir()
 		if err != nil {
 			hqgolog.Fatal().Msg(err.Error())
 		}
 
-		if config.Version != configuration.VERSION {
-			if err = mergo.Merge(&config, configuration.Default); err != nil {
-				hqgolog.Fatal().Msg(err.Error())
-			}
+		YAMLConfigFile = strings.Replace(YAMLConfigFile, "~", home, 1)
+	}
 
-			config.Version = configuration.VERSION
-
-			if err = configuration.Write(&config); err != nil {
-				hqgolog.Fatal().Msg(err.Error())
-			}
-		}
+	if err := configuration.CreateUpdate(YAMLConfigFile); err != nil {
+		hqgolog.Fatal().Msg(err.Error())
 	}
 
 	au = aurora.NewAurora(!monochrome)
 }
 
 func main() {
+	// Print Banner
 	if verbosity != string(levels.LevelSilent) {
 		fmt.Fprintln(os.Stderr, configuration.BANNER)
 	}
 
-	config, err := configuration.Read()
+	// Read in configuration
+	config, err := configuration.Read(YAMLConfigFile)
 	if err != nil {
 		hqgolog.Fatal().Msg(err.Error())
 	}
 
-	// Handle sources listing
+	// List suported sources
 	if listSources {
-		hqgolog.Info().Msgf("current list of the available %v sources", au.Underline(strconv.Itoa(len(config.Sources))).Bold())
-		hqgolog.Info().Msg("sources marked with an * needs key or token")
+		hqgolog.Info().Msgf("listing %v current supported sources", au.Underline(strconv.Itoa(len(config.Sources))).Bold())
+		hqgolog.Info().Msgf("sources with %v needs a key or token", au.Underline("*").Bold())
 		hqgolog.Print().Msg("")
 
 		needsKey := make(map[string]interface{})
@@ -142,10 +136,11 @@ func main() {
 		}
 
 		hqgolog.Print().Msg("")
+
 		os.Exit(0)
 	}
 
-	// Handle URLs finding
+	// Find subdomains
 	if verbosity != string(levels.LevelSilent) {
 		hqgolog.Info().Msgf("finding subdomains for %v.", au.Underline(domain).Bold())
 		hqgolog.Print().Msg("")
@@ -162,6 +157,7 @@ func main() {
 	subdomains := finder.Find()
 
 	if output != "" {
+		// Create output file path directory
 		directory := filepath.Dir(output)
 
 		if _, err := os.Stat(directory); os.IsNotExist(err) {
@@ -170,6 +166,7 @@ func main() {
 			}
 		}
 
+		// Create output file
 		file, err := os.OpenFile(output, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			hqgolog.Fatal().Msg(err.Error())
@@ -177,6 +174,7 @@ func main() {
 
 		defer file.Close()
 
+		// Write subdomains output file and print on screen
 		writer := bufio.NewWriter(file)
 
 		for subdomains := range subdomains {
@@ -193,6 +191,7 @@ func main() {
 			hqgolog.Fatal().Msg(err.Error())
 		}
 	} else {
+		// Print subdomains on screen
 		for subdomains := range subdomains {
 			if verbosity == string(levels.LevelSilent) {
 				hqgolog.Print().Msg(subdomains.Value)
