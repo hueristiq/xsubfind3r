@@ -2,7 +2,7 @@
 
 ![made with go](https://img.shields.io/badge/made%20with-Go-0000FF.svg) [![release](https://img.shields.io/github/release/hueristiq/xsubfind3r?style=flat&color=0000FF)](https://github.com/hueristiq/xsubfind3r/releases) [![license](https://img.shields.io/badge/license-MIT-gray.svg?color=0000FF)](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-0000FF.svg) [![open issues](https://img.shields.io/github/issues-raw/hueristiq/xsubfind3r.svg?style=flat&color=0000FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/hueristiq/xsubfind3r.svg?style=flat&color=0000FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:closed) [![contribution](https://img.shields.io/badge/contributions-welcome-0000FF.svg)](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md)
 
-`xsubfind3r` is a command-line interface (CLI) utility to find domain's known subdomains passively.
+`xsubfind3r` is a command-line interface (CLI) utility to find domain's known subdomains from curated passive online sources.
 
 ## Resource
 
@@ -19,8 +19,8 @@
 
 ## Features
 
-* Curated list of 21 passive sources to maximize results
-* Optimized for speed and lightweight on resources
+* Fetches domains from curated passive sources to maximize results
+* Cross-Platform (Windows, Linux & macOS)
 
 ## Installation
 
@@ -100,47 +100,39 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 
 ## Post Installation
 
-`xsubfind3r` will work after [installation](#installation). However, to configure `xsubfind3r` to work with certain sources will require API keys to work. Currently these services include:
+`xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[Chaos](https://chaos.projectdiscovery.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, [Github](https://github.com)** and **[Intelligence X](https://intelx.io)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.hueristiq/xsubfind3r/config.yaml` file - created upon first run - and uses the YAML format. Multiple API keys can be specified for each of these source from which one of them will be used.
 
-* chaos
-* github
-* intelx
-
-The API keys are stored in the `$HOME/.hueristiq/xurlfind3r/config.yaml` file - created upon first run - and uses the YAML format.
-
-Example:
+Example `config.yaml`:
 
 ```yaml
 version: 0.0.0
 sources:
     - alienvault
     - anubis
-    - archiveis
-    - bufferover
-    - cebaidu
-    - certspotterv0
+    - bevigil
     - chaos
+    - commoncrawl
     - crtsh
+    - fullhunt
     - github
     - hackertarget
     - intelx
-    - rapiddns
-    - riddler
-    - sonar
-    - sublist3r
-    - threatcrowd
-    - threatminer
     - urlscan
     - wayback
-    - ximcx
 keys:
+    bevigil:
+        - awA5nvpKU3N8ygkZ
     chaos:
         - d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39asdsd54bbc1aabb208c9acfb
+    fullhunt:
+        - 0d9652ce-516c-4315-b589-9b241ee6dc24
     github:
         - d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39
         - asdsd54bbc1aabb208c9acfbd2dd41ce7fc9db39
     intelx:
         - 2.intelx.io:00000000-0000-0000-0000-000000000000
+    urlscan:
+        - d4c85d34-e425-446e-d4ab-f5a3412acbe8
 ```
 
 ## Usage
@@ -160,23 +152,24 @@ __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
  >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |   
 /_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v0.0.0
 
-A CLI utility to find domain's known subdomains.
-
 USAGE:
   xsubfind3r [OPTIONS]
 
 TARGET:
-  -d, --domain string             target domain
+ -d, --domain string              target domain
 
 SOURCES:
- -s,  --sources bool              list available sources
-      --exclude-sources strings   comma(,) separated list of sources to exclude
-      --use-sources strings       comma(,) separated list of sources to use
+ -e,  --exclude-sources string    sources to exclude
+ -s,  --sources bool              list sources
+ -u,  --use-sources string        sources to use
 
 OUTPUT:
-  -m, --monochrome                no colored output mode
-  -o, --output string             output file to write found URLs
-  -v, --verbosity                 debug, info, warning, error, fatal or silent (default: info)
+     --no-color bool              no colored mode
+ -o, --output string              output subdomains file path
+ -v, --verbosity string           debug, info, warning, error, fatal or silent (default: info)
+
+CONFIGURATION:
+ -c,  --configuration string      configuration file path (default: ~/.hueristiq/xsubfind3r/config.yaml)
 ```
 
 ## Contribution
