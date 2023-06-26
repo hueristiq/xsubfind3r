@@ -105,7 +105,7 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 Example `config.yaml`:
 
 ```yaml
-version: 0.0.0
+version: 0.1.0
 sources:
     - alienvault
     - anubis
@@ -150,7 +150,7 @@ help message:
 __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __ 
 \ \/ / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
  >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |   
-/_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v0.0.0
+/_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v0.1.0
 
 USAGE:
   xsubfind3r [OPTIONS]

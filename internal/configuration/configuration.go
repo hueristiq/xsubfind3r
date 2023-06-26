@@ -48,7 +48,7 @@ func (configuration *Configuration) Write(path string) (err error) {
 
 const (
 	NAME    string = "xsubfind3r"
-	VERSION string = "0.0.0"
+	VERSION string = "0.1.0"
 )
 
 var (
