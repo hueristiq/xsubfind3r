@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
@@ -24,7 +25,9 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			res *fasthttp.Response
 		)
 
-		res, err = httpclient.SimpleGet(fmt.Sprintf("http://web.archive.org/cdx/search/cdx?url=*.%s/*&output=txt&fl=original&collapse=urlkey", config.Domain))
+		reqURL := fmt.Sprintf("http://web.archive.org/cdx/search/cdx?url=*.%s/*&output=txt&fl=original&collapse=urlkey", config.Domain)
+
+		res, err = httpclient.SimpleGet(reqURL)
 		if err != nil {
 			return
 		}
@@ -41,7 +44,13 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			line, _ = url.QueryUnescape(line)
 			subdomain := config.SubdomainsRegex.FindString(line)
 
-			subdomains <- sources.Subdomain{Source: source.Name(), Value: subdomain}
+			if subdomain != "" {
+				subdomain = strings.ToLower(subdomain)
+				subdomain = strings.TrimPrefix(subdomain, "25")
+				subdomain = strings.TrimPrefix(subdomain, "2f")
+
+				subdomains <- sources.Subdomain{Source: source.Name(), Value: subdomain}
+			}
 		}
 
 		if err = scanner.Err(); err != nil {

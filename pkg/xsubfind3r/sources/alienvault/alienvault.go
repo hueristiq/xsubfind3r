@@ -30,7 +30,9 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			res *fasthttp.Response
 		)
 
-		res, err = httpclient.SimpleGet(fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", config.Domain))
+		reqURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", config.Domain)
+
+		res, err = httpclient.SimpleGet(reqURL)
 		if err != nil {
 			return
 		}
@@ -45,8 +47,8 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			return
 		}
 
-		for _, i := range results.PassiveDNS {
-			subdomains <- sources.Subdomain{Source: source.Name(), Value: i.Hostname}
+		for _, record := range results.PassiveDNS {
+			subdomains <- sources.Subdomain{Source: source.Name(), Value: record.Hostname}
 		}
 	}()
 

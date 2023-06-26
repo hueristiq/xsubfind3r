@@ -29,18 +29,15 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			res *fasthttp.Response
 		)
 
-		key, err = sources.PickRandom(config.Keys.URLScan)
+		key, err = sources.PickRandom(config.Keys.Chaos)
 		if key == "" || err != nil {
 			return
 		}
 
-		res, err = httpclient.Request(
-			fasthttp.MethodGet,
-			fmt.Sprintf("https://dns.projectdiscovery.io/dns/%s/subdomains", config.Domain),
-			"",
-			map[string]string{"Authorization": key},
-			nil,
-		)
+		reqURL := fmt.Sprintf("https://dns.projectdiscovery.io/dns/%s/subdomains", config.Domain)
+		headers := map[string]string{"Authorization": key}
+
+		res, err = httpclient.Request(fasthttp.MethodGet, reqURL, "", headers, nil)
 		if err != nil {
 			return
 		}
@@ -51,8 +48,10 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			return
 		}
 
-		for _, i := range results.Subdomains {
-			subdomains <- sources.Subdomain{Source: source.Name(), Value: fmt.Sprintf("%s.%s", i, results.Domain)}
+		for _, record := range results.Subdomains {
+			subdomain := fmt.Sprintf("%s.%s", record, results.Domain)
+
+			subdomains <- sources.Subdomain{Source: source.Name(), Value: subdomain}
 		}
 	}()
 

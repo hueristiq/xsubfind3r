@@ -74,7 +74,6 @@ func CreateUpdate(path string) (err error) {
 		Sources: sources.List,
 		Keys: sources.Keys{
 			Bevigil:  []string{},
-			Censys:   []string{},
 			Chaos:    []string{},
 			Fullhunt: []string{},
 			GitHub:   []string{},

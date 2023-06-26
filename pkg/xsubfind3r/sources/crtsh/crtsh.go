@@ -28,7 +28,9 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			res *fasthttp.Response
 		)
 
-		res, err = httpclient.SimpleGet(fmt.Sprintf("https://crt.sh/?q=%%25.%s&output=json", config.Domain))
+		reqURL := fmt.Sprintf("https://crt.sh/?q=%%25.%s&output=json", config.Domain)
+
+		res, err = httpclient.SimpleGet(reqURL)
 		if err != nil {
 			return
 		}
@@ -39,11 +41,9 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			return
 		}
 
-		for _, i := range results {
-			x := strings.Split(i.NameValue, "\n")
-
-			for _, j := range x {
-				subdomains <- sources.Subdomain{Source: source.Name(), Value: j}
+		for _, record := range results {
+			for _, subdomain := range strings.Split(record.NameValue, "\n") {
+				subdomains <- sources.Subdomain{Source: source.Name(), Value: subdomain}
 			}
 		}
 	}()

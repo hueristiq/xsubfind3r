@@ -53,8 +53,8 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			return
 		}
 
-		for _, i := range results.Subdomains {
-			subdomains <- sources.Subdomain{Source: source.Name(), Value: i}
+		for _, subdomain := range results.Subdomains {
+			subdomains <- sources.Subdomain{Source: source.Name(), Value: subdomain}
 		}
 	}()
 

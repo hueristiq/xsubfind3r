@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	dario.cat/mergo v1.0.0
-	github.com/corpix/uarand v0.2.0
 	github.com/hueristiq/hqgolog v0.0.0-20230623113334-a6018965a34f
 	github.com/hueristiq/hqgourl v0.0.0-20230623114406-412908c09f47
 	github.com/logrusorgru/aurora/v3 v3.0.0

@@ -22,7 +22,9 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			res *fasthttp.Response
 		)
 
-		res, err = httpclient.SimpleGet(fmt.Sprintf("https://jldc.me/anubis/subdomains/%s", config.Domain))
+		reqURL := fmt.Sprintf("https://jldc.me/anubis/subdomains/%s", config.Domain)
+
+		res, err = httpclient.SimpleGet(reqURL)
 		if err != nil {
 			return
 		}
@@ -33,8 +35,8 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			return
 		}
 
-		for _, i := range results {
-			subdomains <- sources.Subdomain{Source: source.Name(), Value: i}
+		for _, subdomain := range results {
+			subdomains <- sources.Subdomain{Source: source.Name(), Value: subdomain}
 		}
 	}()
 

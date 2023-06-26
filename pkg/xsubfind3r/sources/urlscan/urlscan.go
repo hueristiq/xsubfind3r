@@ -3,6 +3,7 @@ package urlscan
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
@@ -30,7 +31,9 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			res *fasthttp.Response
 		)
 
-		res, err = httpclient.SimpleGet(fmt.Sprintf("https://urlscan.io/api/v1/search/?q=domain:%s", config.Domain))
+		reqURL := fmt.Sprintf("https://urlscan.io/api/v1/search/?q=domain:%s", config.Domain)
+
+		res, err = httpclient.SimpleGet(reqURL)
 		if err != nil {
 			return
 		}
@@ -43,8 +46,12 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			return
 		}
 
-		for _, i := range results.Results {
-			subdomains <- sources.Subdomain{Source: source.Name(), Value: i.Page.Domain}
+		for _, record := range results.Results {
+			if !strings.HasSuffix(record.Page.Domain, "."+config.Domain) {
+				continue
+			}
+
+			subdomains <- sources.Subdomain{Source: source.Name(), Value: record.Page.Domain}
 		}
 	}()
 

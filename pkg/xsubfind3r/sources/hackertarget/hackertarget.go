@@ -24,7 +24,9 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			res *fasthttp.Response
 		)
 
-		res, err = httpclient.SimpleGet(fmt.Sprintf("http://api.hackertarget.com/hostsearch/?q=%s", config.Domain))
+		reqURL := fmt.Sprintf("https://api.hackertarget.com/hostsearch/?q=%s", config.Domain)
+
+		res, err = httpclient.SimpleGet(reqURL)
 		if err != nil {
 			return
 		}

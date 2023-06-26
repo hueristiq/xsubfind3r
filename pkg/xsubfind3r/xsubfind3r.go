@@ -7,12 +7,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/alienvault"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/anubis"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/archiveis"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/bevigil"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/bufferover"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/cebaidu"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/censys"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/certspotterv0"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/chaos"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/commoncrawl"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/crtsh"
@@ -20,15 +15,8 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/github"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/hackertarget"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/intelx"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/rapiddns"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/riddler"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/sonar"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/sublist3r"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/threatcrowd"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/threatminer"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/urlscan"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/ximcx"
 )
 
 type Options struct {
@@ -49,7 +37,7 @@ func New(options *Options) (finder *Finder) {
 		SourcesConfiguration: &sources.Configuration{
 			Keys:            options.Keys,
 			Domain:          options.Domain,
-			SubdomainsRegex: regexp.MustCompile(`[a-zA-Z0-9\*_.-]+\.` + options.Domain),
+			SubdomainsRegex: regexp.MustCompile(`(?i)[a-zA-Z0-9\*_.-]+\.` + options.Domain),
 		},
 	}
 
@@ -63,18 +51,8 @@ func New(options *Options) (finder *Finder) {
 			finder.Sources[source] = &alienvault.Source{}
 		case "anubis":
 			finder.Sources[source] = &anubis.Source{}
-		case "archiveis":
-			finder.Sources[source] = &archiveis.Source{}
 		case "bevigil":
 			finder.Sources[source] = &bevigil.Source{}
-		case "bufferover":
-			finder.Sources[source] = &bufferover.Source{}
-		case "cebaidu":
-			finder.Sources[source] = &cebaidu.Source{}
-		case "censys":
-			finder.Sources[source] = &censys.Source{}
-		case "certspotterv0":
-			finder.Sources[source] = &certspotterv0.Source{}
 		case "chaos":
 			finder.Sources[source] = &chaos.Source{}
 		case "commoncrawl":
@@ -89,24 +67,10 @@ func New(options *Options) (finder *Finder) {
 			finder.Sources[source] = &hackertarget.Source{}
 		case "intelx":
 			finder.Sources[source] = &intelx.Source{}
-		case "rapiddns":
-			finder.Sources[source] = &rapiddns.Source{}
-		case "riddler":
-			finder.Sources[source] = &riddler.Source{}
-		case "sonar":
-			finder.Sources[source] = &sonar.Source{}
-		case "sublist3r":
-			finder.Sources[source] = &sublist3r.Source{}
-		case "threatcrowd":
-			finder.Sources[source] = &threatcrowd.Source{}
-		case "threatminer":
-			finder.Sources[source] = &threatminer.Source{}
 		case "urlscan":
 			finder.Sources[source] = &urlscan.Source{}
 		case "wayback":
 			finder.Sources[source] = &wayback.Source{}
-		case "ximcx":
-			finder.Sources[source] = &ximcx.Source{}
 		}
 	}
 
