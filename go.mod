@@ -9,13 +9,13 @@ require (
 	github.com/logrusorgru/aurora/v3 v3.0.0
 	github.com/spf13/pflag v1.0.5
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
-	github.com/valyala/fasthttp v1.38.0
+	github.com/valyala/fasthttp v1.48.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	github.com/andybalholm/brotli v1.0.4 // indirect
-	github.com/klauspost/compress v1.15.0 // indirect
+	github.com/andybalholm/brotli v1.0.5 // indirect
+	github.com/klauspost/compress v1.16.3 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	golang.org/x/net v0.11.0 // indirect
 	golang.org/x/sys v0.9.0 // indirect
