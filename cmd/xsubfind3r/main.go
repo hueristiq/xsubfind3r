@@ -248,9 +248,10 @@ func main() {
 			for domain := range domains {
 				subdomains := finder.Find(domain)
 
-				if output != "" {
+				switch {
+				case output != "":
 					processSubdomains(consolidatedWriter, subdomains, verbosity)
-				} else if outputDirectory != "" {
+				case outputDirectory != "":
 					domainFile, err := os.OpenFile(filepath.Join(outputDirectory, domain+".txt"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 					if err != nil {
 						hqgolog.Fatal().Msg(err.Error())
@@ -259,9 +260,7 @@ func main() {
 					domainWriter := bufio.NewWriter(domainFile)
 
 					processSubdomains(domainWriter, subdomains, verbosity)
-
-					domainFile.Close()
-				} else {
+				default:
 					processSubdomains(nil, subdomains, verbosity)
 				}
 			}

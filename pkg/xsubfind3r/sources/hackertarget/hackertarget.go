@@ -15,7 +15,7 @@ import (
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
+func (source *Source) Run(_ *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
 	subdomains = make(chan sources.Subdomain)
 
 	go func() {
