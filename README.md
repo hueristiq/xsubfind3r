@@ -8,8 +8,8 @@
 
 * [Features](#features)
 * [Installation](#installation)
-	* [Install release binaries](#install-release-binaries)
-	* [Install source](#install-sources)
+	* [Install release binaries (Without Go Installed)](#install-release-binaries-without-go-installed)
+	* [Install source (With Go Installed)](#install-source-with-go-installed)
 		* [`go install ...`](#go-install)
 		* [`go build ...` the development Version](#go-build--the-development-version)
 * [Post Installation](#post-installation)
@@ -19,12 +19,13 @@
 
 ## Features
 
-* Fetches domains from curated passive sources to maximize results
-* Cross-Platform (Windows, Linux & macOS)
+* Fetches domains from curated passive sources to maximize results.
+* Supports `stdin` and `stdout` for easy integration into workflows.
+* Cross-Platform (Windows, Linux & macOS).
 
 ## Installation
 
-### Install release binaries
+### Install release binaries (Without Go Installed)
 
 Visit the [releases page](https://github.com/hueristiq/xsubfind3r/releases) and find the appropriate archive for your operating system and architecture. Download the archive from your browser or copy its URL and retrieve it with `wget` or `curl`:
 
@@ -62,7 +63,7 @@ sudo mv xsubfind3r /usr/local/bin/
 
 **NOTE:** Windows users can follow [How to: Add Tool Locations to the PATH Environment Variable](https://msdn.microsoft.com/en-us/library/office/ee537574(v=office.14).aspx) in order to add `xsubfind3r` to their `PATH`.
 
-### Install source
+### Install source (With Go Installed)
 
 Before you install from source, you need to make sure that Go is installed on your system. You can install Go by following the official instructions for your operating system. For this, we will assume that Go is already installed.
 
@@ -146,6 +147,7 @@ xsubfind3r -h
 help message:
 
 ```text
+
                 _      __ _           _ _____      
 __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __ 
 \ \/ / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
@@ -155,27 +157,32 @@ __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 USAGE:
   xsubfind3r [OPTIONS]
 
-TARGET:
- -d, --domain string              target domain
+INPUT:
+ -d, --domain string[]                 target domains
+ -l, --list string                     target domains' list file path
 
 SOURCES:
- -e,  --exclude-sources string    sources to exclude
- -s,  --sources bool              list sources
- -u,  --use-sources string        sources to use
+      --sources bool                   list supported sources
+ -u,  --sources-to-use string[]        comma(,) separeted sources to use
+ -e,  --sources-to-exclude string[]    comma(,) separeted sources to exclude
+
+OPTIMIZATION:
+ -t,  --threads int                    number of threads (default: 50)
 
 OUTPUT:
-     --no-color bool              no colored mode
- -o, --output string              output subdomains file path
- -v, --verbosity string           debug, info, warning, error, fatal or silent (default: info)
+     --no-color bool                   disable colored output
+ -o, --output string                   output subdomains' file path
+ -O, --output-directory string         output subdomains' directory path
+ -v, --verbosity string                debug, info, warning, error, fatal or silent (default: info)
 
 CONFIGURATION:
- -c,  --configuration string      configuration file path (default: ~/.hueristiq/xsubfind3r/config.yaml)
+ -c,  --configuration string           configuration file path (default: ~/.hueristiq/xsubfind3r/config.yaml)
 ```
 
 ## Contribution
 
-[Issues](https://github.com/hueristiq/xsubfind3r/issues) and [Pull Requests](https://github.com/hueristiq/xsubfind3r/pulls) are welcome! Check out the [contribution guidelines](./CONTRIBUTING.md).
+[Issues](https://github.com/hueristiq/xsubfind3r/issues) and [Pull Requests](https://github.com/hueristiq/xsubfind3r/pulls) are welcome! **Check out the [contribution guidelines](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md).**
 
 ## Licensing
 
-This utility is distributed under the [MIT license](./LICENSE).
+This utility is distributed under the [MIT license](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE).
