@@ -1,6 +1,7 @@
 package xsubfind3r
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
@@ -95,9 +96,9 @@ func (finder *Finder) Find(domain string) (subdomains chan sources.Subdomain) {
 				results := source.Run(finder.SourcesConfiguration, domain)
 
 				for subdomain := range results {
-					value := subdomain.Value
+					subdomain.Value = strings.ReplaceAll(strings.ToLower(subdomain.Value), "*.", "")
 
-					_, loaded := seenSubdomains.LoadOrStore(value, struct{}{})
+					_, loaded := seenSubdomains.LoadOrStore(subdomain.Value, struct{}{})
 					if loaded {
 						continue
 					}
