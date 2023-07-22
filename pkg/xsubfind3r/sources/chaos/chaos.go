@@ -17,7 +17,7 @@ type response struct {
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration) (subdomains chan sources.Subdomain) {
+func (source *Source) Run(config *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
 	subdomains = make(chan sources.Subdomain)
 
 	go func() {
@@ -34,7 +34,7 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			return
 		}
 
-		reqURL := fmt.Sprintf("https://dns.projectdiscovery.io/dns/%s/subdomains", config.Domain)
+		reqURL := fmt.Sprintf("https://dns.projectdiscovery.io/dns/%s/subdomains", domain)
 		headers := map[string]string{"Authorization": key}
 
 		res, err = httpclient.Request(fasthttp.MethodGet, reqURL, "", headers, nil)

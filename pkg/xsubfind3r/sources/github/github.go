@@ -34,7 +34,7 @@ type response struct {
 	Items      []item `json:"items"`
 }
 
-func (source *Source) Run(config *sources.Configuration) (subdomains chan sources.Subdomain) {
+func (source *Source) Run(config *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
 	subdomains = make(chan sources.Subdomain)
 
 	go func() {
@@ -46,8 +46,8 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 
 		tokens := NewTokenManager(config.Keys.GitHub)
 
-		searchURL := fmt.Sprintf("https://api.github.com/search/code?per_page=100&q=%s&sort=created&order=asc", config.Domain)
-		source.Enumerate(config, searchURL, domainRegexp(config.Domain), tokens, subdomains)
+		searchURL := fmt.Sprintf("https://api.github.com/search/code?per_page=100&q=%s&sort=created&order=asc", domain)
+		source.Enumerate(config, searchURL, domainRegexp(domain), tokens, subdomains)
 	}()
 
 	return subdomains

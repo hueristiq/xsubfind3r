@@ -1,7 +1,6 @@
 package xsubfind3r
 
 import (
-	"regexp"
 	"sync"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
@@ -20,7 +19,6 @@ import (
 )
 
 type Options struct {
-	Domain           string
 	SourcesToExclude []string
 	SourcesToUSe     []string
 	Keys             sources.Keys
@@ -35,9 +33,7 @@ func New(options *Options) (finder *Finder) {
 	finder = &Finder{
 		Sources: map[string]sources.Source{},
 		SourcesConfiguration: &sources.Configuration{
-			Keys:            options.Keys,
-			Domain:          options.Domain,
-			SubdomainsRegex: regexp.MustCompile(`(?i)[a-zA-Z0-9\*_.-]+\.` + options.Domain),
+			Keys: options.Keys,
 		},
 	}
 
@@ -81,36 +77,34 @@ func New(options *Options) (finder *Finder) {
 	return
 }
 
-func (finder *Finder) Find() (subdomains chan sources.Subdomain) {
+func (finder *Finder) Find(domain string) (subdomains chan sources.Subdomain) {
 	subdomains = make(chan sources.Subdomain)
 
 	go func() {
 		defer close(subdomains)
 
 		wg := &sync.WaitGroup{}
-		seen := &sync.Map{}
+		seenSubdomains := &sync.Map{}
 
-		for name := range finder.Sources {
+		for _, source := range finder.Sources {
 			wg.Add(1)
 
 			go func(source sources.Source) {
 				defer wg.Done()
 
-				for subdomain := range source.Run(finder.SourcesConfiguration) {
+				results := source.Run(finder.SourcesConfiguration, domain)
+
+				for subdomain := range results {
 					value := subdomain.Value
 
-					if value == "" {
-						return
-					}
-
-					_, loaded := seen.LoadOrStore(value, struct{}{})
+					_, loaded := seenSubdomains.LoadOrStore(value, struct{}{})
 					if loaded {
 						continue
 					}
 
 					subdomains <- subdomain
 				}
-			}(finder.Sources[name])
+			}(source)
 		}
 
 		wg.Wait()

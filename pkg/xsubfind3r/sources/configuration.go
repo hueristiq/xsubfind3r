@@ -1,14 +1,7 @@
 package sources
 
-import "regexp"
-
 type Configuration struct {
-	Keys               Keys
-	Domain             string
-	IncludeSubdomains  bool
-	ParseWaybackRobots bool
-	ParseWaybackSource bool
-	SubdomainsRegex    *regexp.Regexp
+	Keys Keys
 }
 
 type Keys struct {

@@ -5,7 +5,9 @@ import (
 	"bytes"
 	"fmt"
 	"net/url"
+	"regexp"
 
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/valyala/fasthttp"
@@ -13,7 +15,7 @@ import (
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration) (subdomains chan sources.Subdomain) {
+func (source *Source) Run(_ *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
 	subdomains = make(chan sources.Subdomain)
 
 	go func() {
@@ -24,9 +26,16 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			res *fasthttp.Response
 		)
 
-		reqURL := fmt.Sprintf("https://api.hackertarget.com/hostsearch/?q=%s", config.Domain)
+		reqURL := fmt.Sprintf("https://api.hackertarget.com/hostsearch/?q=%s", domain)
 
 		res, err = httpclient.SimpleGet(reqURL)
+		if err != nil {
+			return
+		}
+
+		var regex *regexp.Regexp
+
+		regex, err = extractor.New(domain)
 		if err != nil {
 			return
 		}
@@ -41,7 +50,7 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			}
 
 			line, _ = url.QueryUnescape(line)
-			match := config.SubdomainsRegex.FindAllString(line, -1)
+			match := regex.FindAllString(line, -1)
 
 			for _, subdomain := range match {
 				subdomains <- sources.Subdomain{Source: source.Name(), Value: subdomain}

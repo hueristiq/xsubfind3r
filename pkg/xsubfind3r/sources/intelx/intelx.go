@@ -35,7 +35,7 @@ type requestBody struct {
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration) (subdomains chan sources.Subdomain) {
+func (source *Source) Run(config *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
 	subdomains = make(chan sources.Subdomain)
 
 	go func() {
@@ -63,7 +63,7 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 
 		searchURL := fmt.Sprintf("https://%s/phonebook/search?k=%s", intelXHost, intelXKey)
 		reqBody := requestBody{
-			Term:       config.Domain,
+			Term:       domain,
 			MaxResults: 100000,
 			Media:      0,
 			Timeout:    20,

@@ -8,12 +8,14 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/hueristiq/hqgolog"
 	"github.com/hueristiq/hqgolog/formatter"
 	"github.com/hueristiq/hqgolog/levels"
 	"github.com/hueristiq/xsubfind3r/internal/configuration"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/logrusorgru/aurora/v3"
 	"github.com/spf13/pflag"
 )
@@ -21,32 +23,41 @@ import (
 var (
 	au aurora.Aurora
 
-	domain string
+	domainsSlice        []string
+	domainsListFilePath string
 
-	sourcesToExclude []string
 	listSources      bool
 	sourcesToUse     []string
+	sourcesToExclude []string
 
-	monochrome bool
-	output     string
-	verbosity  string
+	threads int
+
+	monochrome      bool
+	output          string
+	outputDirectory string
+	verbosity       string
 
 	YAMLConfigFile string
 )
 
 func init() {
 	// defaults
+	defaultThreads := 50
 	defaultYAMLConfigFile := "~/.hueristiq/xsubfind3r/config.yaml"
 
 	// Handle CLI arguments, flags & help message (pflag)
-	pflag.StringVarP(&domain, "domain", "d", "", "")
+	pflag.StringSliceVarP(&domainsSlice, "domain", "d", []string{}, "")
+	pflag.StringVarP(&domainsListFilePath, "list", "l", "", "")
 
-	pflag.StringSliceVarP(&sourcesToExclude, "exclude-sources", "e", []string{}, "")
-	pflag.BoolVarP(&listSources, "sources", "s", false, "")
+	pflag.BoolVar(&listSources, "sources", false, "")
 	pflag.StringSliceVarP(&sourcesToUse, "use-sources", "u", []string{}, "")
+	pflag.StringSliceVarP(&sourcesToExclude, "exclude-sources", "e", []string{}, "")
+
+	pflag.IntVarP(&threads, "threads", "t", defaultThreads, "")
 
 	pflag.BoolVar(&monochrome, "no-color", false, "")
 	pflag.StringVarP(&output, "output", "o", "", "")
+	pflag.StringVarP(&outputDirectory, "outputDirectory", "O", "", "")
 	pflag.StringVarP(&verbosity, "verbosity", "v", string(levels.LevelInfo), "")
 
 	pflag.StringVarP(&YAMLConfigFile, "configuration", "c", defaultYAMLConfigFile, "")
@@ -58,21 +69,26 @@ func init() {
 		h := "USAGE:\n"
 		h += "  xsubfind3r [OPTIONS]\n"
 
-		h += "\nTARGET:\n"
-		h += " -d, --domain string              target domain\n"
+		h += "\nINPUT:\n"
+		h += " -d, --domain string[]                 target domains\n"
+		h += " -l, --list string                     target domains' list file path\n"
 
 		h += "\nSOURCES:\n"
-		h += " -e,  --exclude-sources string    sources to exclude\n"
-		h += " -s,  --sources bool              list sources\n"
-		h += " -u,  --use-sources string        sources to use\n"
+		h += "      --sources bool                   list supported sources\n"
+		h += " -u,  --sources-to-use string[]        comma(,) separeted sources to use\n"
+		h += " -e,  --sources-to-exclude string[]    comma(,) separeted sources to exclude\n"
+
+		h += "\nOPTIMIZATION:\n"
+		h += fmt.Sprintf(" -t,  --threads int                    number of threads (default: %d)\n", defaultThreads)
 
 		h += "\nOUTPUT:\n"
-		h += "     --no-color bool              no colored mode\n"
-		h += " -o, --output string              output subdomains file path\n"
-		h += fmt.Sprintf(" -v, --verbosity string           debug, info, warning, error, fatal or silent (default: %s)\n", string(levels.LevelInfo))
+		h += "     --no-color bool                   disable colored output\n"
+		h += " -o, --output string                   output subdomains' file path\n"
+		h += " -O, --output-directory string         output subdomains' directory path\n"
+		h += fmt.Sprintf(" -v, --verbosity string                debug, info, warning, error, fatal or silent (default: %s)\n", string(levels.LevelInfo))
 
 		h += "\nCONFIGURATION:\n"
-		h += fmt.Sprintf(" -c,  --configuration string      configuration file path (default: %s)\n", defaultYAMLConfigFile)
+		h += fmt.Sprintf(" -c,  --configuration string           configuration file path (default: %s)\n", defaultYAMLConfigFile)
 
 		fmt.Fprintln(os.Stderr, h)
 	}
@@ -103,21 +119,21 @@ func init() {
 }
 
 func main() {
-	// Print Banner
+	// Print banner.
 	if verbosity != string(levels.LevelSilent) {
 		fmt.Fprintln(os.Stderr, configuration.BANNER)
 	}
 
-	// Read in configuration
+	// Read in configuration.
 	config, err := configuration.Read(YAMLConfigFile)
 	if err != nil {
 		hqgolog.Fatal().Msg(err.Error())
 	}
 
-	// List suported sources
+	// List suported sources.
 	if listSources {
-		hqgolog.Info().Msgf("listing %v current supported sources", au.Underline(strconv.Itoa(len(config.Sources))).Bold())
-		hqgolog.Info().Msgf("sources with %v needs a key or token", au.Underline("*").Bold())
+		hqgolog.Info().Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(config.Sources))).Bold())
+		hqgolog.Info().Msgf("sources marked with %v need key(s) or token(s) to work.", au.Underline("*").Bold())
 		hqgolog.Print().Msg("")
 
 		needsKey := make(map[string]interface{})
@@ -140,63 +156,153 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Find subdomains
-	if verbosity != string(levels.LevelSilent) {
-		hqgolog.Info().Msgf("finding subdomains for %v.", au.Underline(domain).Bold())
-		hqgolog.Print().Msg("")
-	}
+	domains := make(chan string, threads)
 
-	options := &xsubfind3r.Options{
-		Domain:           domain,
-		SourcesToExclude: sourcesToExclude,
-		SourcesToUSe:     sourcesToUse,
-		Keys:             config.Keys,
-	}
+	// Load input domains
+	go func() {
+		defer close(domains)
 
-	finder := xsubfind3r.New(options)
-	subdomains := finder.Find()
+		// input domains: slice
+		for _, domain := range domainsSlice {
+			domains <- domain
+		}
 
-	if output != "" {
-		// Create output file path directory
-		directory := filepath.Dir(output)
+		// input domains: file
+		if domainsListFilePath != "" {
+			file, err := os.Open(domainsListFilePath)
+			if err != nil {
+				hqgolog.Error().Msg(err.Error())
+			}
 
-		if _, err := os.Stat(directory); os.IsNotExist(err) {
-			if err = os.MkdirAll(directory, os.ModePerm); err != nil {
-				hqgolog.Fatal().Msg(err.Error())
+			scanner := bufio.NewScanner(file)
+
+			for scanner.Scan() {
+				domain := scanner.Text()
+
+				if domain != "" {
+					domains <- domain
+				}
+			}
+
+			if err := scanner.Err(); err != nil {
+				hqgolog.Error().Msg(err.Error())
 			}
 		}
 
-		// Create output file
-		file, err := os.OpenFile(output, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		// input domains: stdin
+		if hasStdin() {
+			scanner := bufio.NewScanner(os.Stdin)
+
+			for scanner.Scan() {
+				domain := scanner.Text()
+
+				if domain != "" {
+					domains <- domain
+				}
+			}
+
+			if err := scanner.Err(); err != nil {
+				hqgolog.Error().Msg(err.Error())
+			}
+		}
+	}()
+
+	// Find and output subdomains.
+	var consolidatedWriter *bufio.Writer
+
+	if output != "" {
+		directory := filepath.Dir(output)
+
+		mkdir(directory)
+
+		consolidatedFile, err := os.OpenFile(output, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			hqgolog.Fatal().Msg(err.Error())
 		}
 
-		defer file.Close()
+		defer consolidatedFile.Close()
 
-		// Write subdomains output file and print on screen
-		writer := bufio.NewWriter(file)
+		consolidatedWriter = bufio.NewWriter(consolidatedFile)
+	}
 
-		for subdomains := range subdomains {
-			if verbosity == string(levels.LevelSilent) {
-				hqgolog.Print().Msg(subdomains.Value)
-			} else {
-				hqgolog.Print().Msgf("[%s] %s", au.BrightBlue(subdomains.Source), subdomains.Value)
+	if outputDirectory != "" {
+		mkdir(outputDirectory)
+	}
+
+	wg := &sync.WaitGroup{}
+
+	for i := 0; i < threads; i++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			options := &xsubfind3r.Options{
+				SourcesToExclude: sourcesToExclude,
+				SourcesToUSe:     sourcesToUse,
+				Keys:             config.Keys,
 			}
 
-			fmt.Fprintln(writer, subdomains.Value)
-		}
+			finder := xsubfind3r.New(options)
 
-		if err = writer.Flush(); err != nil {
+			for domain := range domains {
+				subdomains := finder.Find(domain)
+
+				switch {
+				case output != "":
+					processSubdomains(consolidatedWriter, subdomains, verbosity)
+				case outputDirectory != "":
+					domainFile, err := os.OpenFile(filepath.Join(outputDirectory, domain+".txt"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+					if err != nil {
+						hqgolog.Fatal().Msg(err.Error())
+					}
+
+					domainWriter := bufio.NewWriter(domainFile)
+
+					processSubdomains(domainWriter, subdomains, verbosity)
+				default:
+					processSubdomains(nil, subdomains, verbosity)
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
+}
+
+func hasStdin() bool {
+	stat, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+
+	isPipedFromChrDev := (stat.Mode() & os.ModeCharDevice) == 0
+	isPipedFromFIFO := (stat.Mode() & os.ModeNamedPipe) != 0
+
+	return isPipedFromChrDev || isPipedFromFIFO
+}
+
+func mkdir(path string) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		if err = os.MkdirAll(path, os.ModePerm); err != nil {
 			hqgolog.Fatal().Msg(err.Error())
 		}
-	} else {
-		// Print subdomains on screen
-		for subdomains := range subdomains {
-			if verbosity == string(levels.LevelSilent) {
-				hqgolog.Print().Msg(subdomains.Value)
-			} else {
-				hqgolog.Print().Msgf("[%s] %s", au.BrightBlue(subdomains.Source), subdomains.Value)
+	}
+}
+
+func processSubdomains(writer *bufio.Writer, subdomains chan sources.Subdomain, verbosity string) {
+	for subdomain := range subdomains {
+		if verbosity == string(levels.LevelSilent) {
+			hqgolog.Print().Msg(subdomain.Value)
+		} else {
+			hqgolog.Print().Msgf("[%s] %s", au.BrightBlue(subdomain.Source), subdomain.Value)
+		}
+
+		if writer != nil {
+			fmt.Fprintln(writer, subdomain.Value)
+
+			if err := writer.Flush(); err != nil {
+				hqgolog.Fatal().Msg(err.Error())
 			}
 		}
 	}
