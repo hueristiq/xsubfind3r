@@ -33,7 +33,7 @@ type CommonAPIResult []struct {
 	API      string `json:"cdx-api"`
 }
 
-func (source *Source) Run(config *sources.Configuration) (subdomains chan sources.Subdomain) {
+func (source *Source) Run(config *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
 	subdomains = make(chan sources.Subdomain)
 
 	go func() {
@@ -68,7 +68,7 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 
 				var headers = map[string]string{"Host": "index.commoncrawl.org"}
 
-				reqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url", api, config.Domain)
+				reqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url", api, domain)
 
 				res, err := httpclient.Get(reqURL, "", headers)
 				if err != nil {

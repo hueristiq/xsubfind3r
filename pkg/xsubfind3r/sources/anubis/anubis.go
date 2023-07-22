@@ -11,7 +11,7 @@ import (
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration) (subdomains chan sources.Subdomain) {
+func (source *Source) Run(config *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
 	subdomains = make(chan sources.Subdomain)
 
 	go func() {
@@ -22,7 +22,7 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			res *fasthttp.Response
 		)
 
-		reqURL := fmt.Sprintf("https://jldc.me/anubis/subdomains/%s", config.Domain)
+		reqURL := fmt.Sprintf("https://jldc.me/anubis/subdomains/%s", domain)
 
 		res, err = httpclient.SimpleGet(reqURL)
 		if err != nil {

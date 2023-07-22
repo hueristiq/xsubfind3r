@@ -17,7 +17,7 @@ type response struct {
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration) (subdomains chan sources.Subdomain) {
+func (source *Source) Run(config *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
 	subdomains = make(chan sources.Subdomain)
 
 	go func() {
@@ -39,7 +39,7 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			headers["X-API-KEY"] = key
 		}
 
-		reqURL := fmt.Sprintf("https://fullhunt.io/api/v1/domain/%s/subdomains", config.Domain)
+		reqURL := fmt.Sprintf("https://fullhunt.io/api/v1/domain/%s/subdomains", domain)
 
 		res, err = httpclient.Request(fasthttp.MethodGet, reqURL, "", headers, nil)
 		if err != nil {

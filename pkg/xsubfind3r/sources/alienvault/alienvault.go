@@ -19,7 +19,7 @@ type response struct {
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration) (subdomains chan sources.Subdomain) {
+func (source *Source) Run(config *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
 	subdomains = make(chan sources.Subdomain)
 
 	go func() {
@@ -30,7 +30,7 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			res *fasthttp.Response
 		)
 
-		reqURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", config.Domain)
+		reqURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", domain)
 
 		res, err = httpclient.SimpleGet(reqURL)
 		if err != nil {

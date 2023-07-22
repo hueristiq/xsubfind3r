@@ -20,7 +20,7 @@ type response struct {
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration) (subdomains chan sources.Subdomain) {
+func (source *Source) Run(config *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
 	subdomains = make(chan sources.Subdomain)
 
 	go func() {
@@ -31,7 +31,7 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 			res *fasthttp.Response
 		)
 
-		reqURL := fmt.Sprintf("https://urlscan.io/api/v1/search/?q=domain:%s", config.Domain)
+		reqURL := fmt.Sprintf("https://urlscan.io/api/v1/search/?q=domain:%s", domain)
 
 		res, err = httpclient.SimpleGet(reqURL)
 		if err != nil {
@@ -47,7 +47,7 @@ func (source *Source) Run(config *sources.Configuration) (subdomains chan source
 		}
 
 		for _, record := range results.Results {
-			if !strings.HasSuffix(record.Page.Domain, "."+config.Domain) {
+			if !strings.HasSuffix(record.Page.Domain, "."+domain) {
 				continue
 			}
 
