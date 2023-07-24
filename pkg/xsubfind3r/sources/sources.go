@@ -11,6 +11,7 @@ var List = []string{
 	"github",
 	"hackertarget",
 	"intelx",
+	"shodan",
 	"urlscan",
 	"wayback",
 }

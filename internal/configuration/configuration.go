@@ -78,6 +78,7 @@ func CreateUpdate(path string) (err error) {
 			Fullhunt: []string{},
 			GitHub:   []string{},
 			Intelx:   []string{},
+			Shodan:   []string{},
 			URLScan:  []string{},
 		},
 	}
