@@ -63,7 +63,7 @@ func init() {
 
 		h += "\nINPUT:\n"
 		h += " -d, --domain string[]                 target domains\n"
-		h += " -l, --list string                     target domains' list file path\n"
+		h += " -l, --list string                     target domains list file path\n"
 
 		h += "\nSOURCES:\n"
 		h += "      --sources bool                   list supported sources\n"
@@ -75,8 +75,8 @@ func init() {
 
 		h += "\nOUTPUT:\n"
 		h += "     --no-color bool                   disable colored output\n"
-		h += " -o, --output string                   output subdomains' file path\n"
-		h += " -O, --output-directory string         output subdomains' directory path\n"
+		h += " -o, --output string                   output subdomains file path\n"
+		h += " -O, --output-directory string         output subdomains directory path\n"
 		h += fmt.Sprintf(" -v, --verbosity string                debug, info, warning, error, fatal or silent (default: %s)\n", string(levels.LevelInfo))
 
 		h += "\nCONFIGURATION:\n"
