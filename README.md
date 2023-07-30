@@ -20,6 +20,17 @@
 ## Features
 
 * Fetches domains from curated passive sources to maximize results.
+    <details>
+    <summary>Sources: Click to expand!</summary>
+    
+    | Technique | Source |
+    | :-------- | :----- |
+    | APIs | AnubisDB, BeVigil, Chaos, FullHunt, GitHub, HackerTarget, IntelX, Shodan, URLScan |
+    | Certificates | Crtsh |
+    | Web Archives | CommonCrawl, Wayback |
+    | WHOIS | AlienVault |
+
+    </details>
 * Supports `stdin` and `stdout` for easy integration into workflows.
 * Cross-Platform (Windows, Linux & macOS).
 
