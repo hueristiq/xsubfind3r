@@ -46,7 +46,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) (subdoma
 
 		tokens := NewTokenManager(config.Keys.GitHub)
 
-		searchURL := fmt.Sprintf("https://api.github.com/search/code?per_page=100&q=%s&sort=created&order=asc", domain)
+		searchURL := fmt.Sprintf("https://api.github.com/search/code?per_page=100&q=%q&sort=created&order=asc", domain)
 		source.Enumerate(config, searchURL, domainRegexp(domain), tokens, subdomains)
 	}()
 
