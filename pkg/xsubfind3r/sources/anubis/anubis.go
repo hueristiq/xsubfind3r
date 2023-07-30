@@ -11,32 +11,31 @@ import (
 
 type Source struct{}
 
-func (source *Source) Run(_ *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
-	subdomains = make(chan sources.Subdomain)
+func (source *Source) Run(_ *sources.Configuration, domain string) (subdomainsChannel chan sources.Subdomain) {
+	subdomainsChannel = make(chan sources.Subdomain)
 
 	go func() {
-		defer close(subdomains)
+		defer close(subdomainsChannel)
 
-		var (
-			err error
-			res *fasthttp.Response
-		)
+		var err error
 
-		reqURL := fmt.Sprintf("https://jldc.me/anubis/subdomains/%s", domain)
+		getSubdomainsReqURL := fmt.Sprintf("https://jldc.me/anubis/subdomains/%s", domain)
 
-		res, err = httpclient.SimpleGet(reqURL)
+		var getSubdomainsRes *fasthttp.Response
+
+		getSubdomainsRes, err = httpclient.SimpleGet(getSubdomainsReqURL)
 		if err != nil {
 			return
 		}
 
-		var results []string
+		var getSubdomainsResData []string
 
-		if err = json.Unmarshal(res.Body(), &results); err != nil {
+		if err = json.Unmarshal(getSubdomainsRes.Body(), &getSubdomainsResData); err != nil {
 			return
 		}
 
-		for _, subdomain := range results {
-			subdomains <- sources.Subdomain{Source: source.Name(), Value: subdomain}
+		for _, subdomain := range getSubdomainsResData {
+			subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: subdomain}
 		}
 	}()
 

@@ -10,40 +10,39 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-type response struct {
+type getNameValuesResponse []struct {
 	ID        int    `json:"id"`
 	NameValue string `json:"name_value"`
 }
 
 type Source struct{}
 
-func (source *Source) Run(_ *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
-	subdomains = make(chan sources.Subdomain)
+func (source *Source) Run(_ *sources.Configuration, domain string) (subdomainsChannel chan sources.Subdomain) {
+	subdomainsChannel = make(chan sources.Subdomain)
 
 	go func() {
-		defer close(subdomains)
+		defer close(subdomainsChannel)
 
-		var (
-			err error
-			res *fasthttp.Response
-		)
+		var err error
 
-		reqURL := fmt.Sprintf("https://crt.sh/?q=%%25.%s&output=json", domain)
+		getNameValuesReqURL := fmt.Sprintf("https://crt.sh/?q=%%25.%s&output=json", domain)
 
-		res, err = httpclient.SimpleGet(reqURL)
+		var getNameValuesRes *fasthttp.Response
+
+		getNameValuesRes, err = httpclient.SimpleGet(getNameValuesReqURL)
 		if err != nil {
 			return
 		}
 
-		var results []response
+		var getNameValuesResData getNameValuesResponse
 
-		if err := json.Unmarshal(res.Body(), &results); err != nil {
+		if err := json.Unmarshal(getNameValuesRes.Body(), &getNameValuesResData); err != nil {
 			return
 		}
 
-		for _, record := range results {
+		for _, record := range getNameValuesResData {
 			for _, subdomain := range strings.Split(record.NameValue, "\n") {
-				subdomains <- sources.Subdomain{Source: source.Name(), Value: subdomain}
+				subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: subdomain}
 			}
 		}
 	}()

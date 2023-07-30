@@ -9,12 +9,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// type response struct {
-// 	ID        int    `json:"id"`
-// 	NameValue string `json:"name_value"`
-// }
-
-type response struct {
+type getDNSResponse struct {
 	Domain     string   `json:"domain"`
 	Subdomains []string `json:"subdomains"`
 	Result     int      `json:"result"`
@@ -23,38 +18,38 @@ type response struct {
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
-	subdomains = make(chan sources.Subdomain)
+func (source *Source) Run(config *sources.Configuration, domain string) (subdomainsChannel chan sources.Subdomain) {
+	subdomainsChannel = make(chan sources.Subdomain)
 
 	go func() {
-		defer close(subdomains)
+		defer close(subdomainsChannel)
 
-		var (
-			key string
-			err error
-			res *fasthttp.Response
-		)
+		var err error
+
+		var key string
 
 		key, err = sources.PickRandom(config.Keys.Shodan)
 		if key == "" || err != nil {
 			return
 		}
 
-		reqURL := fmt.Sprintf("https://api.shodan.io/dns/domain/%s?key=%s", domain, key)
+		getDNSReqURL := fmt.Sprintf("https://api.shodan.io/dns/domain/%s?key=%s", domain, key)
 
-		res, err = httpclient.SimpleGet(reqURL)
+		var getDNSRes *fasthttp.Response
+
+		getDNSRes, err = httpclient.SimpleGet(getDNSReqURL)
 		if err != nil {
 			return
 		}
 
-		var results response
+		var getDNSResData getDNSResponse
 
-		if err := json.Unmarshal(res.Body(), &results); err != nil {
+		if err := json.Unmarshal(getDNSRes.Body(), &getDNSResData); err != nil {
 			return
 		}
 
-		for _, subdomain := range results.Subdomains {
-			subdomains <- sources.Subdomain{Source: source.Name(), Value: fmt.Sprintf("%s.%s", subdomain, domain)}
+		for _, subdomain := range getDNSResData.Subdomains {
+			subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: fmt.Sprintf("%s.%s", subdomain, domain)}
 		}
 	}()
 

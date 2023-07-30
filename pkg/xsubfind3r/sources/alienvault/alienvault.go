@@ -9,7 +9,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-type response struct {
+type getPassiveDNSResponse struct {
 	Detail     string `json:"detail"`
 	Error      string `json:"error"`
 	PassiveDNS []struct {
@@ -19,36 +19,35 @@ type response struct {
 
 type Source struct{}
 
-func (source *Source) Run(_ *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
-	subdomains = make(chan sources.Subdomain)
+func (source *Source) Run(_ *sources.Configuration, domain string) (subdomainsChannel chan sources.Subdomain) {
+	subdomainsChannel = make(chan sources.Subdomain)
 
 	go func() {
-		defer close(subdomains)
+		defer close(subdomainsChannel)
 
-		var (
-			err error
-			res *fasthttp.Response
-		)
+		var err error
 
-		reqURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", domain)
+		getPassiveDNSReqURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", domain)
 
-		res, err = httpclient.SimpleGet(reqURL)
+		var getPassiveDNSRes *fasthttp.Response
+
+		getPassiveDNSRes, err = httpclient.SimpleGet(getPassiveDNSReqURL)
 		if err != nil {
 			return
 		}
 
-		var results response
+		var getPassiveDNSResData getPassiveDNSResponse
 
-		if err = json.Unmarshal(res.Body(), &results); err != nil {
+		if err = json.Unmarshal(getPassiveDNSRes.Body(), &getPassiveDNSResData); err != nil {
 			return
 		}
 
-		if results.Error != "" {
+		if getPassiveDNSResData.Error != "" {
 			return
 		}
 
-		for _, record := range results.PassiveDNS {
-			subdomains <- sources.Subdomain{Source: source.Name(), Value: record.Hostname}
+		for _, record := range getPassiveDNSResData.PassiveDNS {
+			subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: record.Hostname}
 		}
 	}()
 

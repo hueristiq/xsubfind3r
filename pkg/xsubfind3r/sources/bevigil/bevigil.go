@@ -9,52 +9,51 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-type response struct {
+type getSubdomainsResponse struct {
 	Domain     string   `json:"domain"`
 	Subdomains []string `json:"subdomains"`
 }
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
-	subdomains = make(chan sources.Subdomain)
+func (source *Source) Run(config *sources.Configuration, domain string) (subdomainsChannel chan sources.Subdomain) {
+	subdomainsChannel = make(chan sources.Subdomain)
 
 	go func() {
-		defer close(subdomains)
+		defer close(subdomainsChannel)
 
-		var (
-			key     string
-			err     error
-			res     *fasthttp.Response
-			headers = map[string]string{}
-		)
+		var err error
+
+		var key string
 
 		key, err = sources.PickRandom(config.Keys.Bevigil)
 		if key == "" || err != nil {
 			return
 		}
 
+		getSubdomainsReqHeaders := map[string]string{}
+
 		if len(config.Keys.Bevigil) > 0 {
-			headers["X-Access-Token"] = key
+			getSubdomainsReqHeaders["X-Access-Token"] = key
 		}
 
-		reqURL := fmt.Sprintf("https://osint.bevigil.com/api/%s/subdomains/", domain)
+		getSubdomainsReqURL := fmt.Sprintf("https://osint.bevigil.com/api/%s/subdomains/", domain)
 
-		res, err = httpclient.Request(fasthttp.MethodGet, reqURL, "", headers, nil)
+		var getSubdomainsRes *fasthttp.Response
+
+		getSubdomainsRes, err = httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
 		if err != nil {
 			return
 		}
 
-		body := res.Body()
+		var getSubdomainsResData getSubdomainsResponse
 
-		var results response
-
-		if err = json.Unmarshal(body, &results); err != nil {
+		if err = json.Unmarshal(getSubdomainsRes.Body(), &getSubdomainsResData); err != nil {
 			return
 		}
 
-		for _, subdomain := range results.Subdomains {
-			subdomains <- sources.Subdomain{Source: source.Name(), Value: subdomain}
+		for _, subdomain := range getSubdomainsResData.Subdomains {
+			subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: subdomain}
 		}
 	}()
 

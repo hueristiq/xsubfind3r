@@ -15,20 +15,19 @@ import (
 
 type Source struct{}
 
-func (source *Source) Run(_ *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
-	subdomains = make(chan sources.Subdomain)
+func (source *Source) Run(_ *sources.Configuration, domain string) (subdomainsChannel chan sources.Subdomain) {
+	subdomainsChannel = make(chan sources.Subdomain)
 
 	go func() {
-		defer close(subdomains)
+		defer close(subdomainsChannel)
 
-		var (
-			err error
-			res *fasthttp.Response
-		)
+		var err error
 
-		reqURL := fmt.Sprintf("https://api.hackertarget.com/hostsearch/?q=%s", domain)
+		hostSearchReqURL := fmt.Sprintf("https://api.hackertarget.com/hostsearch/?q=%s", domain)
 
-		res, err = httpclient.SimpleGet(reqURL)
+		var hostSearchRes *fasthttp.Response
+
+		hostSearchRes, err = httpclient.SimpleGet(hostSearchReqURL)
 		if err != nil {
 			return
 		}
@@ -40,7 +39,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) (subdomains c
 			return
 		}
 
-		scanner := bufio.NewScanner(bytes.NewReader(res.Body()))
+		scanner := bufio.NewScanner(bytes.NewReader(hostSearchRes.Body()))
 
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -53,7 +52,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) (subdomains c
 			match := regex.FindAllString(line, -1)
 
 			for _, subdomain := range match {
-				subdomains <- sources.Subdomain{Source: source.Name(), Value: subdomain}
+				subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: subdomain}
 			}
 		}
 
