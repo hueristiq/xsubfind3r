@@ -20,6 +20,17 @@
 ## Features
 
 * Fetches domains from curated passive sources to maximize results.
+    <details>
+    <summary>Sources: Click to expand!</summary>
+    
+    | Technique | Source |
+    | :-------- | :----- |
+    | APIs | AnubisDB, BeVigil, Chaos, FullHunt, GitHub, HackerTarget, IntelX, Shodan, URLScan |
+    | Certificates | Crtsh |
+    | Web Archives | CommonCrawl, Wayback |
+    | WHOIS | AlienVault |
+
+    </details>
 * Supports `stdin` and `stdout` for easy integration into workflows.
 * Cross-Platform (Windows, Linux & macOS).
 
@@ -101,12 +112,12 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 
 ## Post Installation
 
-`xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[Chaos](https://chaos.projectdiscovery.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, **[Github](https://github.com)** and **[Intelligence X](https://intelx.io)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.hueristiq/xsubfind3r/config.yaml` file - created upon first run - and uses the YAML format. Multiple API keys can be specified for each of these source from which one of them will be used.
+`xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[Chaos](https://chaos.projectdiscovery.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, **[Github](https://github.com)**, **[Intelligence X](https://intelx.io)** and **[Shodan](https://shodan.io/)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.hueristiq/xsubfind3r/config.yaml` file - created upon first run - and uses the YAML format. Multiple API keys can be specified for each of these source from which one of them will be used.
 
 Example `config.yaml`:
 
 ```yaml
-version: 0.2.0
+version: 0.3.0
 sources:
     - alienvault
     - anubis
@@ -118,6 +129,7 @@ sources:
     - github
     - hackertarget
     - intelx
+    - shodan
     - urlscan
     - wayback
 keys:
@@ -132,6 +144,8 @@ keys:
         - asdsd54bbc1aabb208c9acfbd2dd41ce7fc9db39
     intelx:
         - 2.intelx.io:00000000-0000-0000-0000-000000000000
+    shodan:
+        - AAAAClP1bJJSRMEYJazgwhJKrggRwKA
     urlscan:
         - d4c85d34-e425-446e-d4ab-f5a3412acbe8
 ```
@@ -152,7 +166,7 @@ help message:
 __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __ 
 \ \/ / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
  >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |   
-/_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v0.2.0
+/_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v0.3.0
 
 USAGE:
   xsubfind3r [OPTIONS]

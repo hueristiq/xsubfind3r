@@ -10,5 +10,6 @@ type Keys struct {
 	Fullhunt []string `yaml:"fullhunt"`
 	GitHub   []string `yaml:"github"`
 	Intelx   []string `yaml:"intelx"`
+	Shodan   []string `yaml:"shodan"`
 	URLScan  []string `yaml:"urlscan"`
 }

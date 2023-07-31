@@ -3,6 +3,7 @@ package wayback
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -16,21 +17,26 @@ import (
 
 type Source struct{}
 
-func (source *Source) Run(_ *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
-	subdomains = make(chan sources.Subdomain)
+func (source *Source) Run(_ *sources.Configuration, domain string) (subdomainsChannel chan sources.Subdomain) {
+	subdomainsChannel = make(chan sources.Subdomain)
 
 	go func() {
-		defer close(subdomains)
+		defer close(subdomainsChannel)
 
-		var (
-			err error
-			res *fasthttp.Response
-		)
+		var err error
 
-		reqURL := fmt.Sprintf("http://web.archive.org/cdx/search/cdx?url=*.%s/*&output=txt&fl=original&collapse=urlkey", domain)
+		getPagesReqURL := fmt.Sprintf("http://web.archive.org/cdx/search/cdx?url=*.%s/*&output=txt&fl=original&collapse=urlkey&showNumPages=true", domain)
 
-		res, err = httpclient.SimpleGet(reqURL)
+		var getPagesRes *fasthttp.Response
+
+		getPagesRes, err = httpclient.SimpleGet(getPagesReqURL)
 		if err != nil {
+			return
+		}
+
+		var pages uint
+
+		if err = json.Unmarshal(getPagesRes.Body(), &pages); err != nil {
 			return
 		}
 
@@ -41,29 +47,40 @@ func (source *Source) Run(_ *sources.Configuration, domain string) (subdomains c
 			return
 		}
 
-		scanner := bufio.NewScanner(bytes.NewReader(res.Body()))
+		for page := uint(0); page < pages; page++ {
+			getURLsReqURL := fmt.Sprintf("http://web.archive.org/cdx/search/cdx?url=*.%s/*&output=txt&fl=original&collapse=urlkey&page=%d", domain, page)
 
-		for scanner.Scan() {
-			line := scanner.Text()
+			var getURLsRes *fasthttp.Response
 
-			if line == "" {
-				continue
+			getURLsRes, err = httpclient.SimpleGet(getURLsReqURL)
+			if err != nil {
+				return
 			}
 
-			line, _ = url.QueryUnescape(line)
-			subdomain := regex.FindString(line)
+			scanner := bufio.NewScanner(bytes.NewReader(getURLsRes.Body()))
 
-			if subdomain != "" {
-				subdomain = strings.ToLower(subdomain)
-				subdomain = strings.TrimPrefix(subdomain, "25")
-				subdomain = strings.TrimPrefix(subdomain, "2f")
+			for scanner.Scan() {
+				line := scanner.Text()
 
-				subdomains <- sources.Subdomain{Source: source.Name(), Value: subdomain}
+				if line == "" {
+					continue
+				}
+
+				line, _ = url.QueryUnescape(line)
+				subdomain := regex.FindString(line)
+
+				if subdomain != "" {
+					subdomain = strings.ToLower(subdomain)
+					subdomain = strings.TrimPrefix(subdomain, "25")
+					subdomain = strings.TrimPrefix(subdomain, "2f")
+
+					subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: subdomain}
+				}
 			}
-		}
 
-		if err = scanner.Err(); err != nil {
-			return
+			if err = scanner.Err(); err != nil {
+				return
+			}
 		}
 	}()
 

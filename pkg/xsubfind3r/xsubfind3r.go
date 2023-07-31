@@ -15,6 +15,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/github"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/hackertarget"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/intelx"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/shodan"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/urlscan"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
 )
@@ -64,6 +65,8 @@ func New(options *Options) (finder *Finder) {
 			finder.Sources[source] = &hackertarget.Source{}
 		case "intelx":
 			finder.Sources[source] = &intelx.Source{}
+		case "shodan":
+			finder.Sources[source] = &shodan.Source{}
 		case "urlscan":
 			finder.Sources[source] = &urlscan.Source{}
 		case "wayback":

@@ -48,7 +48,7 @@ func (configuration *Configuration) Write(path string) (err error) {
 
 const (
 	NAME    string = "xsubfind3r"
-	VERSION string = "0.2.0"
+	VERSION string = "0.3.0"
 )
 
 var (
@@ -78,6 +78,7 @@ func CreateUpdate(path string) (err error) {
 			Fullhunt: []string{},
 			GitHub:   []string{},
 			Intelx:   []string{},
+			Shodan:   []string{},
 			URLScan:  []string{},
 		},
 	}

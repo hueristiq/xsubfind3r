@@ -25,41 +25,33 @@ var (
 
 	domainsSlice        []string
 	domainsListFilePath string
-
-	listSources      bool
-	sourcesToUse     []string
-	sourcesToExclude []string
-
-	threads int
-
-	monochrome      bool
-	output          string
-	outputDirectory string
-	verbosity       string
-
-	YAMLConfigFile string
+	listSources         bool
+	sourcesToUse        []string
+	sourcesToExclude    []string
+	threads             int
+	monochrome          bool
+	output              string
+	outputDirectory     string
+	verbosity           string
+	YAMLConfigFile      string
 )
 
 func init() {
 	// defaults
 	defaultThreads := 50
-	defaultYAMLConfigFile := "~/.hueristiq/xsubfind3r/config.yaml"
+	defaultYAMLConfigFile := fmt.Sprintf("~/.hueristiq/%s/config.yaml", configuration.NAME)
 
 	// Handle CLI arguments, flags & help message (pflag)
 	pflag.StringSliceVarP(&domainsSlice, "domain", "d", []string{}, "")
 	pflag.StringVarP(&domainsListFilePath, "list", "l", "", "")
-
 	pflag.BoolVar(&listSources, "sources", false, "")
 	pflag.StringSliceVarP(&sourcesToUse, "use-sources", "u", []string{}, "")
 	pflag.StringSliceVarP(&sourcesToExclude, "exclude-sources", "e", []string{}, "")
-
 	pflag.IntVarP(&threads, "threads", "t", defaultThreads, "")
-
 	pflag.BoolVar(&monochrome, "no-color", false, "")
 	pflag.StringVarP(&output, "output", "o", "", "")
 	pflag.StringVarP(&outputDirectory, "outputDirectory", "O", "", "")
 	pflag.StringVarP(&verbosity, "verbosity", "v", string(levels.LevelInfo), "")
-
 	pflag.StringVarP(&YAMLConfigFile, "configuration", "c", defaultYAMLConfigFile, "")
 
 	pflag.CommandLine.SortFlags = false
@@ -71,7 +63,7 @@ func init() {
 
 		h += "\nINPUT:\n"
 		h += " -d, --domain string[]                 target domains\n"
-		h += " -l, --list string                     target domains' list file path\n"
+		h += " -l, --list string                     target domains list file path\n"
 
 		h += "\nSOURCES:\n"
 		h += "      --sources bool                   list supported sources\n"
@@ -83,8 +75,8 @@ func init() {
 
 		h += "\nOUTPUT:\n"
 		h += "     --no-color bool                   disable colored output\n"
-		h += " -o, --output string                   output subdomains' file path\n"
-		h += " -O, --output-directory string         output subdomains' directory path\n"
+		h += " -o, --output string                   output subdomains file path\n"
+		h += " -O, --output-directory string         output subdomains directory path\n"
 		h += fmt.Sprintf(" -v, --verbosity string                debug, info, warning, error, fatal or silent (default: %s)\n", string(levels.LevelInfo))
 
 		h += "\nCONFIGURATION:\n"

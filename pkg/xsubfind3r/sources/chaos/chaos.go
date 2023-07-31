@@ -9,7 +9,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-type response struct {
+type getSubdomainsResponse struct {
 	Domain     string   `json:"domain"`
 	Subdomains []string `json:"subdomains"`
 	Count      int      `json:"count"`
@@ -17,41 +17,42 @@ type response struct {
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
-	subdomains = make(chan sources.Subdomain)
+func (source *Source) Run(config *sources.Configuration, domain string) (subdomainsChannel chan sources.Subdomain) {
+	subdomainsChannel = make(chan sources.Subdomain)
 
 	go func() {
-		defer close(subdomains)
+		defer close(subdomainsChannel)
 
-		var (
-			key string
-			err error
-			res *fasthttp.Response
-		)
+		var err error
+
+		var key string
 
 		key, err = sources.PickRandom(config.Keys.Chaos)
 		if key == "" || err != nil {
 			return
 		}
 
-		reqURL := fmt.Sprintf("https://dns.projectdiscovery.io/dns/%s/subdomains", domain)
-		headers := map[string]string{"Authorization": key}
+		getSubdomainsReqHeaders := map[string]string{"Authorization": key}
 
-		res, err = httpclient.Request(fasthttp.MethodGet, reqURL, "", headers, nil)
+		getSubdomainsReqURL := fmt.Sprintf("https://dns.projectdiscovery.io/dns/%s/subdomains", domain)
+
+		var getSubdomainsRes *fasthttp.Response
+
+		getSubdomainsRes, err = httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
 		if err != nil {
 			return
 		}
 
-		var results response
+		var getSubdomainsResData getSubdomainsResponse
 
-		if err = json.Unmarshal(res.Body(), &results); err != nil {
+		if err = json.Unmarshal(getSubdomainsRes.Body(), &getSubdomainsResData); err != nil {
 			return
 		}
 
-		for _, record := range results.Subdomains {
-			subdomain := fmt.Sprintf("%s.%s", record, results.Domain)
+		for _, record := range getSubdomainsResData.Subdomains {
+			subdomain := fmt.Sprintf("%s.%s", record, getSubdomainsResData.Domain)
 
-			subdomains <- sources.Subdomain{Source: source.Name(), Value: subdomain}
+			subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: subdomain}
 		}
 	}()
 

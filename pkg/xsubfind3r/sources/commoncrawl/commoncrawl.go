@@ -13,95 +13,95 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-type Source struct{}
-
-type CommonPaginationResult struct {
-	Blocks   uint `json:"blocks"`
-	PageSize uint `json:"pageSize"`
-	Pages    uint `json:"pages"`
+type getIndexesResponse []struct {
+	ID  string `json:"id"`
+	API string `json:"cdx-API"`
 }
 
-type CommonResult struct {
+type getURLsResponse struct {
 	URL   string `json:"url"`
 	Error string `json:"error"`
 }
 
-type CommonAPIResult []struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	TimeGate string `json:"timegate"`
-	API      string `json:"cdx-api"`
-}
+type Source struct{}
 
-func (source *Source) Run(_ *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
-	subdomains = make(chan sources.Subdomain)
+func (source *Source) Run(_ *sources.Configuration, domain string) (subdomainsChannel chan sources.Subdomain) {
+	subdomainsChannel = make(chan sources.Subdomain)
 
 	go func() {
-		defer close(subdomains)
+		defer close(subdomainsChannel)
 
-		var (
-			err error
-			res *fasthttp.Response
-		)
+		getIndexesReqURL := "https://index.commoncrawl.org/collinfo.json"
 
-		indexURL := "https://index.commoncrawl.org/collinfo.json"
+		var err error
 
-		res, err = httpclient.SimpleGet(indexURL)
+		var getIndexesRes *fasthttp.Response
+
+		getIndexesRes, err = httpclient.SimpleGet(getIndexesReqURL)
 		if err != nil {
 			return
 		}
 
-		var indexes CommonAPIResult
+		var getIndexesResData getIndexesResponse
 
-		if err := json.Unmarshal(res.Body(), &indexes); err != nil {
-			fmt.Println(err)
+		if err = json.Unmarshal(getIndexesRes.Body(), &getIndexesResData); err != nil {
 			return
 		}
 
 		wg := new(sync.WaitGroup)
 
-		for _, u := range indexes {
+		for _, indexData := range getIndexesResData {
 			wg.Add(1)
 
-			go func(api string) {
+			go func(API string) {
 				defer wg.Done()
 
-				var headers = map[string]string{"Host": "index.commoncrawl.org"}
+				getURLsReqHeaders := map[string]string{
+					"Host": "index.commoncrawl.org",
+				}
 
-				reqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url", api, domain)
+				getURLsReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url", API, domain)
 
-				res, err := httpclient.Get(reqURL, "", headers)
+				var err error
+
+				var getURLsRes *fasthttp.Response
+
+				getURLsRes, err = httpclient.Get(getURLsReqURL, "", getURLsReqHeaders)
 				if err != nil {
 					return
 				}
 
-				scanner := bufio.NewScanner(bytes.NewReader(res.Body()))
+				scanner := bufio.NewScanner(bytes.NewReader(getURLsRes.Body()))
 
 				for scanner.Scan() {
-					var result CommonResult
+					var getURLsResData getURLsResponse
 
-					if err := json.Unmarshal(scanner.Bytes(), &result); err != nil {
+					if err = json.Unmarshal(scanner.Bytes(), &getURLsResData); err != nil {
 						return
 					}
 
-					if result.Error != "" {
-						continue
+					if getURLsResData.Error != "" {
+						return
 					}
 
-					parsedURL, err := hqgourl.Parse(result.URL)
+					parsedURL, err := hqgourl.Parse(getURLsResData.URL)
 					if err != nil {
 						continue
 					}
 
-					subdomains <- sources.Subdomain{Source: source.Name(), Value: parsedURL.Domain}
+					subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: parsedURL.Domain}
 				}
-			}(u.API)
+
+				if scanner.Err() != nil {
+					return
+				}
+			}(indexData.API)
 		}
 
 		wg.Wait()
 	}()
 
-	return subdomains
+	return subdomainsChannel
 }
 
 func (source *Source) Name() string {

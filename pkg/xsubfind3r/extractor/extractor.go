@@ -11,7 +11,9 @@ func New(domain string) (extractor *regexp.Regexp, err error) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	extractor, err = regexp.Compile(`(?i)[a-zA-Z0-9\*_.-]+\.` + domain)
+	pattern := `(?i)[a-zA-Z0-9\*_.-]+\.` + domain
+
+	extractor, err = regexp.Compile(pattern)
 	if err != nil {
 		return
 	}

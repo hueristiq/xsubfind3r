@@ -1,59 +1,54 @@
 package github
 
 import (
-	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/spf13/cast"
 	"github.com/tomnomnom/linkheader"
 	"github.com/valyala/fasthttp"
 )
 
+type searchResponse struct {
+	TotalCount int `json:"total_count"`
+	Items      []struct {
+		Name        string `json:"name"`
+		HTMLURL     string `json:"html_url"`
+		TextMatches []struct {
+			Fragment string `json:"fragment"`
+		} `json:"text_matches"`
+	} `json:"items"`
+}
+
 type Source struct{}
 
-type textMatch struct {
-	Fragment string `json:"fragment"`
-}
-
-type item struct {
-	Name        string      `json:"name"`
-	HTMLURL     string      `json:"html_url"`
-	TextMatches []textMatch `json:"text_matches"`
-}
-
-type response struct {
-	TotalCount int    `json:"total_count"`
-	Items      []item `json:"items"`
-}
-
-func (source *Source) Run(config *sources.Configuration, domain string) (subdomains chan sources.Subdomain) {
-	subdomains = make(chan sources.Subdomain)
+func (source *Source) Run(config *sources.Configuration, domain string) (subdomainsChannel chan sources.Subdomain) {
+	subdomainsChannel = make(chan sources.Subdomain)
 
 	go func() {
-		defer close(subdomains)
+		defer close(subdomainsChannel)
 
-		if len(config.Keys.GitHub) < 1 {
+		if len(config.Keys.GitHub) == 0 {
 			return
 		}
 
 		tokens := NewTokenManager(config.Keys.GitHub)
 
-		searchURL := fmt.Sprintf("https://api.github.com/search/code?per_page=100&q=%s&sort=created&order=asc", domain)
-		source.Enumerate(config, searchURL, domainRegexp(domain), tokens, subdomains)
+		searchReqURL := fmt.Sprintf("https://api.github.com/search/code?per_page=100&q=%q&sort=created&order=asc", domain)
+
+		source.Enumerate(searchReqURL, domainRegexp(domain), tokens, subdomainsChannel, config)
 	}()
 
-	return subdomains
+	return subdomainsChannel
 }
 
-func (source *Source) Enumerate(config *sources.Configuration, searchURL string, domainRegexp *regexp.Regexp, tokens *Tokens, subdomains chan sources.Subdomain) {
+func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp, tokens *Tokens, subdomainsChannel chan sources.Subdomain, config *sources.Configuration) {
 	token := tokens.Get()
 
 	if token.RetryAfter > 0 {
@@ -64,39 +59,68 @@ func (source *Source) Enumerate(config *sources.Configuration, searchURL string,
 		}
 	}
 
-	res, err := httpclient.Request(
-		fasthttp.MethodGet,
-		searchURL,
-		"",
-		map[string]string{
-			"Accept":        "application/vnd.github.v3.text-match+json",
-			"Authorization": "token " + token.Hash,
-		},
-		nil,
-	)
+	searchReqHeaders := map[string]string{
+		"Accept":        "application/vnd.github.v3.text-match+json",
+		"Authorization": "token " + token.Hash,
+	}
 
-	isForbidden := res != nil && res.StatusCode() == fasthttp.StatusForbidden
+	var err error
+
+	var searchRes *fasthttp.Response
+
+	searchRes, err = httpclient.Get(searchReqURL, "", searchReqHeaders)
+
+	isForbidden := searchRes != nil && searchRes.StatusCode() == fasthttp.StatusForbidden
+
 	if err != nil && !isForbidden {
 		return
 	}
 
-	ratelimitRemaining, _ := strconv.ParseInt(string(res.Header.Peek("X-Ratelimit-Remaining")), 10, 64)
+	ratelimitRemaining := cast.ToInt64(searchRes.Header.Peek("X-Ratelimit-Remaining"))
 	if isForbidden && ratelimitRemaining == 0 {
-		retryAfterSeconds, _ := strconv.ParseInt(string(res.Header.Peek("Retry-After")), 10, 64)
+		retryAfterSeconds := cast.ToInt64(searchRes.Header.Peek("Retry-After"))
+
 		tokens.setCurrentTokenExceeded(retryAfterSeconds)
 
-		source.Enumerate(config, searchURL, domainRegexp, tokens, subdomains)
+		source.Enumerate(searchReqURL, domainRegexp, tokens, subdomainsChannel, config)
 	}
 
-	var results response
+	var searchResData searchResponse
 
-	if err = json.Unmarshal(res.Body(), &results); err != nil {
+	if err = json.Unmarshal(searchRes.Body(), &searchResData); err != nil {
 		return
 	}
 
-	proccesItems(results.Items, domainRegexp, source.Name(), subdomains)
+	for _, item := range searchResData.Items {
+		getRawContentReqURL := getRawContentURL(item.HTMLURL)
 
-	linksHeader := linkheader.Parse(string(res.Header.Peek("Link")))
+		var getRawContentRes *fasthttp.Response
+
+		getRawContentRes, err = httpclient.SimpleGet(getRawContentReqURL)
+		if err != nil {
+			continue
+		}
+
+		if getRawContentRes.StatusCode() != fasthttp.StatusOK {
+			continue
+		}
+
+		subdomains := domainRegexp.FindAllString(string(getRawContentRes.Body()), -1)
+
+		for _, subdomain := range subdomains {
+			subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: subdomain}
+		}
+
+		for _, textMatch := range item.TextMatches {
+			subdomains := domainRegexp.FindAllString(textMatch.Fragment, -1)
+
+			for _, subdomain := range subdomains {
+				subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: subdomain}
+			}
+		}
+	}
+
+	linksHeader := linkheader.Parse(string(searchRes.Header.Peek("Link")))
 
 	for _, link := range linksHeader {
 		if link.Rel == "next" {
@@ -105,46 +129,12 @@ func (source *Source) Enumerate(config *sources.Configuration, searchURL string,
 				return
 			}
 
-			source.Enumerate(config, nextURL, domainRegexp, tokens, subdomains)
+			source.Enumerate(nextURL, domainRegexp, tokens, subdomainsChannel, config)
 		}
 	}
 }
 
-func proccesItems(items []item, domainRegexp *regexp.Regexp, name string, results chan sources.Subdomain) {
-	for _, item := range items {
-		res, _ := httpclient.SimpleGet(rawURL(item.HTMLURL))
-
-		if res.StatusCode() == fasthttp.StatusOK {
-			scanner := bufio.NewScanner(bytes.NewReader(res.Body()))
-			for scanner.Scan() {
-				line := scanner.Text()
-				if line == "" {
-					continue
-				}
-
-				for _, subdomain := range domainRegexp.FindAllString(normalizeContent(line), -1) {
-					results <- sources.Subdomain{Source: name, Value: subdomain}
-				}
-			}
-		}
-
-		for _, textMatch := range item.TextMatches {
-			for _, subdomain := range domainRegexp.FindAllString(normalizeContent(textMatch.Fragment), -1) {
-				results <- sources.Subdomain{Source: name, Value: subdomain}
-			}
-		}
-	}
-}
-
-func normalizeContent(content string) string {
-	normalizedContent, _ := url.QueryUnescape(content)
-	normalizedContent = strings.ReplaceAll(normalizedContent, "\\t", "")
-	normalizedContent = strings.ReplaceAll(normalizedContent, "\\n", "")
-
-	return normalizedContent
-}
-
-func rawURL(htmlURL string) string {
+func getRawContentURL(htmlURL string) string {
 	domain := strings.ReplaceAll(htmlURL, "https://github.com/", "https://raw.githubusercontent.com/")
 	return strings.ReplaceAll(domain, "/blob/", "/")
 }
