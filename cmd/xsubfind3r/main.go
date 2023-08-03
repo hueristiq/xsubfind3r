@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/hueristiq/hqgolog"
 	"github.com/hueristiq/hqgolog/formatter"
@@ -23,12 +22,11 @@ import (
 var (
 	au aurora.Aurora
 
-	domainsSlice        []string
+	domains             []string
 	domainsListFilePath string
 	listSources         bool
 	sourcesToUse        []string
 	sourcesToExclude    []string
-	threads             int
 	monochrome          bool
 	output              string
 	outputDirectory     string
@@ -38,16 +36,14 @@ var (
 
 func init() {
 	// defaults
-	defaultThreads := 50
 	defaultYAMLConfigFile := fmt.Sprintf("~/.hueristiq/%s/config.yaml", configuration.NAME)
 
 	// Handle CLI arguments, flags & help message (pflag)
-	pflag.StringSliceVarP(&domainsSlice, "domain", "d", []string{}, "")
+	pflag.StringSliceVarP(&domains, "domain", "d", []string{}, "")
 	pflag.StringVarP(&domainsListFilePath, "list", "l", "", "")
 	pflag.BoolVar(&listSources, "sources", false, "")
 	pflag.StringSliceVarP(&sourcesToUse, "use-sources", "u", []string{}, "")
 	pflag.StringSliceVarP(&sourcesToExclude, "exclude-sources", "e", []string{}, "")
-	pflag.IntVarP(&threads, "threads", "t", defaultThreads, "")
 	pflag.BoolVar(&monochrome, "no-color", false, "")
 	pflag.StringVarP(&output, "output", "o", "", "")
 	pflag.StringVarP(&outputDirectory, "outputDirectory", "O", "", "")
@@ -69,9 +65,6 @@ func init() {
 		h += "      --sources bool                   list supported sources\n"
 		h += " -u,  --sources-to-use string[]        comma(,) separeted sources to use\n"
 		h += " -e,  --sources-to-exclude string[]    comma(,) separeted sources to exclude\n"
-
-		h += "\nOPTIMIZATION:\n"
-		h += fmt.Sprintf(" -t,  --threads int                    number of threads (default: %d)\n", defaultThreads)
 
 		h += "\nOUTPUT:\n"
 		h += "     --no-color bool                   disable colored output\n"
@@ -116,16 +109,20 @@ func main() {
 		fmt.Fprintln(os.Stderr, configuration.BANNER)
 	}
 
+	var err error
+
+	var config configuration.Configuration
+
 	// Read in configuration.
-	config, err := configuration.Read(YAMLConfigFile)
+	config, err = configuration.Read(YAMLConfigFile)
 	if err != nil {
 		hqgolog.Fatal().Msg(err.Error())
 	}
 
-	// List suported sources.
+	// If --sources: List suported sources & exit.
 	if listSources {
 		hqgolog.Info().Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(config.Sources))).Bold())
-		hqgolog.Info().Msgf("sources marked with %v need key(s) or token(s) to work.", au.Underline("*").Bold())
+		hqgolog.Info().Msgf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold())
 		hqgolog.Print().Msg("")
 
 		needsKey := make(map[string]interface{})
@@ -148,56 +145,48 @@ func main() {
 		os.Exit(0)
 	}
 
-	domains := make(chan string, threads)
+	// Load input domains.
 
-	// Load input domains
-	go func() {
-		defer close(domains)
+	// input domains: file
+	if domainsListFilePath != "" {
+		var file *os.File
 
-		// input domains: slice
-		for _, domain := range domainsSlice {
-			domains <- domain
+		file, err = os.Open(domainsListFilePath)
+		if err != nil {
+			hqgolog.Error().Msg(err.Error())
 		}
 
-		// input domains: file
-		if domainsListFilePath != "" {
-			file, err := os.Open(domainsListFilePath)
-			if err != nil {
-				hqgolog.Error().Msg(err.Error())
-			}
+		scanner := bufio.NewScanner(file)
 
-			scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			domain := scanner.Text()
 
-			for scanner.Scan() {
-				domain := scanner.Text()
-
-				if domain != "" {
-					domains <- domain
-				}
-			}
-
-			if err := scanner.Err(); err != nil {
-				hqgolog.Error().Msg(err.Error())
+			if domain != "" {
+				domains = append(domains, domain)
 			}
 		}
 
-		// input domains: stdin
-		if hasStdin() {
-			scanner := bufio.NewScanner(os.Stdin)
+		if err = scanner.Err(); err != nil {
+			hqgolog.Error().Msg(err.Error())
+		}
+	}
 
-			for scanner.Scan() {
-				domain := scanner.Text()
+	// input domains: stdin
+	if hasStdin() {
+		scanner := bufio.NewScanner(os.Stdin)
 
-				if domain != "" {
-					domains <- domain
-				}
-			}
+		for scanner.Scan() {
+			domain := scanner.Text()
 
-			if err := scanner.Err(); err != nil {
-				hqgolog.Error().Msg(err.Error())
+			if domain != "" {
+				domains = append(domains, domain)
 			}
 		}
-	}()
+
+		if err = scanner.Err(); err != nil {
+			hqgolog.Error().Msg(err.Error())
+		}
+	}
 
 	// Find and output subdomains.
 	var consolidatedWriter *bufio.Writer
@@ -207,7 +196,9 @@ func main() {
 
 		mkdir(directory)
 
-		consolidatedFile, err := os.OpenFile(output, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		var consolidatedFile *os.File
+
+		consolidatedFile, err = os.OpenFile(output, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			hqgolog.Fatal().Msg(err.Error())
 		}
@@ -221,45 +212,35 @@ func main() {
 		mkdir(outputDirectory)
 	}
 
-	wg := &sync.WaitGroup{}
-
-	for i := 0; i < threads; i++ {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			options := &xsubfind3r.Options{
-				SourcesToExclude: sourcesToExclude,
-				SourcesToUSe:     sourcesToUse,
-				Keys:             config.Keys,
-			}
-
-			finder := xsubfind3r.New(options)
-
-			for domain := range domains {
-				subdomains := finder.Find(domain)
-
-				switch {
-				case output != "":
-					processSubdomains(consolidatedWriter, subdomains, verbosity)
-				case outputDirectory != "":
-					domainFile, err := os.OpenFile(filepath.Join(outputDirectory, domain+".txt"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-					if err != nil {
-						hqgolog.Fatal().Msg(err.Error())
-					}
-
-					domainWriter := bufio.NewWriter(domainFile)
-
-					processSubdomains(domainWriter, subdomains, verbosity)
-				default:
-					processSubdomains(nil, subdomains, verbosity)
-				}
-			}
-		}()
+	options := &xsubfind3r.Options{
+		SourcesToExclude: sourcesToExclude,
+		SourcesToUSe:     sourcesToUse,
+		Keys:             config.Keys,
 	}
 
-	wg.Wait()
+	finder := xsubfind3r.New(options)
+
+	for _, domain := range domains {
+		subdomains := finder.Find(domain)
+
+		switch {
+		case output != "":
+			processSubdomains(consolidatedWriter, subdomains, verbosity)
+		case outputDirectory != "":
+			var domainFile *os.File
+
+			domainFile, err = os.OpenFile(filepath.Join(outputDirectory, domain+".txt"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				hqgolog.Fatal().Msg(err.Error())
+			}
+
+			domainWriter := bufio.NewWriter(domainFile)
+
+			processSubdomains(domainWriter, subdomains, verbosity)
+		default:
+			processSubdomains(nil, subdomains, verbosity)
+		}
+	}
 }
 
 func hasStdin() bool {

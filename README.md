@@ -180,9 +180,6 @@ SOURCES:
  -u,  --sources-to-use string[]        comma(,) separeted sources to use
  -e,  --sources-to-exclude string[]    comma(,) separeted sources to exclude
 
-OPTIMIZATION:
- -t,  --threads int                    number of threads (default: 50)
-
 OUTPUT:
      --no-color bool                   disable colored output
  -o, --output string                   output subdomains' file path
