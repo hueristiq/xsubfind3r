@@ -19,7 +19,7 @@
 
 ## Features
 
-* Fetches domains from curated passive sources to maximize results.
+* [x] Fetches domains from curated passive sources to maximize results.
     <details>
     <summary>Sources: Click to expand!</summary>
     
@@ -31,8 +31,8 @@
     | WHOIS | AlienVault |
 
     </details>
-* Supports `stdin` and `stdout` for easy integration into workflows.
-* Cross-Platform (Windows, Linux & macOS).
+* [x] Supports `stdin` and `stdout` for easy integration into workflows.
+* [x] Cross-Platform (Windows, Linux & macOS).
 
 ## Installation
 
@@ -115,6 +115,8 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 `xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[Chaos](https://chaos.projectdiscovery.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, **[Github](https://github.com)**, **[Intelligence X](https://intelx.io)** and **[Shodan](https://shodan.io/)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.hueristiq/xsubfind3r/config.yaml` file - created upon first run - and uses the YAML format. Multiple API keys can be specified for each of these source from which one of them will be used.
 
 Example `config.yaml`:
+
+> **NOTE:** The keys below are invalid, use your own keys!
 
 ```yaml
 version: 0.3.0
