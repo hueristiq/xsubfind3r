@@ -189,6 +189,14 @@ func main() {
 	}
 
 	// Find and output subdomains.
+	options := &xsubfind3r.Options{
+		SourcesToExclude: sourcesToExclude,
+		SourcesToUSe:     sourcesToUse,
+		Keys:             config.Keys,
+	}
+
+	finder := xsubfind3r.New(options)
+
 	var consolidatedWriter *bufio.Writer
 
 	if output != "" {
@@ -211,14 +219,6 @@ func main() {
 	if outputDirectory != "" {
 		mkdir(outputDirectory)
 	}
-
-	options := &xsubfind3r.Options{
-		SourcesToExclude: sourcesToExclude,
-		SourcesToUSe:     sourcesToUse,
-		Keys:             config.Keys,
-	}
-
-	finder := xsubfind3r.New(options)
 
 	for _, domain := range domains {
 		subdomains := finder.Find(domain)
