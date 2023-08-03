@@ -14,7 +14,7 @@
 		* [`go build ...` the development Version](#go-build--the-development-version)
 * [Post Installation](#post-installation)
 * [Usage](#usage)
-* [Contribution](#contribution)
+* [Contributing](#contributing)
 * [Licensing](#licensing)
 
 ## Features
@@ -22,7 +22,7 @@
 * [x] Fetches domains from curated passive sources to maximize results.
     <details>
     <summary>Sources: Click to expand!</summary>
-    
+
     | Technique | Source |
     | :-------- | :----- |
     | APIs | AnubisDB, BeVigil, Chaos, FullHunt, GitHub, HackerTarget, IntelX, Shodan, URLScan |
@@ -192,7 +192,7 @@ CONFIGURATION:
  -c,  --configuration string           configuration file path (default: ~/.hueristiq/xsubfind3r/config.yaml)
 ```
 
-## Contribution
+## Contributing
 
 [Issues](https://github.com/hueristiq/xsubfind3r/issues) and [Pull Requests](https://github.com/hueristiq/xsubfind3r/pulls) are welcome! **Check out the [contribution guidelines](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md).**
 
