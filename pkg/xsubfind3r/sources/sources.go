@@ -1,5 +1,14 @@
 package sources
 
+// Source is an interface inherited by each source.
+type Source interface {
+	// Run takes in configuration which includes keys/tokens and other stuff,
+	// and domain as arguments.
+	Run(config *Configuration, domain string) (results <-chan Result)
+	// Name returns the name of the source.
+	Name() string
+}
+
 var List = []string{
 	"alienvault",
 	"anubis",

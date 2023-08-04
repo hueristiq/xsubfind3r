@@ -28,11 +28,11 @@ type searchResponse struct {
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration, domain string) (subdomainsChannel chan sources.Subdomain) {
-	subdomainsChannel = make(chan sources.Subdomain)
+func (source *Source) Run(config *sources.Configuration, domain string) <-chan sources.Result {
+	results := make(chan sources.Result)
 
 	go func() {
-		defer close(subdomainsChannel)
+		defer close(results)
 
 		if len(config.Keys.GitHub) == 0 {
 			return
@@ -42,13 +42,13 @@ func (source *Source) Run(config *sources.Configuration, domain string) (subdoma
 
 		searchReqURL := fmt.Sprintf("https://api.github.com/search/code?per_page=100&q=%q&sort=created&order=asc", domain)
 
-		source.Enumerate(searchReqURL, domainRegexp(domain), tokens, subdomainsChannel, config)
+		source.Enumerate(searchReqURL, domainRegexp(domain), tokens, results, config)
 	}()
 
-	return subdomainsChannel
+	return results
 }
 
-func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp, tokens *Tokens, subdomainsChannel chan sources.Subdomain, config *sources.Configuration) {
+func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp, tokens *Tokens, results chan sources.Result, config *sources.Configuration) {
 	token := tokens.Get()
 
 	if token.RetryAfter > 0 {
@@ -82,7 +82,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 		tokens.setCurrentTokenExceeded(retryAfterSeconds)
 
-		source.Enumerate(searchReqURL, domainRegexp, tokens, subdomainsChannel, config)
+		source.Enumerate(searchReqURL, domainRegexp, tokens, results, config)
 	}
 
 	var searchResData searchResponse
@@ -108,14 +108,26 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 		subdomains := domainRegexp.FindAllString(string(getRawContentRes.Body()), -1)
 
 		for _, subdomain := range subdomains {
-			subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: subdomain}
+			result := sources.Result{
+				Type:   sources.Subdomain,
+				Source: source.Name(),
+				Value:  subdomain,
+			}
+
+			results <- result
 		}
 
 		for _, textMatch := range item.TextMatches {
 			subdomains := domainRegexp.FindAllString(textMatch.Fragment, -1)
 
 			for _, subdomain := range subdomains {
-				subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: subdomain}
+				result := sources.Result{
+					Type:   sources.Subdomain,
+					Source: source.Name(),
+					Value:  subdomain,
+				}
+
+				results <- result
 			}
 		}
 	}
@@ -129,7 +141,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 				return
 			}
 
-			source.Enumerate(nextURL, domainRegexp, tokens, subdomainsChannel, config)
+			source.Enumerate(nextURL, domainRegexp, tokens, results, config)
 		}
 	}
 }

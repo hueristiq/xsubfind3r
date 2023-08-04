@@ -28,11 +28,11 @@ type searchResponse struct {
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration, domain string) (subdomainsChannel chan sources.Subdomain) {
-	subdomainsChannel = make(chan sources.Subdomain)
+func (source *Source) Run(config *sources.Configuration, domain string) <-chan sources.Result {
+	results := make(chan sources.Result)
 
 	go func() {
-		defer close(subdomainsChannel)
+		defer close(results)
 
 		var err error
 
@@ -40,6 +40,14 @@ func (source *Source) Run(config *sources.Configuration, domain string) (subdoma
 
 		key, err = sources.PickRandom(config.Keys.URLScan)
 		if err != nil {
+			result := sources.Result{
+				Type:   sources.Error,
+				Source: source.Name(),
+				Error:  err,
+			}
+
+			results <- result
+
 			return
 		}
 
@@ -67,12 +75,29 @@ func (source *Source) Run(config *sources.Configuration, domain string) (subdoma
 
 			searchRes, err = httpclient.Get(searchReqURL, "", searchReqHeaders)
 			if err != nil {
+				result := sources.Result{
+					Type:   sources.Error,
+					Source: source.Name(),
+					Error:  err,
+				}
+
+				results <- result
+
 				return
 			}
 
 			var searchResData searchResponse
 
-			if err = json.Unmarshal(searchRes.Body(), &searchResData); err != nil {
+			err = json.Unmarshal(searchRes.Body(), &searchResData)
+			if err != nil {
+				result := sources.Result{
+					Type:   sources.Error,
+					Source: source.Name(),
+					Error:  err,
+				}
+
+				results <- result
+
 				return
 			}
 
@@ -85,7 +110,13 @@ func (source *Source) Run(config *sources.Configuration, domain string) (subdoma
 					continue
 				}
 
-				subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: result.Page.Domain}
+				result := sources.Result{
+					Type:   sources.Subdomain,
+					Source: source.Name(),
+					Value:  result.Page.Domain,
+				}
+
+				results <- result
 			}
 
 			if !searchResData.HasMore {
@@ -97,7 +128,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) (subdoma
 		}
 	}()
 
-	return
+	return results
 }
 
 func (source *Source) Name() string {

@@ -17,11 +17,11 @@ type getSubdomainsResponse struct {
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration, domain string) (subdomainsChannel chan sources.Subdomain) {
-	subdomainsChannel = make(chan sources.Subdomain)
+func (source *Source) Run(config *sources.Configuration, domain string) <-chan sources.Result {
+	results := make(chan sources.Result)
 
 	go func() {
-		defer close(subdomainsChannel)
+		defer close(results)
 
 		var err error
 
@@ -29,6 +29,14 @@ func (source *Source) Run(config *sources.Configuration, domain string) (subdoma
 
 		key, err = sources.PickRandom(config.Keys.Chaos)
 		if key == "" || err != nil {
+			result := sources.Result{
+				Type:   sources.Error,
+				Source: source.Name(),
+				Error:  err,
+			}
+
+			results <- result
+
 			return
 		}
 
@@ -40,6 +48,14 @@ func (source *Source) Run(config *sources.Configuration, domain string) (subdoma
 
 		getSubdomainsRes, err = httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
 		if err != nil {
+			result := sources.Result{
+				Type:   sources.Error,
+				Source: source.Name(),
+				Error:  err,
+			}
+
+			results <- result
+
 			return
 		}
 
@@ -50,13 +66,17 @@ func (source *Source) Run(config *sources.Configuration, domain string) (subdoma
 		}
 
 		for _, record := range getSubdomainsResData.Subdomains {
-			subdomain := fmt.Sprintf("%s.%s", record, getSubdomainsResData.Domain)
+			result := sources.Result{
+				Type:   sources.Subdomain,
+				Source: source.Name(),
+				Value:  fmt.Sprintf("%s.%s", record, getSubdomainsResData.Domain),
+			}
 
-			subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: subdomain}
+			results <- result
 		}
 	}()
 
-	return
+	return results
 }
 
 func (source *Source) Name() string {

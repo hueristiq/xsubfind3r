@@ -19,11 +19,11 @@ type getNameValuesResponse []struct {
 
 type Source struct{}
 
-func (source *Source) Run(_ *sources.Configuration, domain string) (subdomainsChannel chan sources.Subdomain) {
-	subdomainsChannel = make(chan sources.Subdomain)
+func (source *Source) Run(_ *sources.Configuration, domain string) <-chan sources.Result {
+	results := make(chan sources.Result)
 
 	go func() {
-		defer close(subdomainsChannel)
+		defer close(results)
 
 		var err error
 
@@ -33,12 +33,29 @@ func (source *Source) Run(_ *sources.Configuration, domain string) (subdomainsCh
 
 		getNameValuesRes, err = httpclient.SimpleGet(getNameValuesReqURL)
 		if err != nil {
+			result := sources.Result{
+				Type:   sources.Error,
+				Source: source.Name(),
+				Error:  err,
+			}
+
+			results <- result
+
 			return
 		}
 
 		var getNameValuesResData getNameValuesResponse
 
-		if err := json.Unmarshal(getNameValuesRes.Body(), &getNameValuesResData); err != nil {
+		err = json.Unmarshal(getNameValuesRes.Body(), &getNameValuesResData)
+		if err != nil {
+			result := sources.Result{
+				Type:   sources.Error,
+				Source: source.Name(),
+				Error:  err,
+			}
+
+			results <- result
+
 			return
 		}
 
@@ -46,6 +63,14 @@ func (source *Source) Run(_ *sources.Configuration, domain string) (subdomainsCh
 
 		regex, err = extractor.New(domain)
 		if err != nil {
+			result := sources.Result{
+				Type:   sources.Error,
+				Source: source.Name(),
+				Error:  err,
+			}
+
+			results <- result
+
 			return
 		}
 
@@ -57,12 +82,18 @@ func (source *Source) Run(_ *sources.Configuration, domain string) (subdomainsCh
 					continue
 				}
 
-				subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: subdomain}
+				result := sources.Result{
+					Type:   sources.Subdomain,
+					Source: source.Name(),
+					Value:  subdomain,
+				}
+
+				results <- result
 			}
 		}
 	}()
 
-	return
+	return results
 }
 
 func (source *Source) Name() string {

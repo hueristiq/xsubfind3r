@@ -263,19 +263,24 @@ func mkdir(path string) {
 	}
 }
 
-func processSubdomains(writer *bufio.Writer, subdomains chan sources.Subdomain, verbosity string) {
+func processSubdomains(writer *bufio.Writer, subdomains chan sources.Result, verbosity string) {
 	for subdomain := range subdomains {
-		if verbosity == string(levels.LevelDebug) {
-			hqgolog.Print().Msgf("[%s] %s", au.BrightBlue(subdomain.Source), subdomain.Value)
-		} else {
-			hqgolog.Print().Msg(subdomain.Value)
-		}
+		switch subdomain.Type {
+		case sources.Error:
+			hqgolog.Warn().Msgf("Could not run source %s: %s\n", subdomain.Source, subdomain.Error)
+		case sources.Subdomain:
+			if verbosity == string(levels.LevelDebug) {
+				hqgolog.Print().Msgf("[%s] %s", au.BrightBlue(subdomain.Source), subdomain.Value)
+			} else {
+				hqgolog.Print().Msg(subdomain.Value)
+			}
 
-		if writer != nil {
-			fmt.Fprintln(writer, subdomain.Value)
+			if writer != nil {
+				fmt.Fprintln(writer, subdomain.Value)
 
-			if err := writer.Flush(); err != nil {
-				hqgolog.Fatal().Msg(err.Error())
+				if err := writer.Flush(); err != nil {
+					hqgolog.Fatal().Msg(err.Error())
+				}
 			}
 		}
 	}

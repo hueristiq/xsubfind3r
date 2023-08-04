@@ -81,14 +81,15 @@ func New(options *Options) (finder *Finder) {
 	return
 }
 
-func (finder *Finder) Find(domain string) (subdomains chan sources.Subdomain) {
-	subdomains = make(chan sources.Subdomain)
+func (finder *Finder) Find(domain string) (results chan sources.Result) {
+	results = make(chan sources.Result)
 
 	go func() {
-		defer close(subdomains)
+		defer close(results)
+
+		seenSubdomains := &sync.Map{}
 
 		wg := &sync.WaitGroup{}
-		seenSubdomains := &sync.Map{}
 
 		for _, source := range finder.Sources {
 			wg.Add(1)
@@ -96,17 +97,20 @@ func (finder *Finder) Find(domain string) (subdomains chan sources.Subdomain) {
 			go func(source sources.Source) {
 				defer wg.Done()
 
-				results := source.Run(finder.SourcesConfiguration, domain)
+				sResults := source.Run(finder.SourcesConfiguration, domain)
 
-				for subdomain := range results {
-					subdomain.Value = strings.ReplaceAll(strings.ToLower(subdomain.Value), "*.", "")
+				for sResult := range sResults {
+					if sResult.Type == sources.Subdomain {
+						sResult.Value = strings.ToLower(sResult.Value)
+						sResult.Value = strings.ReplaceAll(sResult.Value, "*.", "")
 
-					_, loaded := seenSubdomains.LoadOrStore(subdomain.Value, struct{}{})
-					if loaded {
-						continue
+						_, loaded := seenSubdomains.LoadOrStore(sResult.Value, struct{}{})
+						if loaded {
+							continue
+						}
 					}
 
-					subdomains <- subdomain
+					results <- sResult
 				}
 			}(source)
 		}
