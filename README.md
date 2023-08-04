@@ -116,7 +116,7 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 
 Example `config.yaml`:
 
-> **NOTE:** The keys below are invalid, use your own keys!
+> **NOTE:** The keys/tokens below are invalid, use your own keys/tokens!
 
 ```yaml
 version: 0.3.0
