@@ -1,8 +1,9 @@
 # Go(Golang) Options
 GOCMD=go
-GOBUILD=$(GOCMD) build
 GOMOD=$(GOCMD) mod
 GOTEST=$(GOCMD) test
+GOBUILD=$(GOCMD) build
+GOINSTALL=$(GOCMD) install
 GOFLAGS := -v 
 LDFLAGS := -s -w
 
@@ -22,3 +23,5 @@ test:
 	$(GOTEST) $(GOFLAGS) ./...
 build:
 	$(GOBUILD) $(GOFLAGS) -ldflags '$(LDFLAGS)' -o bin/xsubfind3r cmd/xsubfind3r/main.go
+install:
+	$(GOINSTALL) $(GOFLAGS) ./...
