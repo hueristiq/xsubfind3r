@@ -265,10 +265,10 @@ func mkdir(path string) {
 
 func processSubdomains(writer *bufio.Writer, subdomains chan sources.Subdomain, verbosity string) {
 	for subdomain := range subdomains {
-		if verbosity == string(levels.LevelSilent) {
-			hqgolog.Print().Msg(subdomain.Value)
-		} else {
+		if verbosity == string(levels.LevelDebug) {
 			hqgolog.Print().Msgf("[%s] %s", au.BrightBlue(subdomain.Source), subdomain.Value)
+		} else {
+			hqgolog.Print().Msg(subdomain.Value)
 		}
 
 		if writer != nil {
