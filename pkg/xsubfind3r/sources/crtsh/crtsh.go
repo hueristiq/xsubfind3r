@@ -3,8 +3,10 @@ package crtsh
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/valyala/fasthttp"
@@ -40,8 +42,21 @@ func (source *Source) Run(_ *sources.Configuration, domain string) (subdomainsCh
 			return
 		}
 
+		var regex *regexp.Regexp
+
+		regex, err = extractor.New(domain)
+		if err != nil {
+			return
+		}
+
 		for _, record := range getNameValuesResData {
-			for _, subdomain := range strings.Split(record.NameValue, "\n") {
+			for _, value := range strings.Split(record.NameValue, "\n") {
+				subdomain := regex.FindString(value)
+
+				if subdomain == "" {
+					continue
+				}
+
 				subdomainsChannel <- sources.Subdomain{Source: source.Name(), Value: subdomain}
 			}
 		}
