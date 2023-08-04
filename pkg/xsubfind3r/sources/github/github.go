@@ -73,6 +73,14 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 	isForbidden := searchRes != nil && searchRes.StatusCode() == fasthttp.StatusForbidden
 
 	if err != nil && !isForbidden {
+		result := sources.Result{
+			Type:   sources.Error,
+			Source: source.Name(),
+			Error:  err,
+		}
+
+		results <- result
+
 		return
 	}
 
@@ -87,7 +95,16 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 	var searchResData searchResponse
 
-	if err = json.Unmarshal(searchRes.Body(), &searchResData); err != nil {
+	err = json.Unmarshal(searchRes.Body(), &searchResData)
+	if err != nil {
+		result := sources.Result{
+			Type:   sources.Error,
+			Source: source.Name(),
+			Error:  err,
+		}
+
+		results <- result
+
 		return
 	}
 
@@ -98,6 +115,14 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 		getRawContentRes, err = httpclient.SimpleGet(getRawContentReqURL)
 		if err != nil {
+			result := sources.Result{
+				Type:   sources.Error,
+				Source: source.Name(),
+				Error:  err,
+			}
+
+			results <- result
+
 			continue
 		}
 
@@ -138,6 +163,14 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 		if link.Rel == "next" {
 			nextURL, err := url.QueryUnescape(link.URL)
 			if err != nil {
+				result := sources.Result{
+					Type:   sources.Error,
+					Source: source.Name(),
+					Error:  err,
+				}
+
+				results <- result
+
 				return
 			}
 
