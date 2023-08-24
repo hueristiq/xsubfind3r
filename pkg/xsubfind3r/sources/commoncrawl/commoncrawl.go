@@ -118,7 +118,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 						result := sources.Result{
 							Type:   sources.Error,
 							Source: source.Name(),
-							Error:  fmt.Errorf(getURLsResData.Error),
+							Error:  fmt.Errorf("%s", getURLsResData.Error),
 						}
 
 						results <- result
@@ -126,7 +126,9 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 						return
 					}
 
-					parsedURL, err := hqgourl.Parse(getURLsResData.URL)
+					var parsedURL *hqgourl.URL
+
+					parsedURL, err = hqgourl.Parse(getURLsResData.URL)
 					if err != nil {
 						result := sources.Result{
 							Type:   sources.Error,
