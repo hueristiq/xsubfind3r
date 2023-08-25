@@ -3,10 +3,10 @@ package anubis
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
+	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	"github.com/valyala/fasthttp"
 )
 
 type Source struct{}
@@ -21,7 +21,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getSubdomainsReqURL := fmt.Sprintf("https://jldc.me/anubis/subdomains/%s", domain)
 
-		var getSubdomainsRes *fasthttp.Response
+		var getSubdomainsRes *http.Response
 
 		getSubdomainsRes, err = httpclient.SimpleGet(getSubdomainsReqURL)
 		if err != nil {
@@ -38,7 +38,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		var getSubdomainsResData []string
 
-		err = json.Unmarshal(getSubdomainsRes.Body(), &getSubdomainsResData)
+		err = json.NewDecoder(getSubdomainsRes.Body).Decode(&getSubdomainsResData)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
@@ -48,8 +48,12 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
+			getSubdomainsRes.Body.Close()
+
 			return
 		}
+
+		getSubdomainsRes.Body.Close()
 
 		for _, subdomain := range getSubdomainsResData {
 			result := sources.Result{

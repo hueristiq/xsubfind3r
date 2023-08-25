@@ -3,13 +3,13 @@ package crtsh
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
 
+	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/extractor"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	"github.com/valyala/fasthttp"
 )
 
 type getNameValuesResponse []struct {
@@ -29,7 +29,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getNameValuesReqURL := fmt.Sprintf("https://crt.sh/?q=%%25.%s&output=json", domain)
 
-		var getNameValuesRes *fasthttp.Response
+		var getNameValuesRes *http.Response
 
 		getNameValuesRes, err = httpclient.SimpleGet(getNameValuesReqURL)
 		if err != nil {
@@ -46,7 +46,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		var getNameValuesResData getNameValuesResponse
 
-		err = json.Unmarshal(getNameValuesRes.Body(), &getNameValuesResData)
+		err = json.NewDecoder(getNameValuesRes.Body).Decode(&getNameValuesResData)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
@@ -56,8 +56,12 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
+			getNameValuesRes.Body.Close()
+
 			return
 		}
+
+		getNameValuesRes.Body.Close()
 
 		var regex *regexp.Regexp
 

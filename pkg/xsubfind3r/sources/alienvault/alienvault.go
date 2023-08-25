@@ -3,10 +3,10 @@ package alienvault
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
+	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	"github.com/valyala/fasthttp"
 )
 
 type getPassiveDNSResponse struct {
@@ -29,7 +29,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getPassiveDNSReqURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", domain)
 
-		var getPassiveDNSRes *fasthttp.Response
+		var getPassiveDNSRes *http.Response
 
 		getPassiveDNSRes, err = httpclient.SimpleGet(getPassiveDNSReqURL)
 		if err != nil {
@@ -46,7 +46,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		var getPassiveDNSResData getPassiveDNSResponse
 
-		err = json.Unmarshal(getPassiveDNSRes.Body(), &getPassiveDNSResData)
+		err = json.NewDecoder(getPassiveDNSRes.Body).Decode(&getPassiveDNSResData)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
@@ -56,10 +56,22 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
+			getPassiveDNSRes.Body.Close()
+
 			return
 		}
 
+		getPassiveDNSRes.Body.Close()
+
 		if getPassiveDNSResData.Error != "" {
+			result := sources.Result{
+				Type:   sources.Error,
+				Source: source.Name(),
+				Error:  fmt.Errorf("%s, %s", getPassiveDNSResData.Detail, getPassiveDNSResData.Error),
+			}
+
+			results <- result
+
 			return
 		}
 

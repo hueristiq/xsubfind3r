@@ -3,10 +3,10 @@ package shodan
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
+	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	"github.com/valyala/fasthttp"
 )
 
 type getDNSResponse struct {
@@ -43,7 +43,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		getDNSReqURL := fmt.Sprintf("https://api.shodan.io/dns/domain/%s?key=%s", domain, key)
 
-		var getDNSRes *fasthttp.Response
+		var getDNSRes *http.Response
 
 		getDNSRes, err = httpclient.SimpleGet(getDNSReqURL)
 		if err != nil {
@@ -60,7 +60,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		var getDNSResData getDNSResponse
 
-		err = json.Unmarshal(getDNSRes.Body(), &getDNSResData)
+		err = json.NewDecoder(getDNSRes.Body).Decode(&getDNSResData)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
@@ -70,8 +70,12 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			results <- result
 
+			getDNSRes.Body.Close()
+
 			return
 		}
+
+		getDNSRes.Body.Close()
 
 		for _, subdomain := range getDNSResData.Subdomains {
 			result := sources.Result{

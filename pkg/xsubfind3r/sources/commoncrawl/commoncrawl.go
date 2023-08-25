@@ -2,15 +2,14 @@ package commoncrawl
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"sync"
 
 	"github.com/hueristiq/hqgourl"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
+	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	"github.com/valyala/fasthttp"
 )
 
 type getIndexesResponse []struct {
@@ -35,7 +34,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		var err error
 
-		var getIndexesRes *fasthttp.Response
+		var getIndexesRes *http.Response
 
 		getIndexesRes, err = httpclient.SimpleGet(getIndexesReqURL)
 		if err != nil {
@@ -52,7 +51,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		var getIndexesResData getIndexesResponse
 
-		err = json.Unmarshal(getIndexesRes.Body(), &getIndexesResData)
+		err = json.NewDecoder(getIndexesRes.Body).Decode(&getIndexesResData)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
@@ -62,8 +61,12 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
+			getIndexesRes.Body.Close()
+
 			return
 		}
+
+		getIndexesRes.Body.Close()
 
 		wg := new(sync.WaitGroup)
 
@@ -81,7 +84,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 				var err error
 
-				var getURLsRes *fasthttp.Response
+				var getURLsRes *http.Response
 
 				getURLsRes, err = httpclient.Get(getURLsReqURL, "", getURLsReqHeaders)
 				if err != nil {
@@ -96,9 +99,14 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 					return
 				}
 
-				scanner := bufio.NewScanner(bytes.NewReader(getURLsRes.Body()))
+				scanner := bufio.NewScanner(getURLsRes.Body)
 
 				for scanner.Scan() {
+					line := scanner.Text()
+					if line == "" {
+						continue
+					}
+
 					var getURLsResData getURLsResponse
 
 					err = json.Unmarshal(scanner.Bytes(), &getURLsResData)
@@ -159,8 +167,12 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 					results <- result
 
+					getURLsRes.Body.Close()
+
 					return
 				}
+
+				getURLsRes.Body.Close()
 			}(indexData.API)
 		}
 

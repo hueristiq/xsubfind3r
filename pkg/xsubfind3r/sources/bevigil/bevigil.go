@@ -3,10 +3,10 @@ package bevigil
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
+	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	"github.com/valyala/fasthttp"
 )
 
 type getSubdomainsResponse struct {
@@ -47,7 +47,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		getSubdomainsReqURL := fmt.Sprintf("https://osint.bevigil.com/api/%s/subdomains/", domain)
 
-		var getSubdomainsRes *fasthttp.Response
+		var getSubdomainsRes *http.Response
 
 		getSubdomainsRes, err = httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
 		if err != nil {
@@ -64,7 +64,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		var getSubdomainsResData getSubdomainsResponse
 
-		err = json.Unmarshal(getSubdomainsRes.Body(), &getSubdomainsResData)
+		err = json.NewDecoder(getSubdomainsRes.Body).Decode(&getSubdomainsResData)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
@@ -74,8 +74,12 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			results <- result
 
+			getSubdomainsRes.Body.Close()
+
 			return
 		}
+
+		getSubdomainsRes.Body.Close()
 
 		for _, subdomain := range getSubdomainsResData.Subdomains {
 			result := sources.Result{

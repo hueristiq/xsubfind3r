@@ -2,17 +2,16 @@ package wayback
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
 
+	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/extractor"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	"github.com/valyala/fasthttp"
 )
 
 type Source struct{}
@@ -27,7 +26,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getPagesReqURL := fmt.Sprintf("http://web.archive.org/cdx/search/cdx?url=*.%s/*&output=txt&fl=original&collapse=urlkey&showNumPages=true", domain)
 
-		var getPagesRes *fasthttp.Response
+		var getPagesRes *http.Response
 
 		getPagesRes, err = httpclient.SimpleGet(getPagesReqURL)
 		if err != nil {
@@ -44,7 +43,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		var pages uint
 
-		err = json.Unmarshal(getPagesRes.Body(), &pages)
+		err = json.NewDecoder(getPagesRes.Body).Decode(&pages)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
@@ -54,8 +53,12 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
+			getPagesRes.Body.Close()
+
 			return
 		}
+
+		getPagesRes.Body.Close()
 
 		var regex *regexp.Regexp
 
@@ -75,7 +78,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 		for page := uint(0); page < pages; page++ {
 			getURLsReqURL := fmt.Sprintf("http://web.archive.org/cdx/search/cdx?url=*.%s/*&output=txt&fl=original&collapse=urlkey&page=%d", domain, page)
 
-			var getURLsRes *fasthttp.Response
+			var getURLsRes *http.Response
 
 			getURLsRes, err = httpclient.SimpleGet(getURLsReqURL)
 			if err != nil {
@@ -90,7 +93,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 				return
 			}
 
-			scanner := bufio.NewScanner(bytes.NewReader(getURLsRes.Body()))
+			scanner := bufio.NewScanner(getURLsRes.Body)
 
 			for scanner.Scan() {
 				line := scanner.Text()
@@ -126,8 +129,12 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 				results <- result
 
+				getURLsRes.Body.Close()
+
 				return
 			}
+
+			getURLsRes.Body.Close()
 		}
 	}()
 

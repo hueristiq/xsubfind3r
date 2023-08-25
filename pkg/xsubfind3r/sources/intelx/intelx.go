@@ -1,14 +1,15 @@
 package intelx
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
+	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	"github.com/valyala/fasthttp"
 )
 
 type searchRequest struct {
@@ -91,9 +92,9 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		var searchRes *fasthttp.Response
+		var searchRes *http.Response
 
-		searchRes, err = httpclient.SimplePost(searchReqURL, "application/json", searchReqBodyBytes)
+		searchRes, err = httpclient.SimplePost(searchReqURL, "application/json", bytes.NewBuffer(searchReqBodyBytes))
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
@@ -108,7 +109,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		var searchResData searchResponse
 
-		err = json.Unmarshal(searchRes.Body(), &searchResData)
+		err = json.NewDecoder(searchRes.Body).Decode(&searchResData)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
@@ -118,14 +119,18 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			results <- result
 
+			searchRes.Body.Close()
+
 			return
 		}
+
+		searchRes.Body.Close()
 
 		getResultsReqURL := fmt.Sprintf("https://%s/phonebook/search/result?k=%s&id=%s&limit=10000", intelXHost, intelXKey, searchResData.ID)
 		status := 0
 
 		for status == 0 || status == 3 {
-			var getResultsRes *fasthttp.Response
+			var getResultsRes *http.Response
 
 			getResultsRes, err = httpclient.Get(getResultsReqURL, "", nil)
 			if err != nil {
@@ -142,7 +147,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			var getResultsResData getResultsResponse
 
-			err = json.Unmarshal(getResultsRes.Body(), &getResultsResData)
+			err = json.NewDecoder(getResultsRes.Body).Decode(&getResultsResData)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.Error,
@@ -152,8 +157,12 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				results <- result
 
+				getResultsRes.Body.Close()
+
 				return
 			}
+
+			getResultsRes.Body.Close()
 
 			status = getResultsResData.Status
 

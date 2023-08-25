@@ -3,11 +3,11 @@ package urlscan
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
+	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	"github.com/valyala/fasthttp"
 )
 
 type searchResponse struct {
@@ -71,7 +71,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			searchReqURL := fmt.Sprintf("https://urlscan.io/api/v1/search/?q=domain:%s&size=100", domain) + after
 
-			var searchRes *fasthttp.Response
+			var searchRes *http.Response
 
 			searchRes, err = httpclient.Get(searchReqURL, "", searchReqHeaders)
 			if err != nil {
@@ -88,7 +88,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			var searchResData searchResponse
 
-			err = json.Unmarshal(searchRes.Body(), &searchResData)
+			err = json.NewDecoder(searchRes.Body).Decode(&searchResData)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.Error,
@@ -98,8 +98,12 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				results <- result
 
+				searchRes.Body.Close()
+
 				return
 			}
+
+			searchRes.Body.Close()
 
 			if searchResData.Status == 429 {
 				break

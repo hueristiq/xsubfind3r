@@ -2,15 +2,14 @@ package hackertarget
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 
+	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/extractor"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	"github.com/valyala/fasthttp"
 )
 
 type Source struct{}
@@ -25,7 +24,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		hostSearchReqURL := fmt.Sprintf("https://api.hackertarget.com/hostsearch/?q=%s", domain)
 
-		var hostSearchRes *fasthttp.Response
+		var hostSearchRes *http.Response
 
 		hostSearchRes, err = httpclient.SimpleGet(hostSearchReqURL)
 		if err != nil {
@@ -55,7 +54,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			return
 		}
 
-		scanner := bufio.NewScanner(bytes.NewReader(hostSearchRes.Body()))
+		scanner := bufio.NewScanner(hostSearchRes.Body)
 
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -87,8 +86,12 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
+			hostSearchRes.Body.Close()
+
 			return
 		}
+
+		hostSearchRes.Body.Close()
 	}()
 
 	return results

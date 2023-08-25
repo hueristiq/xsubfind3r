@@ -1,18 +1,20 @@
 package github
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/httpclient"
+	hqgohttpstatus "github.com/hueristiq/hqgohttp/status"
+	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
 	"github.com/tomnomnom/linkheader"
-	"github.com/valyala/fasthttp"
 )
 
 type searchResponse struct {
@@ -66,11 +68,11 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 	var err error
 
-	var searchRes *fasthttp.Response
+	var searchRes *http.Response
 
 	searchRes, err = httpclient.Get(searchReqURL, "", searchReqHeaders)
 
-	isForbidden := searchRes != nil && searchRes.StatusCode() == fasthttp.StatusForbidden
+	isForbidden := searchRes != nil && searchRes.StatusCode == hqgohttpstatus.Forbidden
 
 	if err != nil && !isForbidden {
 		result := sources.Result{
@@ -84,9 +86,9 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 		return
 	}
 
-	ratelimitRemaining := cast.ToInt64(searchRes.Header.Peek("X-Ratelimit-Remaining"))
+	ratelimitRemaining := cast.ToInt64(searchRes.Header.Get("X-Ratelimit-Remaining"))
 	if isForbidden && ratelimitRemaining == 0 {
-		retryAfterSeconds := cast.ToInt64(searchRes.Header.Peek("Retry-After"))
+		retryAfterSeconds := cast.ToInt64(searchRes.Header.Get("Retry-After"))
 
 		tokens.setCurrentTokenExceeded(retryAfterSeconds)
 
@@ -95,7 +97,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 	var searchResData searchResponse
 
-	err = json.Unmarshal(searchRes.Body(), &searchResData)
+	err = json.NewDecoder(searchRes.Body).Decode(&searchResData)
 	if err != nil {
 		result := sources.Result{
 			Type:   sources.Error,
@@ -105,13 +107,17 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 		results <- result
 
+		searchRes.Body.Close()
+
 		return
 	}
+
+	searchRes.Body.Close()
 
 	for _, item := range searchResData.Items {
 		getRawContentReqURL := getRawContentURL(item.HTMLURL)
 
-		var getRawContentRes *fasthttp.Response
+		var getRawContentRes *http.Response
 
 		getRawContentRes, err = httpclient.SimpleGet(getRawContentReqURL)
 		if err != nil {
@@ -126,21 +132,46 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 			continue
 		}
 
-		if getRawContentRes.StatusCode() != fasthttp.StatusOK {
+		if getRawContentRes.StatusCode != hqgohttpstatus.OK {
 			continue
 		}
 
-		subdomains := domainRegexp.FindAllString(string(getRawContentRes.Body()), -1)
+		scanner := bufio.NewScanner(getRawContentRes.Body)
 
-		for _, subdomain := range subdomains {
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "" {
+				continue
+			}
+
+			subdomains := domainRegexp.FindAllString(line, -1)
+
+			for _, subdomain := range subdomains {
+				result := sources.Result{
+					Type:   sources.Subdomain,
+					Source: source.Name(),
+					Value:  subdomain,
+				}
+
+				results <- result
+			}
+		}
+
+		if err = scanner.Err(); err != nil {
 			result := sources.Result{
-				Type:   sources.Subdomain,
+				Type:   sources.Error,
 				Source: source.Name(),
-				Value:  subdomain,
+				Error:  err,
 			}
 
 			results <- result
+
+			getRawContentRes.Body.Close()
+
+			return
 		}
+
+		getRawContentRes.Body.Close()
 
 		for _, textMatch := range item.TextMatches {
 			subdomains := domainRegexp.FindAllString(textMatch.Fragment, -1)
@@ -157,7 +188,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 		}
 	}
 
-	linksHeader := linkheader.Parse(string(searchRes.Header.Peek("Link")))
+	linksHeader := linkheader.Parse(searchRes.Header.Get("Link"))
 
 	for _, link := range linksHeader {
 		if link.Rel == "next" {
