@@ -2,41 +2,31 @@ package httpclient
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
-	"time"
+
+	hqgohttpclient "github.com/hueristiq/hqgohttp/client"
 )
 
 var (
-	client = &http.Client{}
+	client *hqgohttpclient.Client
 )
 
 func init() {
-	timeout := 30
+	options := hqgohttpclient.DefaultOptionsSpraying
 
-	Transport := &http.Transport{
-		MaxIdleConns:        100,
-		MaxIdleConnsPerHost: 100,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true, //nolint:gosec // intentonal
-		},
-		Dial: (&net.Dialer{
-			Timeout: time.Duration(timeout) * time.Second,
-		}).Dial,
-	}
-
-	client = &http.Client{
-		Transport: Transport,
-		Timeout:   time.Duration(timeout) * time.Second,
-	}
+	client, _ = hqgohttpclient.New(options)
 }
 
 func httpRequestWrapper(request *http.Request) (*http.Response, error) {
-	response, err := client.Do(request)
+	r, err := hqgohttpclient.FromRequest(request)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := client.Do(r)
 	if err != nil {
 		return nil, err
 	}
