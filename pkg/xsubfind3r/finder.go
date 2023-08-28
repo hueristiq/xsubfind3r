@@ -20,65 +20,9 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
 )
 
-type Options struct {
-	SourcesToExclude []string
-	SourcesToUSe     []string
-	Keys             sources.Keys
-}
-
 type Finder struct {
 	Sources              map[string]sources.Source
 	SourcesConfiguration *sources.Configuration
-}
-
-func New(options *Options) (finder *Finder) {
-	finder = &Finder{
-		Sources: map[string]sources.Source{},
-		SourcesConfiguration: &sources.Configuration{
-			Keys: options.Keys,
-		},
-	}
-
-	if len(options.SourcesToUSe) < 1 {
-		options.SourcesToUSe = sources.List
-	}
-
-	for _, source := range options.SourcesToUSe {
-		switch source {
-		case "otx":
-			finder.Sources[source] = &otx.Source{}
-		case "anubis":
-			finder.Sources[source] = &anubis.Source{}
-		case "bevigil":
-			finder.Sources[source] = &bevigil.Source{}
-		case "chaos":
-			finder.Sources[source] = &chaos.Source{}
-		case "commoncrawl":
-			finder.Sources[source] = &commoncrawl.Source{}
-		case "crtsh":
-			finder.Sources[source] = &crtsh.Source{}
-		case "fullhunt":
-			finder.Sources[source] = &fullhunt.Source{}
-		case "github":
-			finder.Sources[source] = &github.Source{}
-		case "hackertarget":
-			finder.Sources[source] = &hackertarget.Source{}
-		case "intelx":
-			finder.Sources[source] = &intelx.Source{}
-		case "shodan":
-			finder.Sources[source] = &shodan.Source{}
-		case "urlscan":
-			finder.Sources[source] = &urlscan.Source{}
-		case "wayback":
-			finder.Sources[source] = &wayback.Source{}
-		}
-	}
-
-	for _, source := range options.SourcesToExclude {
-		delete(finder.Sources, source)
-	}
-
-	return
 }
 
 func (finder *Finder) Find(domain string) (results chan sources.Result) {
@@ -117,6 +61,56 @@ func (finder *Finder) Find(domain string) (results chan sources.Result) {
 
 		wg.Wait()
 	}()
+
+	return
+}
+
+func New(options *Options) (finder *Finder) {
+	finder = &Finder{
+		Sources: map[string]sources.Source{},
+		SourcesConfiguration: &sources.Configuration{
+			Keys: options.Keys,
+		},
+	}
+
+	if len(options.SourcesToUSe) < 1 {
+		options.SourcesToUSe = sources.List
+	}
+
+	for _, source := range options.SourcesToUSe {
+		switch source {
+		case "anubis":
+			finder.Sources[source] = &anubis.Source{}
+		case "bevigil":
+			finder.Sources[source] = &bevigil.Source{}
+		case "chaos":
+			finder.Sources[source] = &chaos.Source{}
+		case "commoncrawl":
+			finder.Sources[source] = &commoncrawl.Source{}
+		case "crtsh":
+			finder.Sources[source] = &crtsh.Source{}
+		case "fullhunt":
+			finder.Sources[source] = &fullhunt.Source{}
+		case "github":
+			finder.Sources[source] = &github.Source{}
+		case "hackertarget":
+			finder.Sources[source] = &hackertarget.Source{}
+		case "intelx":
+			finder.Sources[source] = &intelx.Source{}
+		case "otx":
+			finder.Sources[source] = &otx.Source{}
+		case "shodan":
+			finder.Sources[source] = &shodan.Source{}
+		case "urlscan":
+			finder.Sources[source] = &urlscan.Source{}
+		case "wayback":
+			finder.Sources[source] = &wayback.Source{}
+		}
+	}
+
+	for _, source := range options.SourcesToExclude {
+		delete(finder.Sources, source)
+	}
 
 	return
 }
