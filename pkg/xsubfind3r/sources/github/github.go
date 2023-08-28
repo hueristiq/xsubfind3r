@@ -10,8 +10,10 @@ import (
 	"strings"
 	"time"
 
+	hqgohttpheaders "github.com/hueristiq/hqgohttp/headers"
 	hqgohttpstatus "github.com/hueristiq/hqgohttp/status"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
 	"github.com/tomnomnom/linkheader"
@@ -44,7 +46,20 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		searchReqURL := fmt.Sprintf("https://api.github.com/search/code?per_page=100&q=%q&sort=created&order=asc", domain)
 
-		source.Enumerate(searchReqURL, domainRegexp(domain), tokens, results, config)
+		regex, err := extractor.New(domain)
+		if err != nil {
+			result := sources.Result{
+				Type:   sources.Error,
+				Source: source.Name(),
+				Error:  err,
+			}
+
+			results <- result
+
+			return
+		}
+
+		source.Enumerate(searchReqURL, regex, tokens, results, config)
 	}()
 
 	return results
@@ -86,9 +101,9 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 		return
 	}
 
-	ratelimitRemaining := cast.ToInt64(searchRes.Header.Get("X-Ratelimit-Remaining"))
+	ratelimitRemaining := cast.ToInt64(searchRes.Header.Get(hqgohttpheaders.XRatelimitRemaining))
 	if isForbidden && ratelimitRemaining == 0 {
-		retryAfterSeconds := cast.ToInt64(searchRes.Header.Get("Retry-After"))
+		retryAfterSeconds := cast.ToInt64(searchRes.Header.Get(hqgohttpheaders.RetryAfter))
 
 		tokens.setCurrentTokenExceeded(retryAfterSeconds)
 
@@ -188,7 +203,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 		}
 	}
 
-	linksHeader := linkheader.Parse(searchRes.Header.Get("Link"))
+	linksHeader := linkheader.Parse(searchRes.Header.Get(hqgohttpheaders.Link))
 
 	for _, link := range linksHeader {
 		if link.Rel == "next" {
@@ -213,11 +228,6 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 func getRawContentURL(htmlURL string) string {
 	domain := strings.ReplaceAll(htmlURL, "https://github.com/", "https://raw.githubusercontent.com/")
 	return strings.ReplaceAll(domain, "/blob/", "/")
-}
-
-func domainRegexp(domain string) *regexp.Regexp {
-	rdomain := strings.ReplaceAll(domain, ".", "\\.")
-	return regexp.MustCompile("(\\w+[.])*" + rdomain)
 }
 
 func (source *Source) Name() string {
