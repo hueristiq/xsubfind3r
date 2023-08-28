@@ -117,9 +117,9 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			// Slicing as [1:] to skip first result by default
 			for _, entry := range getURLsResData[1:] {
-				subdomain := regex.FindString(entry[0])
+				match := regex.FindAllString(entry[0], -1)
 
-				if subdomain != "" {
+				for _, subdomain := range match {
 					result := sources.Result{
 						Type:   sources.Subdomain,
 						Source: source.Name(),
