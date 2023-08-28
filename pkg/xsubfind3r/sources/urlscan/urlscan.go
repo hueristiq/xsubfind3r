@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
+	"regexp"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -65,7 +66,21 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			after := ""
 
 			if searchAfter != nil {
-				searchAfterJSON, _ := json.Marshal(searchAfter)
+				var searchAfterJSON []byte
+
+				searchAfterJSON, err = json.Marshal(searchAfter)
+				if err != nil {
+					result := sources.Result{
+						Type:   sources.Error,
+						Source: source.Name(),
+						Error:  err,
+					}
+
+					results <- result
+
+					return
+				}
+
 				after = "&search_after=" + string(searchAfterJSON)
 			}
 
@@ -109,18 +124,33 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 				break
 			}
 
-			for _, result := range searchResData.Results {
-				if !strings.HasSuffix(result.Page.Domain, "."+domain) {
-					continue
-				}
+			var regex *regexp.Regexp
 
+			regex, err = extractor.New(domain)
+			if err != nil {
 				result := sources.Result{
-					Type:   sources.Subdomain,
+					Type:   sources.Error,
 					Source: source.Name(),
-					Value:  result.Page.Domain,
+					Error:  err,
 				}
 
 				results <- result
+
+				return
+			}
+
+			for _, result := range searchResData.Results {
+				subdomain := regex.FindString(result.Page.Domain)
+
+				if subdomain != "" {
+					result := sources.Result{
+						Type:   sources.Subdomain,
+						Source: source.Name(),
+						Value:  subdomain,
+					}
+
+					results <- result
+				}
 			}
 
 			if !searchResData.HasMore {
