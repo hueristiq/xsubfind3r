@@ -10,7 +10,6 @@ type Source interface {
 }
 
 var List = []string{
-	"alienvault",
 	"anubis",
 	"bevigil",
 	"chaos",
@@ -20,6 +19,7 @@ var List = []string{
 	"github",
 	"hackertarget",
 	"intelx",
+	"otx",
 	"shodan",
 	"urlscan",
 	"wayback",

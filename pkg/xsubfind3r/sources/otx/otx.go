@@ -1,4 +1,4 @@
-package alienvault
+package otx
 
 import (
 	"encoding/json"
@@ -90,5 +90,5 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 }
 
 func (source *Source) Name() string {
-	return "alienvault"
+	return "otx"
 }

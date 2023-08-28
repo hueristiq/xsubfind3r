@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/alienvault"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/anubis"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/bevigil"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/chaos"
@@ -15,6 +14,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/github"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/hackertarget"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/intelx"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/otx"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/shodan"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/urlscan"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
@@ -45,8 +45,8 @@ func New(options *Options) (finder *Finder) {
 
 	for _, source := range options.SourcesToUSe {
 		switch source {
-		case "alienvault":
-			finder.Sources[source] = &alienvault.Source{}
+		case "otx":
+			finder.Sources[source] = &otx.Source{}
 		case "anubis":
 			finder.Sources[source] = &anubis.Source{}
 		case "bevigil":
