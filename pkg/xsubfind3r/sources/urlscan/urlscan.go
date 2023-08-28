@@ -140,9 +140,9 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			}
 
 			for _, result := range searchResData.Results {
-				subdomain := regex.FindString(result.Page.Domain)
+				match := regex.FindAllString(result.Page.Domain, -1)
 
-				if subdomain != "" {
+				for _, subdomain := range match {
 					result := sources.Result{
 						Type:   sources.Subdomain,
 						Source: source.Name(),
