@@ -1,13 +1,10 @@
 package wayback
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"regexp"
-	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/extractor"
@@ -76,7 +73,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 		}
 
 		for page := uint(0); page < pages; page++ {
-			getURLsReqURL := fmt.Sprintf("http://web.archive.org/cdx/search/cdx?url=*.%s/*&output=txt&fl=original&collapse=urlkey&page=%d", domain, page)
+			getURLsReqURL := fmt.Sprintf("http://web.archive.org/cdx/search/cdx?url=*.%s/*&output=json&collapse=urlkey&fl=original&page=%d", domain, page)
 
 			var getURLsRes *http.Response
 
@@ -93,34 +90,10 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 				return
 			}
 
-			scanner := bufio.NewScanner(getURLsRes.Body)
+			var getURLsResData [][]string
 
-			for scanner.Scan() {
-				line := scanner.Text()
-
-				if line == "" {
-					continue
-				}
-
-				line, _ = url.QueryUnescape(line)
-				subdomain := regex.FindString(line)
-
-				if subdomain != "" {
-					subdomain = strings.ToLower(subdomain)
-					subdomain = strings.TrimPrefix(subdomain, "25")
-					subdomain = strings.TrimPrefix(subdomain, "2f")
-
-					result := sources.Result{
-						Type:   sources.Subdomain,
-						Source: source.Name(),
-						Value:  subdomain,
-					}
-
-					results <- result
-				}
-			}
-
-			if err = scanner.Err(); err != nil {
+			err = json.NewDecoder(getURLsRes.Body).Decode(&getURLsResData)
+			if err != nil {
 				result := sources.Result{
 					Type:   sources.Error,
 					Source: source.Name(),
@@ -135,6 +108,27 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			}
 
 			getURLsRes.Body.Close()
+
+			// check if there's results, wayback's pagination response
+			// is not always correct when using a filter
+			if len(getURLsResData) == 0 {
+				break
+			}
+
+			// Slicing as [1:] to skip first result by default
+			for _, entry := range getURLsResData[1:] {
+				subdomain := regex.FindString(entry[0])
+
+				if subdomain != "" {
+					result := sources.Result{
+						Type:   sources.Subdomain,
+						Source: source.Name(),
+						Value:  subdomain,
+					}
+
+					results <- result
+				}
+			}
 		}
 	}()
 
