@@ -70,7 +70,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		searchReqURL := fmt.Sprintf("https://%s/phonebook/search?k=%s", intelXHost, intelXKey)
 		searchReqBody := searchRequest{
-			Term:       "*" + domain,
+			Term:       domain,
 			MaxResults: 100000,
 			Media:      0,
 			Target:     1, // 1 = Domains | 2 = Emails | 3 = URLs
