@@ -5,16 +5,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sync"
+	"regexp"
 
-	"github.com/hueristiq/hqgourl"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type getIndexesResponse []struct {
 	ID  string `json:"id"`
 	API string `json:"cdx-API"`
+}
+
+type getPaginationResponse struct {
+	Blocks   uint `json:"blocks"`
+	PageSize uint `json:"pageSize"`
+	Pages    uint `json:"pages"`
 }
 
 type getURLsResponse struct {
@@ -30,9 +36,24 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 	go func() {
 		defer close(results)
 
-		getIndexesReqURL := "https://index.commoncrawl.org/collinfo.json"
-
 		var err error
+
+		var regex *regexp.Regexp
+
+		regex, err = extractor.New(domain)
+		if err != nil {
+			result := sources.Result{
+				Type:   sources.Error,
+				Source: source.Name(),
+				Error:  err,
+			}
+
+			results <- result
+
+			return
+		}
+
+		getIndexesReqURL := "https://index.commoncrawl.org/collinfo.json"
 
 		var getIndexesRes *http.Response
 
@@ -68,21 +89,53 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getIndexesRes.Body.Close()
 
-		wg := new(sync.WaitGroup)
-
 		for _, indexData := range getIndexesResData {
-			wg.Add(1)
+			getURLsReqHeaders := map[string]string{
+				"Host": "index.commoncrawl.org",
+			}
 
-			go func(API string) {
-				defer wg.Done()
+			getPaginationReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url&showNumPages=true", indexData.API, domain)
 
-				getURLsReqHeaders := map[string]string{
-					"Host": "index.commoncrawl.org",
+			var getPaginationRes *http.Response
+
+			getPaginationRes, err = httpclient.SimpleGet(getPaginationReqURL)
+			if err != nil {
+				result := sources.Result{
+					Type:   sources.Error,
+					Source: source.Name(),
+					Error:  err,
 				}
 
-				getURLsReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url", API, domain)
+				results <- result
 
-				var err error
+				continue
+			}
+
+			var getPaginationData getPaginationResponse
+
+			err = json.NewDecoder(getPaginationRes.Body).Decode(&getPaginationData)
+			if err != nil {
+				result := sources.Result{
+					Type:   sources.Error,
+					Source: source.Name(),
+					Error:  err,
+				}
+
+				results <- result
+
+				getPaginationRes.Body.Close()
+
+				continue
+			}
+
+			getPaginationRes.Body.Close()
+
+			if getPaginationData.Pages < 1 {
+				continue
+			}
+
+			for page := uint(0); page < getPaginationData.Pages; page++ {
+				getURLsReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url&page=%d", indexData.API, domain, page)
 
 				var getURLsRes *http.Response
 
@@ -96,7 +149,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 					results <- result
 
-					return
+					continue
 				}
 
 				scanner := bufio.NewScanner(getURLsRes.Body)
@@ -131,31 +184,20 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 						results <- result
 
-						return
-					}
-
-					var parsedURL *hqgourl.URL
-
-					parsedURL, err = hqgourl.Parse(getURLsResData.URL)
-					if err != nil {
-						result := sources.Result{
-							Type:   sources.Error,
-							Source: source.Name(),
-							Error:  err,
-						}
-
-						results <- result
-
 						continue
 					}
 
-					result := sources.Result{
-						Type:   sources.Subdomain,
-						Source: source.Name(),
-						Value:  parsedURL.Domain,
-					}
+					match := regex.FindAllString(getURLsResData.URL, -1)
 
-					results <- result
+					for _, subdomain := range match {
+						result := sources.Result{
+							Type:   sources.Subdomain,
+							Source: source.Name(),
+							Value:  subdomain,
+						}
+
+						results <- result
+					}
 				}
 
 				if err = scanner.Err(); err != nil {
@@ -169,14 +211,12 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 					getURLsRes.Body.Close()
 
-					return
+					continue
 				}
 
 				getURLsRes.Body.Close()
-			}(indexData.API)
+			}
 		}
-
-		wg.Wait()
 	}()
 
 	return results
