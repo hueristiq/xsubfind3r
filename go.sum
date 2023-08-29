@@ -4,14 +4,10 @@ github.com/Mzack9999/go-http-digest-auth-client v0.6.0 h1:LXVNMsj7qiNVmlZByFbjJm
 github.com/Mzack9999/go-http-digest-auth-client v0.6.0/go.mod h1:gbwaYYXwA15ZfIxMyY5QU1acATDyNKEuG5TylBCL7AM=
 github.com/frankban/quicktest v1.14.4 h1:g2rn0vABPOOXmZUj+vbmUp0lPoXEMuhTpIluN0XL9UY=
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
-github.com/hueristiq/hqgohttp v0.0.0-20230827233921-93961bc4da21 h1:liOyeZd487AUwCWbTOXKMgdvg82JOBms6xb3RYAdSO0=
-github.com/hueristiq/hqgohttp v0.0.0-20230827233921-93961bc4da21/go.mod h1:HewuEHc3F5aA5op40SzMuW/S0ZxW98pnrqXBeF+HsIs=
 github.com/hueristiq/hqgohttp v0.0.0-20230828153804-6cb564391caf h1:qnTJknI2w4zIAKtY/5K8iAW91oj/wZgrHxzWvmes18Q=
 github.com/hueristiq/hqgohttp v0.0.0-20230828153804-6cb564391caf/go.mod h1:HewuEHc3F5aA5op40SzMuW/S0ZxW98pnrqXBeF+HsIs=
 github.com/hueristiq/hqgolog v0.0.0-20230623113334-a6018965a34f h1:JAgZOIJ+UbkENpRiOTlfg51CW0UNrUkgwLjUGiH+x9g=
 github.com/hueristiq/hqgolog v0.0.0-20230623113334-a6018965a34f/go.mod h1:S5J3E3Azva5+JKv67uc+Hh3XwLDvkVYDGjEaMTFrIqg=
-github.com/hueristiq/hqgourl v0.0.0-20230821112831-e12f907b5a53 h1:6pwdpEJoB1woSToh0cxLh5QirNOAp2z7DzvMKiaqdro=
-github.com/hueristiq/hqgourl v0.0.0-20230821112831-e12f907b5a53/go.mod h1:Fc2vfWpIVFWUmCv1S0xVsz3mIPYwdgsa6f2vCgL4CrA=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
 github.com/logrusorgru/aurora/v3 v3.0.0 h1:R6zcoZZbvVcGMvDCKo45A9U/lzYyzl5NfYIvznmDfE4=
