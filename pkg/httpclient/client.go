@@ -7,12 +7,10 @@ import (
 	"net/http"
 	"net/url"
 
-	hqgohttpclient "github.com/hueristiq/hqgohttp/client"
+	hqgohttpclient "github.com/hueristiq/hqgohttp"
 )
 
-var (
-	client *hqgohttpclient.Client
-)
+var client *hqgohttpclient.Client
 
 func init() {
 	options := hqgohttpclient.DefaultOptionsSpraying

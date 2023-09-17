@@ -20,18 +20,7 @@
 ## Features
 
 * [x] Fetches domains from curated passive sources to maximize results.
-    <details>
-    <summary>Sources: Click to expand!</summary>
-
-    | Technique | Source |
-    | :-------- | :----- |
-    | APIs | AnubisDB, BeVigil, Chaos, FullHunt, GitHub, HackerTarget, IntelX, Shodan, URLScan |
-    | Certificates | Crtsh |
-    | Web Archives | CommonCrawl, Wayback |
-    | WHOIS | AlienVault |
-
-    </details>
-* [x] Supports `stdin` and `stdout` for easy integration into workflows.
+* [x] `stdin` and `stdout` for easy integration into workflows.
 * [x] Cross-Platform (Windows, Linux & macOS).
 
 ## Installation
@@ -112,11 +101,11 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 
 ## Post Installation
 
-`xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[Chaos](https://chaos.projectdiscovery.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, **[Github](https://github.com)**, **[Intelligence X](https://intelx.io)** and **[Shodan](https://shodan.io/)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.hueristiq/xsubfind3r/config.yaml` file - created upon first run - and uses the YAML format. Multiple API keys can be specified for each of these source from which one of them will be used.
+`xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[Chaos](https://chaos.projectdiscovery.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, **[Github](https://github.com)**, **[Intelligence X](https://intelx.io)** and **[Shodan](https://shodan.io/)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.config/xsubfind3r/config.yaml` file - created upon first run - and uses the YAML format. Multiple API keys can be specified for each of these source from which one of them will be used.
 
 Example `config.yaml`:
 
-> **NOTE:** The keys/tokens below are invalid, use your own keys/tokens!
+> **NOTE:** The keys/tokens below are invalid and used as examples, use your own keys/tokens!
 
 ```yaml
 version: 0.3.0
@@ -164,18 +153,23 @@ help message:
 
 ```text
 
-                _      __ _           _ _____      
-__  _____ _   _| |__  / _(_)_ __   __| |___ / _ __ 
+                _      __ _           _ _____
+__  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 \ \/ / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
- >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |   
-/_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v0.3.0
+ >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |
+/_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_|
+                                             v0.3.0
+                   with <3 by Hueristiq Open Source
 
 USAGE:
   xsubfind3r [OPTIONS]
 
+CONFIGURATION:
+ -c,  --configuration string           configuration file path (default: $HOME/.config/xsubfind3r/config.yaml)
+
 INPUT:
  -d, --domain string[]                 target domains
- -l, --list string                     target domains' list file path
+ -l, --list string                     target domains list file path
 
 SOURCES:
       --sources bool                   list supported sources
@@ -183,13 +177,13 @@ SOURCES:
  -e,  --sources-to-exclude string[]    comma(,) separeted sources to exclude
 
 OUTPUT:
-     --no-color bool                   disable colored output
- -o, --output string                   output subdomains' file path
- -O, --output-directory string         output subdomains' directory path
- -v, --verbosity string                debug, info, warning, error, fatal or silent (default: info)
+     --monochrome bool                 display no color output
+ -o, --output string                   output subdomains file path
+ -O, --output-directory string         output subdomains directory path
+     --silent bool                     display output subdomains only
+     --verbose bool                    display verbose output
 
-CONFIGURATION:
- -c,  --configuration string           configuration file path (default: ~/.hueristiq/xsubfind3r/config.yaml)
+pflag: help requested
 ```
 
 ## Contributing

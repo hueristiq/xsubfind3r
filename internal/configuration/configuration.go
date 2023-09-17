@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"dario.cat/mergo"
+	"github.com/hueristiq/hqgolog"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/logrusorgru/aurora/v3"
 	"gopkg.in/yaml.v3"
@@ -17,9 +18,7 @@ type Configuration struct {
 }
 
 func (configuration *Configuration) Write(path string) (err error) {
-	var (
-		file *os.File
-	)
+	var file *os.File
 
 	directory := filepath.Dir(path)
 	identation := 4
@@ -32,7 +31,7 @@ func (configuration *Configuration) Write(path string) (err error) {
 		}
 	}
 
-	file, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+	file, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o755)
 	if err != nil {
 		return
 	}
@@ -58,16 +57,31 @@ var (
 __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __ 
 \ \/ / __| | | | '_ \| |_| | '_ \ / _`+"`"+` | |_ \| '__|
  >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |   
-/_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| %s
+/_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| 
+                                             %s
+                   %s
 `).Bold(),
-		aurora.BrightYellow("v"+VERSION).Bold(),
+		aurora.BrightRed("v"+VERSION).Bold(),
+		aurora.BrightYellow("with <3 by Hueristiq Open Source").Italic(),
 	)
+	userDotConfigDirectoryPath = func() (userDotConfig string) {
+		var err error
+
+		userDotConfig, err = os.UserConfigDir()
+		if err != nil {
+			hqgolog.Fatal().Msg(err.Error())
+		}
+
+		return
+	}()
+	projectRootDirectoryName = NAME
+	ProjectRootDirectoryPath = filepath.Join(userDotConfigDirectoryPath, projectRootDirectoryName)
+	configurationFileName    = "config.yaml"
+	ConfigurationFilePath    = filepath.Join(ProjectRootDirectoryPath, configurationFileName)
 )
 
 func CreateUpdate(path string) (err error) {
-	var (
-		config Configuration
-	)
+	var config Configuration
 
 	defaultConfig := Configuration{
 		Version: VERSION,
@@ -102,6 +116,7 @@ func CreateUpdate(path string) (err error) {
 
 		if config.Version != VERSION ||
 			len(config.Sources) != len(sources.List) {
+
 			if err = mergo.Merge(&config, defaultConfig); err != nil {
 				return
 			}
@@ -119,9 +134,7 @@ func CreateUpdate(path string) (err error) {
 }
 
 func Read(path string) (configuration Configuration, err error) {
-	var (
-		file *os.File
-	)
+	var file *os.File
 
 	file, err = os.Open(path)
 	if err != nil {

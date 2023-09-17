@@ -10,8 +10,7 @@ import (
 	"strings"
 	"time"
 
-	hqgohttpheaders "github.com/hueristiq/hqgohttp/headers"
-	hqgohttpstatus "github.com/hueristiq/hqgohttp/status"
+	"github.com/hueristiq/hqgohttp"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
@@ -87,7 +86,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 	searchRes, err = httpclient.Get(searchReqURL, "", searchReqHeaders)
 
-	isForbidden := searchRes != nil && searchRes.StatusCode == hqgohttpstatus.Forbidden
+	isForbidden := searchRes != nil && searchRes.StatusCode == hqgohttp.StatusForbidden
 
 	if err != nil && !isForbidden {
 		result := sources.Result{
@@ -101,9 +100,9 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 		return
 	}
 
-	ratelimitRemaining := cast.ToInt64(searchRes.Header.Get(hqgohttpheaders.XRatelimitRemaining))
+	ratelimitRemaining := cast.ToInt64(searchRes.Header.Get(hqgohttp.HeaderXRatelimitRemaining))
 	if isForbidden && ratelimitRemaining == 0 {
-		retryAfterSeconds := cast.ToInt64(searchRes.Header.Get(hqgohttpheaders.RetryAfter))
+		retryAfterSeconds := cast.ToInt64(searchRes.Header.Get(hqgohttp.HeaderRetryAfter))
 
 		tokens.setCurrentTokenExceeded(retryAfterSeconds)
 
@@ -147,7 +146,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 			continue
 		}
 
-		if getRawContentRes.StatusCode != hqgohttpstatus.OK {
+		if getRawContentRes.StatusCode != hqgohttp.StatusOK {
 			continue
 		}
 
@@ -203,7 +202,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 		}
 	}
 
-	linksHeader := linkheader.Parse(searchRes.Header.Get(hqgohttpheaders.Link))
+	linksHeader := linkheader.Parse(searchRes.Header.Get(hqgohttp.HeaderLink))
 
 	for _, link := range linksHeader {
 		if link.Rel == "next" {
