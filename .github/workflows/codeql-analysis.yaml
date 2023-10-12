@@ -1,8 +1,16 @@
 name: 🚨 CodeQL Analysis
 
 on:
+    push:
+        branches:
+            - "main"
+        paths:
+            - '**.go'
+            - '**.mod'
     pull_request:
-       paths:
+        branches:
+          - "main"
+        paths:
             - '**.go'
             - '**.mod'
     workflow_dispatch:
