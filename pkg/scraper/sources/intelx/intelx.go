@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 )
 
 type searchRequest struct {
@@ -166,7 +166,9 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			status = getResultsResData.Status
 
-			for _, record := range getResultsResData.Selectors {
+			for index := range getResultsResData.Selectors {
+				record := getResultsResData.Selectors[index]
+
 				result := sources.Result{
 					Type:   sources.Subdomain,
 					Source: source.Name(),

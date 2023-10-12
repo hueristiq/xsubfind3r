@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/hueristiq/xsubfind3r/pkg/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/extractor"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 )
 
 type getNameValuesResponse []struct {
@@ -78,7 +78,9 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			return
 		}
 
-		for _, record := range getNameValuesResData {
+		for index := range getNameValuesResData {
+			record := getNameValuesResData[index]
+
 			for _, value := range strings.Split(record.NameValue, "\n") {
 				match := regex.FindAllString(value, -1)
 

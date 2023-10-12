@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 )
 
 type getPassiveDNSResponse struct {
@@ -75,7 +75,9 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			return
 		}
 
-		for _, record := range getPassiveDNSResData.PassiveDNS {
+		for index := range getPassiveDNSResData.PassiveDNS {
+			record := getPassiveDNSResData.PassiveDNS[index]
+
 			result := sources.Result{
 				Type:   sources.Subdomain,
 				Source: source.Name(),

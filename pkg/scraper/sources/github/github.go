@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/hueristiq/hqgohttp"
+	"github.com/hueristiq/xsubfind3r/pkg/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/extractor"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 	"github.com/spf13/cast"
 	"github.com/tomnomnom/linkheader"
 )
@@ -226,6 +226,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 func getRawContentURL(htmlURL string) string {
 	domain := strings.ReplaceAll(htmlURL, "https://github.com/", "https://raw.githubusercontent.com/")
+
 	return strings.ReplaceAll(domain, "/blob/", "/")
 }
 

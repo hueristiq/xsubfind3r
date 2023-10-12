@@ -1,4 +1,4 @@
-package chaos
+package bevigil
 
 import (
 	"encoding/json"
@@ -6,13 +6,12 @@ import (
 	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 )
 
 type getSubdomainsResponse struct {
 	Domain     string   `json:"domain"`
 	Subdomains []string `json:"subdomains"`
-	Count      int      `json:"count"`
 }
 
 type Source struct{}
@@ -27,7 +26,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		var key string
 
-		key, err = sources.PickRandom(config.Keys.Chaos)
+		key, err = sources.PickRandom(config.Keys.Bevigil)
 		if key == "" || err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
@@ -40,9 +39,13 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		getSubdomainsReqHeaders := map[string]string{"Authorization": key}
+		getSubdomainsReqHeaders := map[string]string{}
 
-		getSubdomainsReqURL := fmt.Sprintf("https://dns.projectdiscovery.io/dns/%s/subdomains", domain)
+		if len(config.Keys.Bevigil) > 0 {
+			getSubdomainsReqHeaders["X-Access-Token"] = key
+		}
+
+		getSubdomainsReqURL := fmt.Sprintf("https://osint.bevigil.com/api/%s/subdomains/", domain)
 
 		var getSubdomainsRes *http.Response
 
@@ -78,11 +81,13 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		getSubdomainsRes.Body.Close()
 
-		for _, record := range getSubdomainsResData.Subdomains {
+		for index := range getSubdomainsResData.Subdomains {
+			subdomain := getSubdomainsResData.Subdomains[index]
+
 			result := sources.Result{
 				Type:   sources.Subdomain,
 				Source: source.Name(),
-				Value:  fmt.Sprintf("%s.%s", record, getSubdomainsResData.Domain),
+				Value:  subdomain,
 			}
 
 			results <- result
@@ -93,5 +98,5 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 }
 
 func (source *Source) Name() string {
-	return "chaos"
+	return "bevigil"
 }

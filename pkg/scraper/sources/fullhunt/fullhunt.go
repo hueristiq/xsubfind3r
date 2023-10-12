@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 )
 
 type getSubdomainsResponse struct {
@@ -82,7 +82,9 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		getSubdomainsRes.Body.Close()
 
-		for _, subdomain := range getSubdomainsResData.Hosts {
+		for index := range getSubdomainsResData.Hosts {
+			subdomain := getSubdomainsResData.Hosts[index]
+
 			result := sources.Result{
 				Type:   sources.Subdomain,
 				Source: source.Name(),

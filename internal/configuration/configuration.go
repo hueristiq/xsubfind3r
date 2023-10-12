@@ -6,7 +6,7 @@ import (
 
 	"dario.cat/mergo"
 	"github.com/hueristiq/hqgolog"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 	"github.com/logrusorgru/aurora/v3"
 	"gopkg.in/yaml.v3"
 )
@@ -17,7 +17,7 @@ type Configuration struct {
 	Keys    sources.Keys `yaml:"keys"`
 }
 
-func (configuration *Configuration) Write(path string) (err error) {
+func (cfg *Configuration) Write(path string) (err error) {
 	var file *os.File
 
 	directory := filepath.Dir(path)
@@ -40,7 +40,7 @@ func (configuration *Configuration) Write(path string) (err error) {
 
 	enc := yaml.NewEncoder(file)
 	enc.SetIndent(identation)
-	err = enc.Encode(&configuration)
+	err = enc.Encode(&cfg)
 
 	return
 }
@@ -59,12 +59,12 @@ __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
  >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |   
 /_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| 
                                              %s
-                   %s
-`).Bold(),
+
+                   %s`).Bold(),
 		aurora.BrightRed("v"+VERSION).Bold(),
 		aurora.BrightYellow("with <3 by Hueristiq Open Source").Italic(),
 	)
-	userDotConfigDirectoryPath = func() (userDotConfig string) {
+	UserDotConfigDirectoryPath = func() (userDotConfig string) {
 		var err error
 
 		userDotConfig, err = os.UserConfigDir()
@@ -75,13 +75,13 @@ __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 		return
 	}()
 	projectRootDirectoryName = NAME
-	ProjectRootDirectoryPath = filepath.Join(userDotConfigDirectoryPath, projectRootDirectoryName)
+	ProjectRootDirectoryPath = filepath.Join(UserDotConfigDirectoryPath, projectRootDirectoryName)
 	configurationFileName    = "config.yaml"
 	ConfigurationFilePath    = filepath.Join(ProjectRootDirectoryPath, configurationFileName)
 )
 
 func CreateUpdate(path string) (err error) {
-	var config Configuration
+	var cfg Configuration
 
 	defaultConfig := Configuration{
 		Version: VERSION,
@@ -98,33 +98,31 @@ func CreateUpdate(path string) (err error) {
 	}
 
 	_, err = os.Stat(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			config = defaultConfig
 
-			if err = config.Write(path); err != nil {
-				return
-			}
-		} else {
+	switch {
+	case err != nil && os.IsNotExist(err):
+		cfg = defaultConfig
+
+		if err = cfg.Write(path); err != nil {
 			return
 		}
-	} else {
-		config, err = Read(path)
+	case err != nil:
+		return
+	default:
+		cfg, err = Read(path)
 		if err != nil {
 			return
 		}
 
-		if config.Version != VERSION ||
-			len(config.Sources) != len(sources.List) {
-
-			if err = mergo.Merge(&config, defaultConfig); err != nil {
+		if cfg.Version != VERSION || len(cfg.Sources) != len(sources.List) {
+			if err = mergo.Merge(&cfg, defaultConfig); err != nil {
 				return
 			}
 
-			config.Version = VERSION
-			config.Sources = sources.List
+			cfg.Version = VERSION
+			cfg.Sources = sources.List
 
-			if err = config.Write(path); err != nil {
+			if err = cfg.Write(path); err != nil {
 				return
 			}
 		}
@@ -133,7 +131,7 @@ func CreateUpdate(path string) (err error) {
 	return
 }
 
-func Read(path string) (configuration Configuration, err error) {
+func Read(path string) (cfg Configuration, err error) {
 	var file *os.File
 
 	file, err = os.Open(path)
@@ -143,7 +141,7 @@ func Read(path string) (configuration Configuration, err error) {
 
 	defer file.Close()
 
-	if err = yaml.NewDecoder(file).Decode(&configuration); err != nil {
+	if err = yaml.NewDecoder(file).Decode(&cfg); err != nil {
 		return
 	}
 

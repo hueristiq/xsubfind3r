@@ -1,4 +1,4 @@
-package shodan
+package chaos
 
 import (
 	"encoding/json"
@@ -6,14 +6,13 @@ import (
 	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 )
 
-type getDNSResponse struct {
+type getSubdomainsResponse struct {
 	Domain     string   `json:"domain"`
 	Subdomains []string `json:"subdomains"`
-	Result     int      `json:"result"`
-	Error      string   `json:"error"`
+	Count      int      `json:"count"`
 }
 
 type Source struct{}
@@ -28,7 +27,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		var key string
 
-		key, err = sources.PickRandom(config.Keys.Shodan)
+		key, err = sources.PickRandom(config.Keys.Chaos)
 		if key == "" || err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
@@ -41,11 +40,13 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		getDNSReqURL := fmt.Sprintf("https://api.shodan.io/dns/domain/%s?key=%s", domain, key)
+		getSubdomainsReqHeaders := map[string]string{"Authorization": key}
 
-		var getDNSRes *http.Response
+		getSubdomainsReqURL := fmt.Sprintf("https://dns.projectdiscovery.io/dns/%s/subdomains", domain)
 
-		getDNSRes, err = httpclient.SimpleGet(getDNSReqURL)
+		var getSubdomainsRes *http.Response
+
+		getSubdomainsRes, err = httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
@@ -58,9 +59,9 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		var getDNSResData getDNSResponse
+		var getSubdomainsResData getSubdomainsResponse
 
-		err = json.NewDecoder(getDNSRes.Body).Decode(&getDNSResData)
+		err = json.NewDecoder(getSubdomainsRes.Body).Decode(&getSubdomainsResData)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
@@ -70,18 +71,20 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			results <- result
 
-			getDNSRes.Body.Close()
+			getSubdomainsRes.Body.Close()
 
 			return
 		}
 
-		getDNSRes.Body.Close()
+		getSubdomainsRes.Body.Close()
 
-		for _, subdomain := range getDNSResData.Subdomains {
+		for index := range getSubdomainsResData.Subdomains {
+			subdomain := getSubdomainsResData.Subdomains[index]
+
 			result := sources.Result{
 				Type:   sources.Subdomain,
 				Source: source.Name(),
-				Value:  fmt.Sprintf("%s.%s", subdomain, domain),
+				Value:  fmt.Sprintf("%s.%s", subdomain, getSubdomainsResData.Domain),
 			}
 
 			results <- result
@@ -92,5 +95,5 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 }
 
 func (source *Source) Name() string {
-	return "shodan"
+	return "chaos"
 }

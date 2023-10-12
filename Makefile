@@ -32,7 +32,7 @@ format:
 
 .PHONY: lint
 lint:
-	$(GOLANGCILINTRUN) ./... --fix
+	$(GOLANGCILINTRUN) ./...
 
 .PHONY: test
 test:

@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/hueristiq/xsubfind3r/pkg/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/extractor"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 )
 
 type Source struct{}
@@ -116,10 +116,13 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			}
 
 			// Slicing as [1:] to skip first result by default
-			for _, entry := range getURLsResData[1:] {
+			for index := range getURLsResData[1:] {
+				entry := getURLsResData[1:][index]
 				match := regex.FindAllString(entry[0], -1)
 
-				for _, subdomain := range match {
+				for index := range match {
+					subdomain := match[index]
+
 					result := sources.Result{
 						Type:   sources.Subdomain,
 						Source: source.Name(),

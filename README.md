@@ -2,7 +2,7 @@
 
 ![made with go](https://img.shields.io/badge/made%20with-Go-0000FF.svg) [![release](https://img.shields.io/github/release/hueristiq/xsubfind3r?style=flat&color=0000FF)](https://github.com/hueristiq/xsubfind3r/releases) [![license](https://img.shields.io/badge/license-MIT-gray.svg?color=0000FF)](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-0000FF.svg) [![open issues](https://img.shields.io/github/issues-raw/hueristiq/xsubfind3r.svg?style=flat&color=0000FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/hueristiq/xsubfind3r.svg?style=flat&color=0000FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:closed) [![contribution](https://img.shields.io/badge/contributions-welcome-0000FF.svg)](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md)
 
-`xsubfind3r` is a command-line interface (CLI) utility to find domain's known subdomains from curated passive online sources.
+`xsubfind3r` is a command-line interface (CLI) utility to find domain's known subdomains from curated, passive online sources.
 
 ## Resource
 
@@ -19,9 +19,9 @@
 
 ## Features
 
-* [x] Fetches domains from curated passive sources to maximize results.
-* [x] `stdin` and `stdout` for easy integration into workflows.
-* [x] Cross-Platform (Windows, Linux & macOS).
+* Fetches domains from curated passive sources to maximize results.
+* `stdin` and `stdout` for easy integration into workflows.
+* Cross-Platform (Windows, Linux & macOS).
 
 ## Installation
 
@@ -152,24 +152,27 @@ xsubfind3r -h
 help message:
 
 ```text
-
                 _      __ _           _ _____
 __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 \ \/ / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
  >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |
 /_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_|
                                              v0.3.0
+
                    with <3 by Hueristiq Open Source
 
 USAGE:
   xsubfind3r [OPTIONS]
 
 CONFIGURATION:
- -c,  --configuration string           configuration file path (default: $HOME/.config/xsubfind3r/config.yaml)
+ -c, --configuration string            configuration file path (default: $HOME/.config/xsubfind3r/config.yaml)
 
 INPUT:
- -d, --domain string[]                 target domains
+ -d, --domain string[]                 target domain
  -l, --list string                     target domains list file path
+
+TIP: For multiple input domains use comma(,) separated value with `-d`,
+     specify multiple `-d`, load from file with `-l` or load from stdin.
 
 SOURCES:
       --sources bool                   list supported sources
@@ -180,10 +183,8 @@ OUTPUT:
      --monochrome bool                 display no color output
  -o, --output string                   output subdomains file path
  -O, --output-directory string         output subdomains directory path
-     --silent bool                     display output subdomains only
-     --verbose bool                    display verbose output
-
-pflag: help requested
+ -s, --silent bool                     display output subdomains only
+ -v, --verbose bool                    display verbose output
 ```
 
 ## Contributing

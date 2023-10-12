@@ -1,6 +1,6 @@
-package xsubfind3r
+package scraper
 
-import "github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+import "github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 
 type Options struct {
 	SourcesToExclude []string

@@ -13,8 +13,8 @@ import (
 	"github.com/hueristiq/hqgolog/formatter"
 	"github.com/hueristiq/hqgolog/levels"
 	"github.com/hueristiq/xsubfind3r/internal/configuration"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/hueristiq/xsubfind3r/pkg/scraper"
+	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 	"github.com/logrusorgru/aurora/v3"
 	"github.com/spf13/pflag"
 )
@@ -43,25 +43,29 @@ func init() {
 	pflag.BoolVar(&listSources, "sources", false, "")
 	pflag.StringSliceVarP(&sourcesToUse, "use-sources", "u", []string{}, "")
 	pflag.StringSliceVarP(&sourcesToExclude, "exclude-sources", "e", []string{}, "")
-	pflag.BoolVar(&monochrome, "monochromer", false, "")
+	pflag.BoolVar(&monochrome, "monochrome", false, "")
 	pflag.StringVarP(&output, "output", "o", "", "")
 	pflag.StringVarP(&outputDirectory, "outputDirectory", "O", "", "")
-	pflag.BoolVar(&silent, "silent", false, "")
-	pflag.BoolVar(&verbose, "verbose", false, "")
+	pflag.BoolVarP(&silent, "silent", "s", false, "")
+	pflag.BoolVarP(&verbose, "verbose", "v", false, "")
 
 	pflag.CommandLine.SortFlags = false
 	pflag.Usage = func() {
 		fmt.Fprintln(os.Stderr, configuration.BANNER)
 
-		h := "USAGE:\n"
+		h := "\nUSAGE:\n"
 		h += fmt.Sprintf("  %s [OPTIONS]\n", configuration.NAME)
 
 		h += "\nCONFIGURATION:\n"
-		h += fmt.Sprintf(" -c,  --configuration string           configuration file path (default: %s)\n", configuration.ConfigurationFilePath)
+		defaultConfigurationFilePath := strings.ReplaceAll(configuration.ConfigurationFilePath, configuration.UserDotConfigDirectoryPath, "$HOME/.config")
+		h += fmt.Sprintf(" -c, --configuration string            configuration file path (default: %s)\n", defaultConfigurationFilePath)
 
 		h += "\nINPUT:\n"
-		h += " -d, --domain string[]                 target domains\n"
+		h += " -d, --domain string[]                 target domain\n"
 		h += " -l, --list string                     target domains list file path\n"
+
+		h += "\nTIP: For multiple input domains use comma(,) separated value with `-d`,\n"
+		h += "     specify multiple `-d`, load from file with `-l` or load from stdin.\n"
 
 		h += "\nSOURCES:\n"
 		h += "      --sources bool                   list supported sources\n"
@@ -72,8 +76,8 @@ func init() {
 		h += "     --monochrome bool                 display no color output\n"
 		h += " -o, --output string                   output subdomains file path\n"
 		h += " -O, --output-directory string         output subdomains directory path\n"
-		h += "     --silent bool                     display output subdomains only\n"
-		h += "     --verbose bool                    display verbose output\n"
+		h += " -s, --silent bool                     display output subdomains only\n"
+		h += " -v, --verbose bool                    display verbose output\n"
 
 		fmt.Fprintln(os.Stderr, h)
 	}
@@ -91,16 +95,7 @@ func init() {
 		Colorize: !monochrome,
 	}))
 
-	// Create | Update configuration
-	if strings.HasPrefix(configurationFilePath, "$HOME") {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			hqgolog.Fatal().Msg(err.Error())
-		}
-
-		configurationFilePath = strings.Replace(configurationFilePath, "$HOME", home, 1)
-	}
-
+	// Create or Update configuration
 	if err := configuration.CreateUpdate(configurationFilePath); err != nil {
 		hqgolog.Fatal().Msg(err.Error())
 	}
@@ -109,7 +104,7 @@ func init() {
 }
 
 func main() {
-	// Print banner.
+	// print banner.
 	if !silent {
 		fmt.Fprintln(os.Stderr, configuration.BANNER)
 	}
@@ -118,14 +113,15 @@ func main() {
 
 	var config configuration.Configuration
 
-	// Read in configuration.
+	// read in configuration.
 	config, err = configuration.Read(configurationFilePath)
 	if err != nil {
 		hqgolog.Fatal().Msg(err.Error())
 	}
 
-	// If `--sources`: List suported sources & exit.
+	// if `--sources`: List suported sources & exit.
 	if listSources {
+		hqgolog.Print().Msg("")
 		hqgolog.Info().Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(config.Sources))).Bold())
 		hqgolog.Info().Msgf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold())
 		hqgolog.Print().Msg("")
@@ -150,9 +146,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Load input domains.
-
-	// input domains: file
+	// load input domains from file
 	if domainsListFilePath != "" {
 		var file *os.File
 
@@ -176,7 +170,7 @@ func main() {
 		}
 	}
 
-	// input domains: stdin
+	// load input domains from stdin
 	if hasStdin() {
 		scanner := bufio.NewScanner(os.Stdin)
 
@@ -193,14 +187,14 @@ func main() {
 		}
 	}
 
-	// Find and output subdomains.
-	options := &xsubfind3r.Options{
+	// scrape and output subdomains.
+	options := &scraper.Options{
 		SourcesToExclude: sourcesToExclude,
 		SourcesToUSe:     sourcesToUse,
 		Keys:             config.Keys,
 	}
 
-	finder := xsubfind3r.New(options)
+	spr := scraper.New(options)
 
 	var consolidatedWriter *bufio.Writer
 
@@ -225,8 +219,16 @@ func main() {
 		mkdir(outputDirectory)
 	}
 
-	for _, domain := range domains {
-		subdomains := finder.Find(domain)
+	for index := range domains {
+		domain := domains[index]
+
+		if !silent {
+			hqgolog.Print().Msg("")
+			hqgolog.Info().Msgf("Finding subdomains for %v...", au.Underline(domain).Bold())
+			hqgolog.Print().Msg("")
+		}
+
+		subdomains := spr.Scrape(domain)
 
 		switch {
 		case output != "":
@@ -272,7 +274,7 @@ func processSubdomains(writer *bufio.Writer, subdomains chan sources.Result) {
 	for subdomain := range subdomains {
 		switch subdomain.Type {
 		case sources.Error:
-			hqgolog.Warn().Msgf("Could not run source %s: %s\n", subdomain.Source, subdomain.Error)
+			hqgolog.Error().Msgf("%s: %s\n", subdomain.Source, subdomain.Error)
 		case sources.Subdomain:
 			if verbose {
 				hqgolog.Print().Msgf("[%s] %s", au.BrightBlue(subdomain.Source), subdomain.Value)

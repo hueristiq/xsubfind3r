@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
+	"strings"
+	"time"
 
+	"github.com/hueristiq/xsubfind3r/pkg/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/extractor"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 )
 
 type getIndexesResponse []struct {
@@ -89,12 +92,38 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getIndexesRes.Body.Close()
 
-		for _, indexData := range getIndexesResData {
+		year := time.Now().Year()
+		years := make([]string, 0)
+		maxYearsBack := 5
+
+		for i := 0; i < maxYearsBack; i++ {
+			years = append(years, strconv.Itoa(year-i))
+		}
+
+		searchIndexes := make(map[string]string)
+
+		for index := range years {
+			year := years[index]
+
+			for index := range getIndexesResData {
+				CCIndex := getIndexesResData[index]
+
+				if strings.Contains(CCIndex.ID, year) {
+					if _, ok := searchIndexes[year]; !ok {
+						searchIndexes[year] = CCIndex.API
+
+						break
+					}
+				}
+			}
+		}
+
+		for _, CCIndexAPI := range searchIndexes {
 			getURLsReqHeaders := map[string]string{
 				"Host": "index.commoncrawl.org",
 			}
 
-			getPaginationReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url&showNumPages=true", indexData.API, domain)
+			getPaginationReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url&showNumPages=true", CCIndexAPI, domain)
 
 			var getPaginationRes *http.Response
 
@@ -135,7 +164,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			}
 
 			for page := uint(0); page < getPaginationData.Pages; page++ {
-				getURLsReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url&page=%d", indexData.API, domain, page)
+				getURLsReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url&page=%d", CCIndexAPI, domain, page)
 
 				var getURLsRes *http.Response
 
@@ -189,7 +218,9 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 					match := regex.FindAllString(getURLsResData.URL, -1)
 
-					for _, subdomain := range match {
+					for index := range match {
+						subdomain := match[index]
+
 						result := sources.Result{
 							Type:   sources.Subdomain,
 							Source: source.Name(),
