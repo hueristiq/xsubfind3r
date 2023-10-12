@@ -274,7 +274,9 @@ func processSubdomains(writer *bufio.Writer, subdomains chan sources.Result) {
 	for subdomain := range subdomains {
 		switch subdomain.Type {
 		case sources.Error:
-			hqgolog.Error().Msgf("%s: %s\n", subdomain.Source, subdomain.Error)
+			if verbose {
+				hqgolog.Error().Msgf("%s: %s\n", subdomain.Source, subdomain.Error)
+			}
 		case sources.Subdomain:
 			if verbose {
 				hqgolog.Print().Msgf("[%s] %s", au.BrightBlue(subdomain.Source), subdomain.Value)
