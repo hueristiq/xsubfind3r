@@ -1,11 +1,12 @@
 name: 🎉 Release
 
 on:
-    create:
+    push:
         branches:
             - main
         tags:
             - v*.*.*
+    workflow_dispatch:
 
 jobs:
     release:
