@@ -162,10 +162,10 @@ __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
                    with <3 by Hueristiq Open Source
 
 USAGE:
-  xsubfind3r [OPTIONS]
+ xsubfind3r [OPTIONS]
 
 CONFIGURATION:
- -c, --configuration string            configuration file path (default: $HOME/.config/xsubfind3r/config.yaml)
+ -c, --configuration string            configuration file (default: $HOME/.config/xsubfind3r/config.yaml)
 
 INPUT:
  -d, --domain string[]                 target domain
@@ -175,9 +175,9 @@ TIP: For multiple input domains use comma(,) separated value with `-d`,
      specify multiple `-d`, load from file with `-l` or load from stdin.
 
 SOURCES:
-      --sources bool                   list supported sources
- -u,  --sources-to-use string[]        comma(,) separeted sources to use
- -e,  --sources-to-exclude string[]    comma(,) separeted sources to exclude
+     --sources bool                    list supported sources
+ -u, --sources-to-use string[]         comma(,) separeted sources to use
+ -e, --sources-to-exclude string[]     comma(,) separeted sources to exclude
 
 OUTPUT:
      --monochrome bool                 display no color output

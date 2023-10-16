@@ -59,13 +59,14 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			results <- result
 
+			getSubdomainsRes.Body.Close()
+
 			return
 		}
 
 		var getSubdomainsResData getSubdomainsResponse
 
-		err = json.NewDecoder(getSubdomainsRes.Body).Decode(&getSubdomainsResData)
-		if err != nil {
+		if err = json.NewDecoder(getSubdomainsRes.Body).Decode(&getSubdomainsResData); err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
 				Source: source.Name(),

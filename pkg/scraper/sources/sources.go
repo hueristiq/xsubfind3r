@@ -9,6 +9,37 @@ type Source interface {
 	Name() string
 }
 
+type Configuration struct {
+	Keys Keys
+}
+
+type Keys struct {
+	Bevigil  []string `yaml:"bevigil"`
+	Chaos    []string `yaml:"chaos"`
+	Fullhunt []string `yaml:"fullhunt"`
+	GitHub   []string `yaml:"github"`
+	Intelx   []string `yaml:"intelx"`
+	Shodan   []string `yaml:"shodan"`
+	URLScan  []string `yaml:"urlscan"`
+}
+
+// Result is a result structure returned by a source.
+type Result struct {
+	Type   ResultType
+	Source string
+	Value  string
+	Error  error
+}
+
+// ResultType is the type of result returned by the source.
+type ResultType int
+
+// Types of results returned by the source.
+const (
+	Subdomain ResultType = iota
+	Error
+)
+
 var List = []string{
 	"anubis",
 	"bevigil",

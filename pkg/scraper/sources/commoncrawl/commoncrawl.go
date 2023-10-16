@@ -70,13 +70,14 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
+			getIndexesRes.Body.Close()
+
 			return
 		}
 
 		var getIndexesResData getIndexesResponse
 
-		err = json.NewDecoder(getIndexesRes.Body).Decode(&getIndexesResData)
-		if err != nil {
+		if err = json.NewDecoder(getIndexesRes.Body).Decode(&getIndexesResData); err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
 				Source: source.Name(),
@@ -137,13 +138,14 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 				results <- result
 
+				getPaginationRes.Body.Close()
+
 				continue
 			}
 
 			var getPaginationData getPaginationResponse
 
-			err = json.NewDecoder(getPaginationRes.Body).Decode(&getPaginationData)
-			if err != nil {
+			if err = json.NewDecoder(getPaginationRes.Body).Decode(&getPaginationData); err != nil {
 				result := sources.Result{
 					Type:   sources.Error,
 					Source: source.Name(),
@@ -178,6 +180,8 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 					results <- result
 
+					getURLsRes.Body.Close()
+
 					continue
 				}
 
@@ -191,8 +195,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 					var getURLsResData getURLsResponse
 
-					err = json.Unmarshal(scanner.Bytes(), &getURLsResData)
-					if err != nil {
+					if err = json.Unmarshal(scanner.Bytes(), &getURLsResData); err != nil {
 						result := sources.Result{
 							Type:   sources.Error,
 							Source: source.Name(),

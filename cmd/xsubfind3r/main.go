@@ -54,11 +54,11 @@ func init() {
 		fmt.Fprintln(os.Stderr, configuration.BANNER)
 
 		h := "\nUSAGE:\n"
-		h += fmt.Sprintf("  %s [OPTIONS]\n", configuration.NAME)
+		h += fmt.Sprintf(" %s [OPTIONS]\n", configuration.NAME)
 
 		h += "\nCONFIGURATION:\n"
 		defaultConfigurationFilePath := strings.ReplaceAll(configuration.ConfigurationFilePath, configuration.UserDotConfigDirectoryPath, "$HOME/.config")
-		h += fmt.Sprintf(" -c, --configuration string            configuration file path (default: %s)\n", defaultConfigurationFilePath)
+		h += fmt.Sprintf(" -c, --configuration string            configuration file (default: %s)\n", defaultConfigurationFilePath)
 
 		h += "\nINPUT:\n"
 		h += " -d, --domain string[]                 target domain\n"
@@ -68,9 +68,9 @@ func init() {
 		h += "     specify multiple `-d`, load from file with `-l` or load from stdin.\n"
 
 		h += "\nSOURCES:\n"
-		h += "      --sources bool                   list supported sources\n"
-		h += " -u,  --sources-to-use string[]        comma(,) separeted sources to use\n"
-		h += " -e,  --sources-to-exclude string[]    comma(,) separeted sources to exclude\n"
+		h += "     --sources bool                    list supported sources\n"
+		h += " -u, --sources-to-use string[]         comma(,) separeted sources to use\n"
+		h += " -e, --sources-to-exclude string[]     comma(,) separeted sources to exclude\n"
 
 		h += "\nOUTPUT:\n"
 		h += "     --monochrome bool                 display no color output\n"
@@ -133,7 +133,9 @@ func main() {
 			needsKey[strings.ToLower(keysElem.Type().Field(i).Name)] = keysElem.Field(i).Interface()
 		}
 
-		for _, source := range config.Sources {
+		for index := range config.Sources {
+			source := config.Sources[index]
+
 			if _, ok := needsKey[source]; ok {
 				hqgolog.Print().Msgf("> %s *", source)
 			} else {
@@ -189,8 +191,8 @@ func main() {
 
 	// scrape and output subdomains.
 	options := &scraper.Options{
-		SourcesToExclude: sourcesToExclude,
 		SourcesToUSe:     sourcesToUse,
+		SourcesToExclude: sourcesToExclude,
 		Keys:             config.Keys,
 	}
 

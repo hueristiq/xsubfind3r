@@ -41,13 +41,14 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
+			getPassiveDNSRes.Body.Close()
+
 			return
 		}
 
 		var getPassiveDNSResData getPassiveDNSResponse
 
-		err = json.NewDecoder(getPassiveDNSRes.Body).Decode(&getPassiveDNSResData)
-		if err != nil {
+		if err = json.NewDecoder(getPassiveDNSRes.Body).Decode(&getPassiveDNSResData); err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
 				Source: source.Name(),

@@ -21,8 +21,8 @@ import (
 )
 
 type Scraper struct {
-	Sources              map[string]sources.Source
-	SourcesConfiguration *sources.Configuration
+	Sources       map[string]sources.Source
+	Configuration *sources.Configuration
 }
 
 func (scraper *Scraper) Scrape(domain string) (results chan sources.Result) {
@@ -41,7 +41,7 @@ func (scraper *Scraper) Scrape(domain string) (results chan sources.Result) {
 			go func(source sources.Source) {
 				defer wg.Done()
 
-				sResults := source.Run(scraper.SourcesConfiguration, domain)
+				sResults := source.Run(scraper.Configuration, domain)
 
 				for sResult := range sResults {
 					if sResult.Type == sources.Subdomain {
@@ -68,7 +68,7 @@ func (scraper *Scraper) Scrape(domain string) (results chan sources.Result) {
 func New(options *Options) (scraper *Scraper) {
 	scraper = &Scraper{
 		Sources: map[string]sources.Source{},
-		SourcesConfiguration: &sources.Configuration{
+		Configuration: &sources.Configuration{
 			Keys: options.Keys,
 		},
 	}
@@ -77,7 +77,9 @@ func New(options *Options) (scraper *Scraper) {
 		options.SourcesToUSe = sources.List
 	}
 
-	for _, source := range options.SourcesToUSe {
+	for index := range options.SourcesToUSe {
+		source := options.SourcesToUSe[index]
+
 		switch source {
 		case "anubis":
 			scraper.Sources[source] = &anubis.Source{}
@@ -108,7 +110,9 @@ func New(options *Options) (scraper *Scraper) {
 		}
 	}
 
-	for _, source := range options.SourcesToExclude {
+	for index := range options.SourcesToExclude {
+		source := options.SourcesToExclude[index]
+
 		delete(scraper.Sources, source)
 	}
 

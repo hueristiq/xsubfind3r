@@ -60,6 +60,8 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			results <- result
 
+			getSubdomainsRes.Body.Close()
+
 			return
 		}
 

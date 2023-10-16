@@ -19,6 +19,7 @@ type searchRequest struct {
 	MaxResults int           `json:"maxresults"`
 	Media      int           `json:"media"`
 }
+
 type searchResponse struct {
 	ID     string `json:"id"`
 	Status int    `json:"status"`
@@ -104,13 +105,14 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			results <- result
 
+			searchRes.Body.Close()
+
 			return
 		}
 
 		var searchResData searchResponse
 
-		err = json.NewDecoder(searchRes.Body).Decode(&searchResData)
-		if err != nil {
+		if err = json.NewDecoder(searchRes.Body).Decode(&searchResData); err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
 				Source: source.Name(),
@@ -142,13 +144,14 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				results <- result
 
+				getResultsRes.Body.Close()
+
 				return
 			}
 
 			var getResultsResData getResultsResponse
 
-			err = json.NewDecoder(getResultsRes.Body).Decode(&getResultsResData)
-			if err != nil {
+			if err = json.NewDecoder(getResultsRes.Body).Decode(&getResultsResData); err != nil {
 				result := sources.Result{
 					Type:   sources.Error,
 					Source: source.Name(),

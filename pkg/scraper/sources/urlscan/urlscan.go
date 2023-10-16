@@ -98,13 +98,14 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				results <- result
 
+				searchRes.Body.Close()
+
 				return
 			}
 
 			var searchResData searchResponse
 
-			err = json.NewDecoder(searchRes.Body).Decode(&searchResData)
-			if err != nil {
+			if err = json.NewDecoder(searchRes.Body).Decode(&searchResData); err != nil {
 				result := sources.Result{
 					Type:   sources.Error,
 					Source: source.Name(),

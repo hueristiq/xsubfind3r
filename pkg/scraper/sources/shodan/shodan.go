@@ -55,13 +55,14 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			results <- result
 
+			getDNSRes.Body.Close()
+
 			return
 		}
 
 		var getDNSResData getDNSResponse
 
-		err = json.NewDecoder(getDNSRes.Body).Decode(&getDNSResData)
-		if err != nil {
+		if err = json.NewDecoder(getDNSRes.Body).Decode(&getDNSResData); err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
 				Source: source.Name(),

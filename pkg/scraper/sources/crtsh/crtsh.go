@@ -41,13 +41,14 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
+			getNameValuesRes.Body.Close()
+
 			return
 		}
 
 		var getNameValuesResData getNameValuesResponse
 
-		err = json.NewDecoder(getNameValuesRes.Body).Decode(&getNameValuesResData)
-		if err != nil {
+		if err = json.NewDecoder(getNameValuesRes.Body).Decode(&getNameValuesResData); err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
 				Source: source.Name(),

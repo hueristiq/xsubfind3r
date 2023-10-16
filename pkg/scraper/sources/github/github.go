@@ -97,6 +97,8 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 		results <- result
 
+		searchRes.Body.Close()
+
 		return
 	}
 
@@ -111,8 +113,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 	var searchResData searchResponse
 
-	err = json.NewDecoder(searchRes.Body).Decode(&searchResData)
-	if err != nil {
+	if err = json.NewDecoder(searchRes.Body).Decode(&searchResData); err != nil {
 		result := sources.Result{
 			Type:   sources.Error,
 			Source: source.Name(),
@@ -142,6 +143,8 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 			}
 
 			results <- result
+
+			getRawContentRes.Body.Close()
 
 			continue
 		}
