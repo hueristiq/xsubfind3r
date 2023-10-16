@@ -69,8 +69,8 @@ func init() {
 
 		h += "\nSOURCES:\n"
 		h += "     --sources bool                    list supported sources\n"
-		h += " -u, --sources-to-use string[]         comma(,) separeted sources to use\n"
-		h += " -e, --sources-to-exclude string[]     comma(,) separeted sources to exclude\n"
+		h += " -u, --sources-to-use string[]         comma(,) separated sources to use\n"
+		h += " -e, --sources-to-exclude string[]     comma(,) separated sources to exclude\n"
 
 		h += "\nOUTPUT:\n"
 		h += "     --monochrome bool                 display no color output\n"

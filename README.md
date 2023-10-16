@@ -176,8 +176,8 @@ TIP: For multiple input domains use comma(,) separated value with `-d`,
 
 SOURCES:
      --sources bool                    list supported sources
- -u, --sources-to-use string[]         comma(,) separeted sources to use
- -e, --sources-to-exclude string[]     comma(,) separeted sources to exclude
+ -u, --sources-to-use string[]         comma(,) separated sources to use
+ -e, --sources-to-exclude string[]     comma(,) separated sources to exclude
 
 OUTPUT:
      --monochrome bool                 display no color output
