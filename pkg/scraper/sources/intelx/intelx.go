@@ -12,17 +12,20 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 )
 
-type searchRequest struct {
+type searchRequestBody struct {
 	Term       string        `json:"term"`
-	Timeout    time.Duration `json:"timeout"`
-	Target     int           `json:"target"`
 	MaxResults int           `json:"maxresults"`
 	Media      int           `json:"media"`
+	Target     int           `json:"target"`
+	Timeout    time.Duration `json:"timeout"`
 }
 
 type searchResponse struct {
-	ID     string `json:"id"`
-	Status int    `json:"status"`
+	ID                string `json:"id"`
+	SelfSelectWarning bool   `json:"selfselectwarning"`
+	Status            int    `json:"status"`
+	AltTerm           string `json:"altterm"`
+	AltTermH          string `json:"alttermh"`
 }
 
 type getResultsResponse struct {
@@ -70,7 +73,10 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 		}
 
 		searchReqURL := fmt.Sprintf("https://%s/phonebook/search?k=%s", intelXHost, intelXKey)
-		searchReqBody := searchRequest{
+		searchReqHeaders := map[string]string{
+			"Content-Type": "application/json",
+		}
+		searchReqBody := searchRequestBody{
 			Term:       domain,
 			MaxResults: 100000,
 			Media:      0,
@@ -95,7 +101,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		var searchRes *http.Response
 
-		searchRes, err = httpclient.SimplePost(searchReqURL, "application/json", bytes.NewBuffer(searchReqBodyBytes))
+		searchRes, err = httpclient.Post(searchReqURL, "", searchReqHeaders, bytes.NewBuffer(searchReqBodyBytes))
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.Error,

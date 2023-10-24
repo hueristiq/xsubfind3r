@@ -1,53 +1,52 @@
 package httpclient
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 
-	hqgohttpclient "github.com/hueristiq/hqgohttp"
+	"github.com/hueristiq/hqgohttp"
+	"github.com/hueristiq/hqgohttp/methods"
+	"github.com/hueristiq/hqgohttp/status"
+	"github.com/hueristiq/xsubfind3r/internal/configuration"
 )
 
-var client *hqgohttpclient.Client
+var client *hqgohttp.Client
 
 func init() {
-	options := hqgohttpclient.DefaultOptionsSpraying
+	options := hqgohttp.DefaultOptionsSpraying
 
-	client, _ = hqgohttpclient.New(options)
+	client, _ = hqgohttp.New(options)
 }
 
-func httpRequestWrapper(request *http.Request) (*http.Response, error) {
-	r, err := hqgohttpclient.FromRequest(request)
+func httpRequestWrapper(req *hqgohttp.Request) (res *http.Response, err error) {
+	res, err = client.Do(req)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	response, err := client.Do(r)
-	if err != nil {
-		return nil, err
+	if res.StatusCode != status.OK {
+		requestURL, _ := url.QueryUnescape(req.URL.String())
+
+		err = fmt.Errorf("unexpected status code %d received from %s", res.StatusCode, requestURL)
+
+		return
 	}
 
-	if response.StatusCode != http.StatusOK {
-		requestURL, _ := url.QueryUnescape(request.URL.String())
-
-		return response, fmt.Errorf("unexpected status code %d received from %s", response.StatusCode, requestURL)
-	}
-
-	return response, nil
+	return
 }
 
 // HTTPRequest makes any HTTP request to a URL with extended parameters
 func HTTPRequest(method, requestURL, cookies string, headers map[string]string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(context.Background(), method, requestURL, body)
+	req, err := hqgohttp.NewRequest(method, requestURL, body)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Set("Accept", "*/*")
 	req.Header.Set("Accept-Language", "en")
-	req.Header.Set("Connection", "close")
+	req.Header.Set("User-Agent", fmt.Sprintf("%s v%s (https://github.com/hueristiq/%s)", configuration.NAME, configuration.VERSION, configuration.NAME))
 
 	if cookies != "" {
 		req.Header.Set("Cookie", cookies)
@@ -61,21 +60,16 @@ func HTTPRequest(method, requestURL, cookies string, headers map[string]string, 
 }
 
 // Get makes a GET request to a URL with extended parameters
-func Get(getURL, cookies string, headers map[string]string) (*http.Response, error) {
-	return HTTPRequest(http.MethodGet, getURL, cookies, headers, nil)
+func Get(URL, cookies string, headers map[string]string) (*http.Response, error) {
+	return HTTPRequest(methods.Get, URL, cookies, headers, nil)
 }
 
 // SimpleGet makes a simple GET request to a URL
-func SimpleGet(getURL string) (*http.Response, error) {
-	return HTTPRequest(http.MethodGet, getURL, "", map[string]string{}, nil)
+func SimpleGet(URL string) (*http.Response, error) {
+	return HTTPRequest(methods.Get, URL, "", map[string]string{}, nil)
 }
 
 // Post makes a POST request to a URL with extended parameters
-func Post(postURL, cookies string, headers map[string]string, body io.Reader) (*http.Response, error) {
-	return HTTPRequest(http.MethodPost, postURL, cookies, headers, body)
-}
-
-// SimplePost makes a simple POST request to a URL
-func SimplePost(postURL, contentType string, body io.Reader) (*http.Response, error) {
-	return HTTPRequest(http.MethodPost, postURL, "", map[string]string{"Content-Type": contentType}, body)
+func Post(URL, cookies string, headers map[string]string, body io.Reader) (*http.Response, error) {
+	return HTTPRequest(methods.Post, URL, cookies, headers, body)
 }

@@ -1,10 +1,12 @@
 module github.com/hueristiq/xsubfind3r
 
-go 1.20
+go 1.21
+
+toolchain go1.21.0
 
 require (
 	dario.cat/mergo v1.0.0
-	github.com/hueristiq/hqgohttp v0.0.0-20230917162130-697d8e95e15d
+	github.com/hueristiq/hqgohttp v0.0.0-20231024010818-fdb48fa4aead
 	github.com/hueristiq/hqgolog v0.0.0-20230623113334-a6018965a34f
 	github.com/logrusorgru/aurora/v3 v3.0.0
 	github.com/spf13/cast v1.5.1
@@ -14,9 +16,11 @@ require (
 )
 
 require (
-	github.com/Mzack9999/go-http-digest-auth-client v0.6.0 // indirect
+	github.com/Mzack9999/go-http-digest-auth-client v0.6.1-0.20220414142836-eb8883508809 // indirect
+	github.com/hueristiq/hqgoutils v0.0.0-20231024005153-bd2c47932440 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
