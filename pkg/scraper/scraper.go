@@ -15,6 +15,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources/github"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources/hackertarget"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources/intelx"
+	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources/leakix"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources/otx"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources/shodan"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources/urlscan"
@@ -102,6 +103,8 @@ func New(options *Options) (scraper *Scraper) {
 			scraper.Sources[source] = &hackertarget.Source{}
 		case "intelx":
 			scraper.Sources[source] = &intelx.Source{}
+		case "leakix":
+			scraper.Sources[source] = &leakix.Source{}
 		case "otx":
 			scraper.Sources[source] = &otx.Source{}
 		case "shodan":

@@ -20,6 +20,7 @@ type Keys struct {
 	Fullhunt  []string `yaml:"fullhunt"`
 	GitHub    []string `yaml:"github"`
 	Intelx    []string `yaml:"intelx"`
+	LeakIX    []string `yaml:"leakix"`
 	Shodan    []string `yaml:"shodan"`
 	URLScan   []string `yaml:"urlscan"`
 }
@@ -52,6 +53,7 @@ var List = []string{
 	"github",
 	"hackertarget",
 	"intelx",
+	"leakix",
 	"otx",
 	"shodan",
 	"urlscan",
