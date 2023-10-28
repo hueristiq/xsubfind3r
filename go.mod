@@ -2,8 +2,6 @@ module github.com/hueristiq/xsubfind3r
 
 go 1.21
 
-toolchain go1.21.0
-
 require (
 	dario.cat/mergo v1.0.0
 	github.com/hueristiq/hqgohttp v0.0.0-20231024010818-fdb48fa4aead
