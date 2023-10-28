@@ -2,7 +2,7 @@
 
 ![made with go](https://img.shields.io/badge/made%20with-Go-0000FF.svg) [![release](https://img.shields.io/github/release/hueristiq/xsubfind3r?style=flat&color=0000FF)](https://github.com/hueristiq/xsubfind3r/releases) [![license](https://img.shields.io/badge/license-MIT-gray.svg?color=0000FF)](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-0000FF.svg) [![open issues](https://img.shields.io/github/issues-raw/hueristiq/xsubfind3r.svg?style=flat&color=0000FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/hueristiq/xsubfind3r.svg?style=flat&color=0000FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:closed) [![contribution](https://img.shields.io/badge/contributions-welcome-0000FF.svg)](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md)
 
-`xsubfind3r` is a command-line interface (CLI) utility to find domain's known subdomains from curated passive online sources.
+`xsubfind3r` is a command-line interface (CLI) utility to find domain's known subdomains from curated, passive online sources.
 
 ## Resource
 
@@ -14,24 +14,13 @@
 		* [`go build ...` the development Version](#go-build--the-development-version)
 * [Post Installation](#post-installation)
 * [Usage](#usage)
-* [Contribution](#contribution)
+* [Contributing](#contributing)
 * [Licensing](#licensing)
 
 ## Features
 
 * Fetches domains from curated passive sources to maximize results.
-    <details>
-    <summary>Sources: Click to expand!</summary>
-    
-    | Technique | Source |
-    | :-------- | :----- |
-    | APIs | AnubisDB, BeVigil, Chaos, FullHunt, GitHub, HackerTarget, IntelX, Shodan, URLScan |
-    | Certificates | Crtsh |
-    | Web Archives | CommonCrawl, Wayback |
-    | WHOIS | AlienVault |
-
-    </details>
-* Supports `stdin` and `stdout` for easy integration into workflows.
+* `stdin` and `stdout` for easy integration into workflows.
 * Cross-Platform (Windows, Linux & macOS).
 
 ## Installation
@@ -112,16 +101,19 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 
 ## Post Installation
 
-`xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[Chaos](https://chaos.projectdiscovery.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, **[Github](https://github.com)**, **[Intelligence X](https://intelx.io)** and **[Shodan](https://shodan.io/)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.hueristiq/xsubfind3r/config.yaml` file - created upon first run - and uses the YAML format. Multiple API keys can be specified for each of these source from which one of them will be used.
+`xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[BuiltWith](https://api.builtwith.com/domain-api)**, **[Chaos](https://chaos.projectdiscovery.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, **[Github](https://github.com)**, **[Intelligence X](https://intelx.io)**, **[LeakIX](https://leakix.net)** and **[Shodan](https://shodan.io/)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.config/xsubfind3r/config.yaml` file - created upon first run - and uses the YAML format. Multiple API keys can be specified for each of these source from which one of them will be used.
 
 Example `config.yaml`:
 
+> **NOTE:** The keys/tokens below are invalid and used as examples, use your own keys/tokens!
+
 ```yaml
-version: 0.3.0
+version: 0.4.0
 sources:
     - alienvault
     - anubis
     - bevigil
+    - builtwith
     - chaos
     - commoncrawl
     - crtsh
@@ -129,12 +121,15 @@ sources:
     - github
     - hackertarget
     - intelx
+    - leakix
     - shodan
     - urlscan
     - wayback
 keys:
     bevigil:
         - awA5nvpKU3N8ygkZ
+    builtwith:
+        - 7fcbaec4-dc49-472c-b837-3896cb255823
     chaos:
         - d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39asdsd54bbc1aabb208c9acfb
     fullhunt:
@@ -144,6 +139,8 @@ keys:
         - asdsd54bbc1aabb208c9acfbd2dd41ce7fc9db39
     intelx:
         - 2.intelx.io:00000000-0000-0000-0000-000000000000
+    leakix:
+        - xhDsgKejYTUWVNLn9R6f8afhsG6h6KM69lqEBoMJbfcvDk1v
     shodan:
         - AAAAClP1bJJSRMEYJazgwhJKrggRwKA
     urlscan:
@@ -161,39 +158,42 @@ xsubfind3r -h
 help message:
 
 ```text
-
-                _      __ _           _ _____      
-__  _____ _   _| |__  / _(_)_ __   __| |___ / _ __ 
+                _      __ _           _ _____
+__  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 \ \/ / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
- >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |   
-/_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| v0.3.0
+ >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |
+/_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_|
+                                             v0.4.0
+
+                   with <3 by Hueristiq Open Source
 
 USAGE:
-  xsubfind3r [OPTIONS]
-
-INPUT:
- -d, --domain string[]                 target domains
- -l, --list string                     target domains' list file path
-
-SOURCES:
-      --sources bool                   list supported sources
- -u,  --sources-to-use string[]        comma(,) separeted sources to use
- -e,  --sources-to-exclude string[]    comma(,) separeted sources to exclude
-
-OPTIMIZATION:
- -t,  --threads int                    number of threads (default: 50)
-
-OUTPUT:
-     --no-color bool                   disable colored output
- -o, --output string                   output subdomains' file path
- -O, --output-directory string         output subdomains' directory path
- -v, --verbosity string                debug, info, warning, error, fatal or silent (default: info)
+ xsubfind3r [OPTIONS]
 
 CONFIGURATION:
- -c,  --configuration string           configuration file path (default: ~/.hueristiq/xsubfind3r/config.yaml)
+ -c, --configuration string            configuration file (default: $HOME/.config/xsubfind3r/config.yaml)
+
+INPUT:
+ -d, --domain string[]                 target domain
+ -l, --list string                     target domains list file path
+
+TIP: For multiple input domains use comma(,) separated value with `-d`,
+     specify multiple `-d`, load from file with `-l` or load from stdin.
+
+SOURCES:
+     --sources bool                    list supported sources
+ -u, --sources-to-use string[]         comma(,) separated sources to use
+ -e, --sources-to-exclude string[]     comma(,) separated sources to exclude
+
+OUTPUT:
+     --monochrome bool                 display no color output
+ -o, --output string                   output subdomains file path
+ -O, --output-directory string         output subdomains directory path
+ -s, --silent bool                     display output subdomains only
+ -v, --verbose bool                    display verbose output
 ```
 
-## Contribution
+## Contributing
 
 [Issues](https://github.com/hueristiq/xsubfind3r/issues) and [Pull Requests](https://github.com/hueristiq/xsubfind3r/pulls) are welcome! **Check out the [contribution guidelines](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md).**
 
