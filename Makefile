@@ -17,6 +17,8 @@ ifneq ($(shell go env GOOS),darwin)
 LDFLAGS := -extldflags "-static"
 endif
 
+all: build
+
 .PHONY: tidy
 tidy:
 	$(GOMOD) tidy
