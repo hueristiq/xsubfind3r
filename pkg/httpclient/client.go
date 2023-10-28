@@ -46,6 +46,7 @@ func HTTPRequest(method, requestURL, cookies string, headers map[string]string, 
 
 	req.Header.Set("Accept", "*/*")
 	req.Header.Set("Accept-Language", "en")
+	req.Header.Set("Connection", "close")
 	req.Header.Set("User-Agent", fmt.Sprintf("%s v%s (https://github.com/hueristiq/%s)", configuration.NAME, configuration.VERSION, configuration.NAME))
 
 	if cookies != "" {
