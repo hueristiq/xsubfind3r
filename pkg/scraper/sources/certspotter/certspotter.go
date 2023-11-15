@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 
+	"github.com/hueristiq/xsubfind3r/pkg/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 )
@@ -86,12 +88,35 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		for _, cert := range getCTLogsSearchResData {
-			for _, sub := range cert.DNSNames {
+		var regex *regexp.Regexp
+
+		regex, err = extractor.New(domain)
+		if err != nil {
+			result := sources.Result{
+				Type:   sources.Error,
+				Source: source.Name(),
+				Error:  err,
+			}
+
+			results <- result
+
+			return
+		}
+
+		for index := range getCTLogsSearchResData {
+			cert := getCTLogsSearchResData[index]
+
+			for index := range cert.DNSNames {
+				subdomain := cert.DNSNames[index]
+
+				if !regex.MatchString(subdomain) {
+					continue
+				}
+
 				result := sources.Result{
 					Type:   sources.Subdomain,
 					Source: source.Name(),
-					Value:  sub,
+					Value:  subdomain,
 				}
 
 				results <- result
@@ -147,6 +172,10 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				for index := range cert.DNSNames {
 					subdomain := cert.DNSNames[index]
+
+					if !regex.MatchString(subdomain) {
+						continue
+					}
 
 					result := sources.Result{
 						Type:   sources.Subdomain,
