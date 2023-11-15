@@ -81,19 +81,22 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		for index := range getNameValuesResData {
 			record := getNameValuesResData[index]
+			subdomains := strings.Split(record.NameValue, "\n")
 
-			for _, value := range strings.Split(record.NameValue, "\n") {
-				match := regex.FindAllString(value, -1)
+			for index := range subdomains {
+				subdomain := subdomains[index]
 
-				for _, subdomain := range match {
-					result := sources.Result{
-						Type:   sources.Subdomain,
-						Source: source.Name(),
-						Value:  subdomain,
-					}
-
-					results <- result
+				if !regex.MatchString(subdomain) {
+					continue
 				}
+
+				result := sources.Result{
+					Type:   sources.Subdomain,
+					Source: source.Name(),
+					Value:  subdomain,
+				}
+
+				results <- result
 			}
 		}
 	}()
