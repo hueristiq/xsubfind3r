@@ -15,6 +15,7 @@ type Configuration struct {
 
 type Keys struct {
 	Bevigil     []string `yaml:"bevigil"`
+	Bufferover  []string `yaml:"bufferover"`
 	BuiltWith   []string `yaml:"builtwith"`
 	Certspotter []string `yaml:"certspotter"`
 	Chaos       []string `yaml:"chaos"`
@@ -46,6 +47,7 @@ const (
 var List = []string{
 	"anubis",
 	"bevigil",
+	"bufferover",
 	"builtwith",
 	"certspotter",
 	"chaos",

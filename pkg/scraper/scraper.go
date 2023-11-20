@@ -7,6 +7,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources/anubis"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources/bevigil"
+	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources/bufferover"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources/builtwith"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources/certspotter"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources/chaos"
@@ -88,6 +89,8 @@ func New(options *Options) (scraper *Scraper) {
 			scraper.Sources[source] = &anubis.Source{}
 		case "bevigil":
 			scraper.Sources[source] = &bevigil.Source{}
+		case "bufferover":
+			scraper.Sources[source] = &bufferover.Source{}
 		case "builtwith":
 			scraper.Sources[source] = &builtwith.Source{}
 		case "certspotter":

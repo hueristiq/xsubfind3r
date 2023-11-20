@@ -104,7 +104,7 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 
 ## Post Installation
 
-`xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[BuiltWith](https://api.builtwith.com/domain-api)**, **[Certspotter](https://sslmate.com/ct_search_api/)**, **[Chaos](https://chaos.hueristiq.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, **[Github](https://github.com)**, **[Intelligence X](https://intelx.io)**, **[LeakIX](https://leakix.net)** and **[Shodan](https://shodan.io/)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.config/xsubfind3r/config.yaml` file - created upon first run - and uses the YAML format. Multiple API keys can be specified for each of these source from which one of them will be used.
+`xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[BufferOver](https://tls.bufferover.run/)**, **[BuiltWith](https://api.builtwith.com/domain-api)**, **[Certspotter](https://sslmate.com/ct_search_api/)**, **[Chaos](https://chaos.hueristiq.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, **[Github](https://github.com)**, **[Intelligence X](https://intelx.io)**, **[LeakIX](https://leakix.net)** and **[Shodan](https://shodan.io/)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.config/xsubfind3r/config.yaml` file - created upon first run - and uses the YAML format. Multiple API keys can be specified for each of these source from which one of them will be used.
 
 Example `config.yaml`:
 
@@ -116,6 +116,7 @@ sources:
     - alienvault
     - anubis
     - bevigil
+    - bufferover
     - builtwith
     - certspotter
     - chaos
@@ -132,6 +133,8 @@ sources:
 keys:
     bevigil:
         - awA5nvpKU3N8ygkZ
+    bufferover:
+        - COx9GBnhz63hcF1hlBtLb4KAdlzJly1d8xeovTjK
     builtwith:
         - 7fcbaec4-dc49-472c-b837-3896cb255823
     chaos:
