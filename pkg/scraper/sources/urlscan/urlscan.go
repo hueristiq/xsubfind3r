@@ -8,6 +8,7 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
+	"github.com/spf13/cast"
 )
 
 type searchResponse struct {
@@ -65,22 +66,13 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			after := ""
 
 			if searchAfter != nil {
-				var searchAfterJSON []byte
+				var temp []string
 
-				searchAfterJSON, err = json.Marshal(searchAfter)
-				if err != nil {
-					result := sources.Result{
-						Type:   sources.Error,
-						Source: source.Name(),
-						Error:  err,
-					}
-
-					results <- result
-
-					return
+				for index := range searchAfter {
+					temp = append(temp, cast.ToString(searchAfter[index]))
 				}
 
-				after = "&search_after=" + string(searchAfterJSON)
+				after = "&search_after=" + strings.Join(temp, ",")
 			}
 
 			searchReqURL := fmt.Sprintf("https://urlscan.io/api/v1/search/?q=domain:%s&size=100", domain) + after
