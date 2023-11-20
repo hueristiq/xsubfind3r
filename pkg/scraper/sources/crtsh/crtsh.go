@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 
-	"github.com/hueristiq/xsubfind3r/pkg/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 )
@@ -64,21 +62,6 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getNameValuesRes.Body.Close()
 
-		var regex *regexp.Regexp
-
-		regex, err = extractor.New(domain)
-		if err != nil {
-			result := sources.Result{
-				Type:   sources.Error,
-				Source: source.Name(),
-				Error:  err,
-			}
-
-			results <- result
-
-			return
-		}
-
 		for index := range getNameValuesResData {
 			record := getNameValuesResData[index]
 			subdomains := strings.Split(record.NameValue, "\n")
@@ -86,7 +69,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			for index := range subdomains {
 				subdomain := subdomains[index]
 
-				if !regex.MatchString(subdomain) {
+				if subdomain != domain && !strings.HasSuffix(subdomain, "."+domain) {
 					continue
 				}
 
