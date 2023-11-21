@@ -28,13 +28,16 @@ update-deps:
 	$(GOGET) -f -t -u ./...
 	$(GOGET) -f -u ./...
 
-.PHONY: format
-format:
+.PHONY: _gofmt
+_gofmt:
 	$(GOFMT) ./...
 
+.PHONY: _golangci-lint
+_golangci-lint:
+	$(GOLANGCILINTRUN) $(GOLANGCILINT) ./...
+
 .PHONY: lint
-lint:
-	$(GOLANGCILINTRUN) ./...
+lint: _gofmt _golangci-lint
 
 .PHONY: test
 test:

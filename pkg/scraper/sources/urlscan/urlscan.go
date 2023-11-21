@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"regexp"
+	"strings"
 
-	"github.com/hueristiq/xsubfind3r/pkg/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
+	"github.com/spf13/cast"
 )
 
 type searchResponse struct {
@@ -60,31 +60,14 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			searchReqHeaders["API-Key"] = key
 		}
 
-		var searchAfter []interface{}
+		var after string
 
 		for {
-			after := ""
+			searchReqURL := fmt.Sprintf("https://urlscan.io/api/v1/search/?q=domain:%s&size=10000", domain)
 
-			if searchAfter != nil {
-				var searchAfterJSON []byte
-
-				searchAfterJSON, err = json.Marshal(searchAfter)
-				if err != nil {
-					result := sources.Result{
-						Type:   sources.Error,
-						Source: source.Name(),
-						Error:  err,
-					}
-
-					results <- result
-
-					return
-				}
-
-				after = "&search_after=" + string(searchAfterJSON)
+			if after != "" {
+				searchReqURL += "&search_after=" + after
 			}
-
-			searchReqURL := fmt.Sprintf("https://urlscan.io/api/v1/search/?q=domain:%s&size=100", domain) + after
 
 			var searchRes *http.Response
 
@@ -100,7 +83,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				searchRes.Body.Close()
 
-				return
+				break
 			}
 
 			var searchResData searchResponse
@@ -116,7 +99,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				searchRes.Body.Close()
 
-				return
+				break
 			}
 
 			searchRes.Body.Close()
@@ -125,36 +108,20 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 				break
 			}
 
-			var regex *regexp.Regexp
+			for index := range searchResData.Results {
+				subdomain := searchResData.Results[index].Page.Domain
 
-			regex, err = extractor.New(domain)
-			if err != nil {
+				if subdomain != domain && !strings.HasSuffix(subdomain, "."+domain) {
+					continue
+				}
+
 				result := sources.Result{
-					Type:   sources.Error,
+					Type:   sources.Subdomain,
 					Source: source.Name(),
-					Error:  err,
+					Value:  subdomain,
 				}
 
 				results <- result
-
-				return
-			}
-
-			for index := range searchResData.Results {
-				result := searchResData.Results[index]
-				match := regex.FindAllString(result.Page.Domain, -1)
-
-				for index := range match {
-					subdomain := match[index]
-
-					result := sources.Result{
-						Type:   sources.Subdomain,
-						Source: source.Name(),
-						Value:  subdomain,
-					}
-
-					results <- result
-				}
 			}
 
 			if !searchResData.HasMore {
@@ -162,7 +129,16 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			}
 
 			lastResult := searchResData.Results[len(searchResData.Results)-1]
-			searchAfter = lastResult.Sort
+
+			if lastResult.Sort != nil {
+				var temp []string
+
+				for index := range lastResult.Sort {
+					temp = append(temp, cast.ToString(lastResult.Sort[index]))
+				}
+
+				after = strings.Join(temp, ",")
+			}
 		}
 	}()
 

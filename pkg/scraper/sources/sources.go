@@ -14,15 +14,17 @@ type Configuration struct {
 }
 
 type Keys struct {
-	Bevigil   []string `yaml:"bevigil"`
-	BuiltWith []string `yaml:"builtwith"`
-	Chaos     []string `yaml:"chaos"`
-	Fullhunt  []string `yaml:"fullhunt"`
-	GitHub    []string `yaml:"github"`
-	Intelx    []string `yaml:"intelx"`
-	LeakIX    []string `yaml:"leakix"`
-	Shodan    []string `yaml:"shodan"`
-	URLScan   []string `yaml:"urlscan"`
+	Bevigil     []string `yaml:"bevigil"`
+	Bufferover  []string `yaml:"bufferover"`
+	BuiltWith   []string `yaml:"builtwith"`
+	Certspotter []string `yaml:"certspotter"`
+	Chaos       []string `yaml:"chaos"`
+	Fullhunt    []string `yaml:"fullhunt"`
+	GitHub      []string `yaml:"github"`
+	Intelx      []string `yaml:"intelx"`
+	LeakIX      []string `yaml:"leakix"`
+	Shodan      []string `yaml:"shodan"`
+	URLScan     []string `yaml:"urlscan"`
 }
 
 // Result is a result structure returned by a source.
@@ -45,7 +47,9 @@ const (
 var List = []string{
 	"anubis",
 	"bevigil",
+	"bufferover",
 	"builtwith",
+	"certspotter",
 	"chaos",
 	"commoncrawl",
 	"crtsh",

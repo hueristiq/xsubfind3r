@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
@@ -77,12 +78,16 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 		}
 
 		for index := range getPassiveDNSResData.PassiveDNS {
-			record := getPassiveDNSResData.PassiveDNS[index]
+			subdomain := getPassiveDNSResData.PassiveDNS[index].Hostname
+
+			if subdomain != domain && !strings.HasSuffix(subdomain, "."+domain) {
+				continue
+			}
 
 			result := sources.Result{
 				Type:   sources.Subdomain,
 				Source: source.Name(),
-				Value:  record.Hostname,
+				Value:  subdomain,
 			}
 
 			results <- result
