@@ -1,6 +1,6 @@
 # xsubfind3r
 
-![made with go](https://img.shields.io/badge/made%20with-Go-0000FF.svg) [![release](https://img.shields.io/github/release/hueristiq/xsubfind3r?style=flat&color=0000FF)](https://github.com/hueristiq/xsubfind3r/releases) [![license](https://img.shields.io/badge/license-MIT-gray.svg?color=0000FF)](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-0000FF.svg) [![open issues](https://img.shields.io/github/issues-raw/hueristiq/xsubfind3r.svg?style=flat&color=0000FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/hueristiq/xsubfind3r.svg?style=flat&color=0000FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:closed) [![contribution](https://img.shields.io/badge/contributions-welcome-0000FF.svg)](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md)
+![made with go](https://img.shields.io/badge/made%20with-Go-1E90FF.svg) [![go report card](https://goreportcard.com/badge/github.com/hueristiq/xsubfind3r)](https://goreportcard.com/report/github.com/hueristiq/xsubfind3r) [![release](https://img.shields.io/github/release/hueristiq/xsubfind3r?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/releases) [![open issues](https://img.shields.io/github/issues-raw/hueristiq/xsubfind3r.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/hueristiq/xsubfind3r.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?color=1E90FF)](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-1E90FF.svg) [![contribution](https://img.shields.io/badge/contributions-welcome-1E90FF.svg)](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md)
 
 `xsubfind3r` is a command-line interface (CLI) based passive subdomain discovery utility. It is designed to efficiently identify known subdomains of given domains by tapping into a multitude of curated online passive sources.
 
@@ -212,7 +212,7 @@ This utility is distributed under the [MIT license](https://github.com/hueristiq
 
 ### Contributors
 
-Thanks to the amazing [contributors](https://github.com/hueristiq/xsubfind3r/graphs/contributors) and keeping this project alive.
+Thanks to the amazing [contributors](https://github.com/hueristiq/xsubfind3r/graphs/contributors) for keeping this project alive.
 
 [![contributors](https://contrib.rocks/image?repo=hueristiq/xsubfind3r&max=500)](https://github.com/hueristiq/xsubfind3r/graphs/contributors)
 

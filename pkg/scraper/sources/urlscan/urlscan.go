@@ -60,22 +60,14 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			searchReqHeaders["API-Key"] = key
 		}
 
-		var searchAfter []interface{}
+		var after string
 
 		for {
-			after := ""
+			searchReqURL := fmt.Sprintf("https://urlscan.io/api/v1/search/?q=domain:%s&size=10000", domain)
 
-			if searchAfter != nil {
-				var temp []string
-
-				for index := range searchAfter {
-					temp = append(temp, cast.ToString(searchAfter[index]))
-				}
-
-				after = "&search_after=" + strings.Join(temp, ",")
+			if after != "" {
+				searchReqURL += "&search_after=" + after
 			}
-
-			searchReqURL := fmt.Sprintf("https://urlscan.io/api/v1/search/?q=domain:%s&size=100", domain) + after
 
 			var searchRes *http.Response
 
@@ -91,7 +83,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				searchRes.Body.Close()
 
-				return
+				break
 			}
 
 			var searchResData searchResponse
@@ -107,7 +99,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				searchRes.Body.Close()
 
-				return
+				break
 			}
 
 			searchRes.Body.Close()
@@ -137,7 +129,16 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			}
 
 			lastResult := searchResData.Results[len(searchResData.Results)-1]
-			searchAfter = lastResult.Sort
+
+			if lastResult.Sort != nil {
+				var temp []string
+
+				for index := range lastResult.Sort {
+					temp = append(temp, cast.ToString(lastResult.Sort[index]))
+				}
+
+				after = strings.Join(temp, ",")
+			}
 		}
 	}()
 
