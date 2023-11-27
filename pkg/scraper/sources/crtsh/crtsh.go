@@ -39,6 +39,8 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
+			httpclient.DiscardResponse(getNameValuesRes)
+
 			return
 		}
 

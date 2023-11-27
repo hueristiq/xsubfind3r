@@ -70,6 +70,8 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
+			httpclient.DiscardResponse(getIndexesRes)
+
 			return
 		}
 
@@ -132,6 +134,8 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 				results <- result
 
+				httpclient.DiscardResponse(getPaginationRes)
+
 				continue
 			}
 
@@ -171,6 +175,8 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 					}
 
 					results <- result
+
+					httpclient.DiscardResponse(getURLsRes)
 
 					continue
 				}

@@ -74,3 +74,14 @@ func SimpleGet(URL string) (*http.Response, error) {
 func Post(URL, cookies string, headers map[string]string, body io.Reader) (*http.Response, error) {
 	return HTTPRequest(methods.Post, URL, cookies, headers, body)
 }
+
+func DiscardResponse(response *http.Response) {
+	if response != nil {
+		_, err := io.Copy(io.Discard, response.Body)
+		if err != nil {
+			return
+		}
+
+		response.Body.Close()
+	}
+}

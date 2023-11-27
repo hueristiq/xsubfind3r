@@ -63,6 +63,8 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			results <- result
 
+			httpclient.DiscardResponse(getSubdomainsRes)
+
 			return
 		}
 
