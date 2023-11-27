@@ -35,13 +35,14 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
+			httpclient.DiscardResponse(getPagesRes)
+
 			return
 		}
 
 		var pages uint
 
-		err = json.NewDecoder(getPagesRes.Body).Decode(&pages)
-		if err != nil {
+		if err = json.NewDecoder(getPagesRes.Body).Decode(&pages); err != nil {
 			result := sources.Result{
 				Type:   sources.Error,
 				Source: source.Name(),
@@ -87,7 +88,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 				results <- result
 
-				getURLsRes.Body.Close()
+				httpclient.DiscardResponse(getURLsRes)
 
 				return
 			}
@@ -117,13 +118,10 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			}
 
 			// Slicing as [1:] to skip first result by default
-			for index := range getURLsResData[1:] {
-				entry := getURLsResData[1:][index]
+			for _, entry := range getURLsResData[1:] {
 				match := regex.FindAllString(entry[0], -1)
 
-				for index := range match {
-					subdomain := match[index]
-
+				for _, subdomain := range match {
 					result := sources.Result{
 						Type:   sources.Subdomain,
 						Source: source.Name(),

@@ -39,7 +39,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
-			getNameValuesRes.Body.Close()
+			httpclient.DiscardResponse(getNameValuesRes)
 
 			return
 		}
@@ -62,13 +62,10 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getNameValuesRes.Body.Close()
 
-		for index := range getNameValuesResData {
-			record := getNameValuesResData[index]
+		for _, record := range getNameValuesResData {
 			subdomains := strings.Split(record.NameValue, "\n")
 
-			for index := range subdomains {
-				subdomain := subdomains[index]
-
+			for _, subdomain := range subdomains {
 				if subdomain != domain && !strings.HasSuffix(subdomain, "."+domain) {
 					continue
 				}

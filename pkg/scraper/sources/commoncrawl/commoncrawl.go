@@ -70,7 +70,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
-			getIndexesRes.Body.Close()
+			httpclient.DiscardResponse(getIndexesRes)
 
 			return
 		}
@@ -103,12 +103,8 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		searchIndexes := make(map[string]string)
 
-		for index := range years {
-			year := years[index]
-
-			for index := range getIndexesResData {
-				CCIndex := getIndexesResData[index]
-
+		for _, year := range years {
+			for _, CCIndex := range getIndexesResData {
 				if strings.Contains(CCIndex.ID, year) {
 					if _, ok := searchIndexes[year]; !ok {
 						searchIndexes[year] = CCIndex.API
@@ -138,7 +134,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 				results <- result
 
-				getPaginationRes.Body.Close()
+				httpclient.DiscardResponse(getPaginationRes)
 
 				continue
 			}
@@ -180,7 +176,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 					results <- result
 
-					getURLsRes.Body.Close()
+					httpclient.DiscardResponse(getURLsRes)
 
 					continue
 				}
@@ -219,11 +215,9 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 						continue
 					}
 
-					match := regex.FindAllString(getURLsResData.URL, -1)
+					subdomains := regex.FindAllString(getURLsResData.URL, -1)
 
-					for index := range match {
-						subdomain := match[index]
-
+					for _, subdomain := range subdomains {
 						result := sources.Result{
 							Type:   sources.Subdomain,
 							Source: source.Name(),

@@ -42,7 +42,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
-			getPassiveDNSRes.Body.Close()
+			httpclient.DiscardResponse(getPassiveDNSRes)
 
 			return
 		}
@@ -77,8 +77,8 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			return
 		}
 
-		for index := range getPassiveDNSResData.PassiveDNS {
-			subdomain := getPassiveDNSResData.PassiveDNS[index].Hostname
+		for _, record := range getPassiveDNSResData.PassiveDNS {
+			subdomain := record.Hostname
 
 			if subdomain != domain && !strings.HasSuffix(subdomain, "."+domain) {
 				continue

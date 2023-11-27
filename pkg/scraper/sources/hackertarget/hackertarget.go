@@ -35,7 +35,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
-			hostSearchRes.Body.Close()
+			httpclient.DiscardResponse(hostSearchRes)
 
 			return
 		}
@@ -66,9 +66,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			match := regex.FindAllString(line, -1)
 
-			for index := range match {
-				subdomain := match[index]
-
+			for _, subdomain := range match {
 				result := sources.Result{
 					Type:   sources.Subdomain,
 					Source: source.Name(),

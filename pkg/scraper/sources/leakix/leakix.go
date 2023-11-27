@@ -63,7 +63,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			results <- result
 
-			getSubdomainsRes.Body.Close()
+			httpclient.DiscardResponse(getSubdomainsRes)
 
 			return
 		}
@@ -86,9 +86,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		getSubdomainsRes.Body.Close()
 
-		for index := range getSubdomainsResData {
-			record := getSubdomainsResData[index]
-
+		for _, record := range getSubdomainsResData {
 			result := sources.Result{
 				Type:   sources.Subdomain,
 				Source: source.Name(),

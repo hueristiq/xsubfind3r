@@ -98,7 +98,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 		results <- result
 
-		searchRes.Body.Close()
+		httpclient.DiscardResponse(searchRes)
 
 		return
 	}
@@ -145,7 +145,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 			results <- result
 
-			getRawContentRes.Body.Close()
+			httpclient.DiscardResponse(getRawContentRes)
 
 			continue
 		}

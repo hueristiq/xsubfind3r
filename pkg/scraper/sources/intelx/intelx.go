@@ -111,7 +111,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			results <- result
 
-			searchRes.Body.Close()
+			httpclient.DiscardResponse(searchRes)
 
 			return
 		}
@@ -150,7 +150,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				results <- result
 
-				getResultsRes.Body.Close()
+				httpclient.DiscardResponse(getResultsRes)
 
 				return
 			}
@@ -175,9 +175,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			status = getResultsResData.Status
 
-			for index := range getResultsResData.Selectors {
-				record := getResultsResData.Selectors[index]
-
+			for _, record := range getResultsResData.Selectors {
 				result := sources.Result{
 					Type:   sources.Subdomain,
 					Source: source.Name(),

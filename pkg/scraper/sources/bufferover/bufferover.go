@@ -62,7 +62,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			results <- result
 
-			getTLSLogsSearchRes.Body.Close()
+			httpclient.DiscardResponse(getTLSLogsSearchRes)
 
 			return
 		}
@@ -119,13 +119,10 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			entries = getTLSLogsSearchResData.Results
 		}
 
-		for index := range entries {
-			entry := entries[index]
+		for _, entry := range entries {
 			subdomains := regex.FindAllString(entry, -1)
 
-			for index := range subdomains {
-				subdomain := subdomains[index]
-
+			for _, subdomain := range subdomains {
 				result := sources.Result{
 					Type:   sources.Subdomain,
 					Source: source.Name(),

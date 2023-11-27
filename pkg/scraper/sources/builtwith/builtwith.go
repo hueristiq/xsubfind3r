@@ -60,7 +60,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			results <- result
 
-			getDomainInfoRes.Body.Close()
+			httpclient.DiscardResponse(getDomainInfoRes)
 
 			return
 		}
@@ -83,12 +83,8 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		getDomainInfoRes.Body.Close()
 
-		for index := range getDomainInfoResData.Results {
-			item := getDomainInfoResData.Results[index]
-
-			for index := range item.Result.Paths {
-				path := item.Result.Paths[index]
-
+		for _, item := range getDomainInfoResData.Results {
+			for _, path := range item.Result.Paths {
 				value := path.Domain
 
 				if path.SubDomain != "" {
