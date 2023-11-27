@@ -33,8 +33,6 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			results <- result
 
-			getSubdomainsRes.Body.Close()
-
 			return
 		}
 
@@ -56,9 +54,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getSubdomainsRes.Body.Close()
 
-		for index := range getSubdomainsResData {
-			subdomain := getSubdomainsResData[index]
-
+		for _, subdomain := range getSubdomainsResData {
 			result := sources.Result{
 				Type:   sources.Subdomain,
 				Source: source.Name(),

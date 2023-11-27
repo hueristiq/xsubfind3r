@@ -145,8 +145,6 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 			results <- result
 
-			getRawContentRes.Body.Close()
-
 			continue
 		}
 

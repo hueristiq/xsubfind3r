@@ -60,8 +60,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			results <- result
 
-			getCTLogsSearchRes.Body.Close()
-
 			return
 		}
 
@@ -87,12 +85,8 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		for index := range getCTLogsSearchResData {
-			cert := getCTLogsSearchResData[index]
-
-			for index := range cert.DNSNames {
-				subdomain := cert.DNSNames[index]
-
+		for _, cert := range getCTLogsSearchResData {
+			for _, subdomain := range cert.DNSNames {
 				if subdomain != domain && !strings.HasSuffix(subdomain, "."+domain) {
 					continue
 				}
@@ -124,9 +118,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				results <- result
 
-				getCTLogsSearchRes.Body.Close()
-
-				continue
+				break
 			}
 
 			var getCTLogsSearchResData []getCTLogsSearchResponse
@@ -142,21 +134,17 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				getCTLogsSearchRes.Body.Close()
 
-				continue
+				break
 			}
 
 			getCTLogsSearchRes.Body.Close()
 
 			if len(getCTLogsSearchResData) == 0 {
-				return
+				break
 			}
 
-			for index := range getCTLogsSearchResData {
-				cert := getCTLogsSearchResData[index]
-
-				for index := range cert.DNSNames {
-					subdomain := cert.DNSNames[index]
-
+			for _, cert := range getCTLogsSearchResData {
+				for _, subdomain := range cert.DNSNames {
 					if subdomain != domain && !strings.HasSuffix(subdomain, "."+domain) {
 						continue
 					}

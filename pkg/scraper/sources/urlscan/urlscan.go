@@ -81,8 +81,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				results <- result
 
-				searchRes.Body.Close()
-
 				break
 			}
 
@@ -108,8 +106,8 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 				break
 			}
 
-			for index := range searchResData.Results {
-				subdomain := searchResData.Results[index].Page.Domain
+			for _, record := range searchResData.Results {
+				subdomain := record.Page.Domain
 
 				if subdomain != domain && !strings.HasSuffix(subdomain, "."+domain) {
 					continue
@@ -125,6 +123,10 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			}
 
 			if !searchResData.HasMore {
+				break
+			}
+
+			if len(searchResData.Results) < 1 {
 				break
 			}
 
