@@ -7,7 +7,7 @@ require (
 	github.com/hueristiq/hqgohttp v0.0.0-20231024010818-fdb48fa4aead
 	github.com/hueristiq/hqgolog v0.0.0-20230623113334-a6018965a34f
 	github.com/logrusorgru/aurora/v3 v3.0.0
-	github.com/spf13/cast v1.5.1
+	github.com/spf13/cast v1.6.0
 	github.com/spf13/pflag v1.0.5
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
 	gopkg.in/yaml.v3 v3.0.1
