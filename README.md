@@ -50,13 +50,15 @@ Visit the [releases page](https://github.com/hueristiq/xsubfind3r/releases) and 
 tar xf xsubfind3r-<version>-linux-amd64.tar.gz
 ```
 
-> **TIP:** The above steps, download and extract, can be combined into a single step with this onliner
+> [!TIP]
+> The above steps, download and extract, can be combined into a single step with this onliner
 > 
 > ```bash
 > curl -sL https://github.com/hueristiq/xsubfind3r/releases/download/v<version>/xsubfind3r-<version>-linux-amd64.tar.gz | tar -xzv
 > ```
 
-**NOTE:** On Windows systems, you should be able to double-click the zip archive to extract the `xsubfind3r` executable.
+> [!NOTE]
+> On Windows systems, you should be able to double-click the zip archive to extract the `xsubfind3r` executable.
 
 ...move the `xsubfind3r` binary to somewhere in your `PATH`. For example, on GNU/Linux and OS X systems:
 
@@ -64,7 +66,8 @@ tar xf xsubfind3r-<version>-linux-amd64.tar.gz
 sudo mv xsubfind3r /usr/local/bin/
 ```
 
-**NOTE:** Windows users can follow [How to: Add Tool Locations to the PATH Environment Variable](https://msdn.microsoft.com/en-us/library/office/ee537574(v=office.14).aspx) in order to add `xsubfind3r` to their `PATH`.
+> [!NOTE]
+> Windows users can follow [How to: Add Tool Locations to the PATH Environment Variable](https://msdn.microsoft.com/en-us/library/office/ee537574(v=office.14).aspx) in order to add `xsubfind3r` to their `PATH`.
 
 ### Install source (With Go Installed)
 
@@ -96,11 +99,12 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 	```bash
 	sudo mv xsubfind3r /usr/local/bin/
 	```
+	> [!NOTE]
+	> Windows users can follow [How to: Add Tool Locations to the PATH Environment Variable](https://msdn.microsoft.com/en-us/library/office/ee537574(v=office.14).aspx) in order to add `xsubfind3r` to their `PATH`.
 
-	**NOTE:** Windows users can follow [How to: Add Tool Locations to the PATH Environment Variable](https://msdn.microsoft.com/en-us/library/office/ee537574(v=office.14).aspx) in order to add `xsubfind3r` to their `PATH`.
 
-
-**NOTE:** While the development version is a good way to take a peek at `xsubfind3r`'s latest features before they get released, be aware that it may have bugs. Officially released versions will generally be more stable.
+> [!CAUTION]
+> While the development version is a good way to take a peek at `xsubfind3r`'s latest features before they get released, be aware that it may have bugs. Officially released versions will generally be more stable.
 
 ## Post Installation
 
@@ -108,10 +112,11 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 
 Example `config.yaml`:
 
-> **NOTE:** The keys/tokens below are invalid and used as examples, use your own keys/tokens!
+> [!CAUTION]
+> The keys/tokens below are invalid and used as examples, use your own keys/tokens!
 
 ```yaml
-version: 0.6.0
+version: 0.7.0
 sources:
     - alienvault
     - anubis
@@ -170,7 +175,7 @@ __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 \ \/ / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
  >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |
 /_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_|
-                                             v0.6.0
+                                             v0.7.0
 
                    with <3 by Hueristiq Open Source
 
