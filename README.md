@@ -116,7 +116,7 @@ Example `config.yaml`:
 > The keys/tokens below are invalid and used as examples, use your own keys/tokens!
 
 ```yaml
-version: 0.6.0
+version: 0.7.0
 sources:
     - alienvault
     - anubis
@@ -175,7 +175,7 @@ __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 \ \/ / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
  >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |
 /_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_|
-                                             v0.6.0
+                                             v0.7.0
 
                    with <3 by Hueristiq Open Source
 
