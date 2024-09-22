@@ -8,6 +8,7 @@
 
 * [Features](#features)
 * [Installation](#installation)
+	* [Install on Docker (With Docker Installed)](#install-on-docker-with-docker-installed)
 	* [Install release binaries (Without Go Installed)](#install-release-binaries-without-go-installed)
 	* [Install source (With Go Installed)](#install-source-with-go-installed)
 		* [`go install ...`](#go-install)
@@ -27,6 +28,22 @@
 * Cross-Platform (Windows, Linux & macOS).
 
 ## Installation
+
+### Install on Docker (With Docker Installed)
+
+To install `xsubfind3r` on docker:
+
+* Pull the docker image using:
+
+    ```bash
+    docker pull hueristiq/xsubfind3r:latest
+    ```
+
+* Run `xsubfind3r` using the image:
+
+    ```bash
+    docker run hueristiq/xsubfind3r:latest -h
+    ```
 
 ### Install release binaries (Without Go Installed)
 
@@ -158,6 +175,13 @@ keys:
     urlscan:
         - d4c85d34-e425-446e-d4ab-f5a3412acbe8
 ```
+
+> [!NOTE]
+> Run `xsubfind3r` using the Docker image with a local config file:
+>
+>```bash
+>docker run -v $CONFIG/xsubfind3r:/root/.config/xsubfind3r -t hueristiq/xsubfind3r -h
+>```
 
 ## Usage
 
