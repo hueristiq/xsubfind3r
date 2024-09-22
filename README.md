@@ -8,8 +8,8 @@
 
 * [Features](#features)
 * [Installation](#installation)
-	* [Install on Docker (With Docker Installed)](#install-on-docker-with-docker-installed)
 	* [Install release binaries (Without Go Installed)](#install-release-binaries-without-go-installed)
+	* [Install on Docker (With Docker Installed)](#install-on-docker-with-docker-installed)
 	* [Install source (With Go Installed)](#install-source-with-go-installed)
 		* [`go install ...`](#go-install)
 		* [`go build ...` the development Version](#go-build--the-development-version)
@@ -28,22 +28,6 @@
 * Cross-Platform (Windows, Linux & macOS).
 
 ## Installation
-
-### Install on Docker (With Docker Installed)
-
-To install `xsubfind3r` on docker:
-
-* Pull the docker image using:
-
-    ```bash
-    docker pull hueristiq/xsubfind3r:latest
-    ```
-
-* Run `xsubfind3r` using the image:
-
-    ```bash
-    docker run hueristiq/xsubfind3r:latest -h
-    ```
 
 ### Install release binaries (Without Go Installed)
 
@@ -85,6 +69,22 @@ sudo mv xsubfind3r /usr/local/bin/
 
 > [!NOTE]
 > Windows users can follow [How to: Add Tool Locations to the PATH Environment Variable](https://msdn.microsoft.com/en-us/library/office/ee537574(v=office.14).aspx) in order to add `xsubfind3r` to their `PATH`.
+
+### Install on Docker (With Docker Installed)
+
+To install `xsubfind3r` on docker:
+
+* Pull the docker image using:
+
+    ```bash
+    docker pull hueristiq/xsubfind3r:latest
+    ```
+
+* Run `xsubfind3r` using the image:
+
+    ```bash
+    docker run hueristiq/xsubfind3r:latest -h
+    ```
 
 ### Install source (With Go Installed)
 
