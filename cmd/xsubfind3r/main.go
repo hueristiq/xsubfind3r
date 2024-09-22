@@ -45,7 +45,7 @@ func init() {
 	pflag.StringSliceVarP(&sourcesToExclude, "exclude-sources", "e", []string{}, "")
 	pflag.BoolVar(&monochrome, "monochrome", false, "")
 	pflag.StringVarP(&output, "output", "o", "", "")
-	pflag.StringVarP(&outputDirectory, "outputDirectory", "O", "", "")
+	pflag.StringVarP(&outputDirectory, "output-directory", "O", "", "")
 	pflag.BoolVarP(&silent, "silent", "s", false, "")
 	pflag.BoolVarP(&verbose, "verbose", "v", false, "")
 
