@@ -1,6 +1,6 @@
-# Use the official Golang image version 1.21 with the Alpine distribution as the base image for the build stage.
+# Use the official Golang image version 1.23 with the Alpine distribution as the base image for the build stage.
 # This multi-stage build starts with the "build-stage" stage where the Go application will be compiled.
-FROM golang:1.21-alpine AS build-stage
+FROM golang:1.23.1-alpine3.20 AS build-stage
 
 # Perform system updates and install necessary packages.
 # - `apk --no-cache update`: Updates the Alpine package repository without caching index files.
