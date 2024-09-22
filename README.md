@@ -180,7 +180,7 @@ keys:
 > Run `xsubfind3r` using the Docker image with a local config file:
 >
 >```bash
->docker run --rm -v $CONFIG/xsubfind3r:/root/.config/xsubfind3r -t hueristiq/xsubfind3r -h
+>docker run --rm -v $HOME/.config/xsubfind3r:/root/.config/xsubfind3r hueristiq/xsubfind3r:latest -h
 >```
 
 ## Usage
