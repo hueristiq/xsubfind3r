@@ -83,7 +83,7 @@ To install `xsubfind3r` on docker:
 * Run `xsubfind3r` using the image:
 
     ```bash
-    docker run hueristiq/xsubfind3r:latest -h
+    docker run --rm hueristiq/xsubfind3r:latest -h
     ```
 
 ### Install source (With Go Installed)
@@ -180,7 +180,7 @@ keys:
 > Run `xsubfind3r` using the Docker image with a local config file:
 >
 >```bash
->docker run -v $CONFIG/xsubfind3r:/root/.config/xsubfind3r -t hueristiq/xsubfind3r -h
+>docker run --rm -v $CONFIG/xsubfind3r:/root/.config/xsubfind3r -t hueristiq/xsubfind3r -h
 >```
 
 ## Usage
