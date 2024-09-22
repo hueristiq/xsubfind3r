@@ -58,11 +58,8 @@ __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 \ \/ / __| | | | '_ \| |_| | '_ \ / _`+"`"+` | |_ \| '__|
  >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |   
 /_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| 
-                                             %s
-
-                   %s`).Bold(),
+                                             %s`).Bold(),
 		aurora.BrightRed("v"+VERSION).Bold(),
-		aurora.BrightYellow("with <3 by Hueristiq Open Source").Italic(),
 	)
 	UserDotConfigDirectoryPath = func() (userDotConfig string) {
 		var err error
