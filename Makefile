@@ -14,7 +14,7 @@ GOFLAGS := -v
 LDFLAGS := -s -w
 
 ifneq ($(shell go env GOOS),darwin)
-LDFLAGS := -extldflags "-static"
+	LDFLAGS := -extldflags "-static"
 endif
 
 GOLANGCILINTCMD=golangci-lint
