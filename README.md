@@ -2,7 +2,7 @@
 
 ![made with go](https://img.shields.io/badge/made%20with-Go-1E90FF.svg) [![go report card](https://goreportcard.com/badge/github.com/hueristiq/xsubfind3r)](https://goreportcard.com/report/github.com/hueristiq/xsubfind3r) [![release](https://img.shields.io/github/release/hueristiq/xsubfind3r?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/releases) [![open issues](https://img.shields.io/github/issues-raw/hueristiq/xsubfind3r.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/hueristiq/xsubfind3r.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?color=1E90FF)](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-1E90FF.svg) [![contribution](https://img.shields.io/badge/contributions-welcome-1E90FF.svg)](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md)
 
-`xsubfind3r` is a command-line interface (CLI) based passive subdomain discovery utility. It is designed to efficiently identify known subdomains of given domains by tapping into a multitude of curated online passive sources.
+`xsubfind3r` is a command-line utility designed to help you discover subdomains for a given domain in a simple, efficient way. It works by gathering information from a variety of passive sources, meaning it doesn't interact directly with the target but instead gathers data that is already publicly available. This makes it a powerful tool for security researchers, IT professionals, and anyone who wants to know more about the subdomains associated with a domain.
 
 ## Resource
 
@@ -12,7 +12,7 @@
 	* [Install on Docker (With Docker Installed)](#install-on-docker-with-docker-installed)
 	* [Install source (With Go Installed)](#install-source-with-go-installed)
 		* [`go install ...`](#go-install)
-		* [`go build ...` the development Version](#go-build--the-development-version)
+		* [`go build ...`](#go-build)
 * [Post Installation](#post-installation)
 * [Usage](#usage)
 * [Contributing](#contributing)
@@ -23,9 +23,10 @@
 
 ## Features
 
-* Fetches subdomains from curated passive sources to maximize results.
-* Supports `stdin` and `stdout` for easy integration into workflows.
-* Cross-Platform (Windows, Linux & macOS).
+* **Wide Coverage:** Fetches subdomains from multiple online passive sources to provide extensive results.
+* **Flexible Output:** Supports silent mode for only showing results and offers various output options for saving the results.
+* **Easy to Integrate:** Supports `stdin` and `stdout` for easy integration in automated workflows.
+* **Cross-Platform:** Works on Windows, Linux, and macOS.
 
 ## Installation
 
@@ -72,7 +73,7 @@ sudo mv xsubfind3r /usr/local/bin/
 
 ### Install on Docker (With Docker Installed)
 
-To install `xsubfind3r` on docker:
+If you have Docker installed, you can use `xsubfind3r` using it's image:
 
 * Pull the docker image using:
 
@@ -88,7 +89,7 @@ To install `xsubfind3r` on docker:
 
 ### Install source (With Go Installed)
 
-Before you install from source, you need to make sure that Go is installed on your system. You can install Go by following the official instructions for your operating system. For this, we will assume that Go is already installed.
+Before you install from source, you need to make sure that Go is installed on your system. You can install Go by following the [official instructions](https://go.dev/doc/install) for your operating system. For this, we will assume that Go is already installed.
 
 #### `go install ...`
 
@@ -96,7 +97,7 @@ Before you install from source, you need to make sure that Go is installed on yo
 go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 ```
 
-#### `go build ...` the development Version
+#### `go build ...`
 
 * Clone the repository
 
@@ -200,13 +201,13 @@ XURLFIND3R_KEYS_URLSCAN=d4c85d34-e425-446e-d4ab-f5a3412acbe8
 
 ## Usage
 
-To display help message for `xsubfind3r` use the `-h` flag:
+To start using `xsubfind3r`, open your terminal and run the following command for a list of options:
 
 ```bash
 xsubfind3r -h
 ```
 
-help message:
+Here's what the help message looks like:
 
 ```text
                 _      __ _           _ _____
@@ -242,24 +243,32 @@ OUTPUT:
  -v, --verbose bool                    display verbose output
 ```
 
+For example, to discover subdomains for `example.com`:
+
+```bash
+xsubfind3r -d example.com
+```
+
+You can also use multiple domains by separating them with commas or providing a list from a file.
+
 ## Contributing
 
-[Issues](https://github.com/hueristiq/xsubfind3r/issues) and [Pull Requests](https://github.com/hueristiq/xsubfind3r/pulls) are welcome! **Check out the [contribution guidelines](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md).**
+We welcome contributions! Feel free to submit [Pull Requests](https://github.com/hueristiq/xsubfind3r/pulls) or report [Issues](https://github.com/hueristiq/xsubfind3r/issues). For more details, check out the [contribution guidelines](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md).
 
 ## Licensing
 
-This utility is distributed under the [MIT license](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE).
+This utility is licensed under the [MIT license](https://opensource.org/license/mit). You are free to use, modify, and distribute it, as long as you follow the terms of the license. You can find the full license text in the repository - [Full MIT license text](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE).
 
 ## Credits
 
 ### Contributors
 
-Thanks to the amazing [contributors](https://github.com/hueristiq/xsubfind3r/graphs/contributors) for keeping this project alive.
+A huge thanks to all the contributors who have helped make `xsubfind3r` what it is today!
 
 [![contributors](https://contrib.rocks/image?repo=hueristiq/xsubfind3r&max=500)](https://github.com/hueristiq/xsubfind3r/graphs/contributors)
 
 ### Similar Projects
 
-Thanks to similar open source projects - check them out, may fit in your workflow.
+If you're interested in more utilities like this, check out:
 
 [subfinder](https://github.com/projectdiscovery/subfinder) ◇ [assetfinder](https://github.com/tomnomnom/assetfinder)
