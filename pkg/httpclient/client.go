@@ -16,6 +16,7 @@ var client *hqgohttp.Client
 
 func init() {
 	options := hqgohttp.DefaultOptionsSpraying
+	options.Timeout = 0
 
 	client, _ = hqgohttp.New(options)
 }

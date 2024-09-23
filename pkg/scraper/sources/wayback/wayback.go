@@ -21,43 +21,6 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		var err error
 
-		getPagesReqURL := fmt.Sprintf("http://web.archive.org/cdx/search/cdx?url=*.%s/*&output=txt&fl=original&collapse=urlkey&showNumPages=true", domain)
-
-		var getPagesRes *http.Response
-
-		getPagesRes, err = httpclient.SimpleGet(getPagesReqURL)
-		if err != nil {
-			result := sources.Result{
-				Type:   sources.Error,
-				Source: source.Name(),
-				Error:  err,
-			}
-
-			results <- result
-
-			httpclient.DiscardResponse(getPagesRes)
-
-			return
-		}
-
-		var pages uint
-
-		if err = json.NewDecoder(getPagesRes.Body).Decode(&pages); err != nil {
-			result := sources.Result{
-				Type:   sources.Error,
-				Source: source.Name(),
-				Error:  err,
-			}
-
-			results <- result
-
-			getPagesRes.Body.Close()
-
-			return
-		}
-
-		getPagesRes.Body.Close()
-
 		var regex *regexp.Regexp
 
 		regex, err = extractor.New(domain)
@@ -73,8 +36,8 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			return
 		}
 
-		for page := uint(0); page < pages; page++ {
-			getURLsReqURL := fmt.Sprintf("http://web.archive.org/cdx/search/cdx?url=*.%s/*&output=json&collapse=urlkey&fl=original&page=%d", domain, page)
+		for page := uint(0); ; page++ {
+			getURLsReqURL := fmt.Sprintf("https://web.archive.org/cdx/search/cdx?url=*.%s/*&output=json&collapse=urlkey&fl=original&pageSize=100&page=%d", domain, page)
 
 			var getURLsRes *http.Response
 
@@ -112,7 +75,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			getURLsRes.Body.Close()
 
 			// check if there's results, wayback's pagination response
-			// is not always correct when using a filter
+			// is not always correct
 			if len(getURLsResData) == 0 {
 				break
 			}
