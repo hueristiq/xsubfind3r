@@ -5,6 +5,7 @@ go 1.23
 require (
 	dario.cat/mergo v1.0.1
 	github.com/hueristiq/hqgohttp v0.0.0-20231024010818-fdb48fa4aead
+	github.com/hueristiq/hqgolimit v0.0.0-20230623113203-3e14552a97f8
 	github.com/hueristiq/hqgolog v0.0.0-20230623113334-a6018965a34f
 	github.com/logrusorgru/aurora/v3 v3.0.0
 	github.com/spf13/cast v1.7.0

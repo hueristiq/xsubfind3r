@@ -6,12 +6,17 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/hueristiq/hqgolimit"
 	"github.com/hueristiq/xsubfind3r/pkg/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 )
 
 type Source struct{}
+
+var limiter = hqgolimit.New(&hqgolimit.Options{
+	RequestsPerMinute: 40,
+})
 
 func (source *Source) Run(_ *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
@@ -37,6 +42,8 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 		}
 
 		for page := uint(0); ; page++ {
+			limiter.Wait()
+
 			getURLsReqURL := fmt.Sprintf("https://web.archive.org/cdx/search/cdx?url=*.%s/*&output=json&collapse=urlkey&fl=original&pageSize=100&page=%d", domain, page)
 
 			var getURLsRes *http.Response
