@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -17,6 +18,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
 	"github.com/logrusorgru/aurora/v3"
 	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -84,6 +86,20 @@ func init() {
 
 	pflag.Parse()
 
+	// Initialize configuration management (...with viper)
+	if err := configuration.CreateUpdate(configurationFilePath); err != nil {
+		hqgolog.Fatal().Msg(err.Error())
+	}
+
+	viper.SetConfigFile(configurationFilePath)
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix("XURLFIND3R")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalln(err)
+	}
+
 	// Initialize logger (hqgolog)
 	hqgolog.DefaultLogger.SetMaxLevel(levels.LevelInfo)
 
@@ -94,11 +110,6 @@ func init() {
 	hqgolog.DefaultLogger.SetFormatter(formatter.NewCLI(&formatter.CLIOptions{
 		Colorize: !monochrome,
 	}))
-
-	// Create or Update configuration
-	if err := configuration.CreateUpdate(configurationFilePath); err != nil {
-		hqgolog.Fatal().Msg(err.Error())
-	}
 
 	au = aurora.NewAurora(!monochrome)
 }
@@ -111,30 +122,28 @@ func main() {
 
 	var err error
 
-	var config configuration.Configuration
+	var cfg *configuration.Configuration
 
-	// read in configuration.
-	config, err = configuration.Read(configurationFilePath)
-	if err != nil {
+	if err := viper.Unmarshal(&cfg); err != nil {
 		hqgolog.Fatal().Msg(err.Error())
 	}
 
 	// if `--sources`: List suported sources & exit.
 	if listSources {
 		hqgolog.Print().Msg("")
-		hqgolog.Info().Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(config.Sources))).Bold())
+		hqgolog.Info().Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(cfg.Sources))).Bold())
 		hqgolog.Info().Msgf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold())
 		hqgolog.Print().Msg("")
 
 		needsKey := make(map[string]interface{})
-		keysElem := reflect.ValueOf(&config.Keys).Elem()
+		keysElem := reflect.ValueOf(&cfg.Keys).Elem()
 
 		for i := 0; i < keysElem.NumField(); i++ {
 			needsKey[strings.ToLower(keysElem.Type().Field(i).Name)] = keysElem.Field(i).Interface()
 		}
 
-		for index := range config.Sources {
-			source := config.Sources[index]
+		for index := range cfg.Sources {
+			source := cfg.Sources[index]
 
 			if _, ok := needsKey[source]; ok {
 				hqgolog.Print().Msgf("> %s *", source)
@@ -193,7 +202,7 @@ func main() {
 	options := &scraper.Options{
 		SourcesToUSe:     sourcesToUse,
 		SourcesToExclude: sourcesToExclude,
-		Keys:             config.Keys,
+		Keys:             cfg.Keys,
 	}
 
 	spr := scraper.New(options)

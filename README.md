@@ -125,7 +125,7 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 
 ## Post Installation
 
-`xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[BufferOver](https://tls.bufferover.run/)**, **[BuiltWith](https://api.builtwith.com/domain-api)**, **[Certspotter](https://sslmate.com/ct_search_api/)**, **[Chaos](https://chaos.hueristiq.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, **[Github](https://github.com)**, **[Intelligence X](https://intelx.io)**, **[LeakIX](https://leakix.net)** and **[Shodan](https://shodan.io/)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.config/xsubfind3r/config.yaml` file - created upon first run - and uses the YAML format. Multiple API keys can be specified for each of these source from which one of them will be used.
+`xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[BufferOver](https://tls.bufferover.run/)**, **[BuiltWith](https://api.builtwith.com/domain-api)**, **[Certspotter](https://sslmate.com/ct_search_api/)**, **[Chaos](https://chaos.hueristiq.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, **[Github](https://github.com)**, **[Intelligence X](https://intelx.io)**, **[LeakIX](https://leakix.net)** and **[Shodan](https://shodan.io/)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.config/xsubfind3r/config.yaml` file, created upon first run, and uses the YAML format, or supplied via environment variables. Multiple API keys can be specified for each of these source from which one of them will be used.
 
 Example `config.yaml`:
 
@@ -177,11 +177,26 @@ keys:
 ```
 
 > [!NOTE]
-> Run `xsubfind3r` using the Docker image with a local config file:
+> To run `xsubfind3r` using docker with a local config file:
 >
 >```bash
 >docker run --rm -v $HOME/.config/xsubfind3r:/root/.config/xsubfind3r hueristiq/xsubfind3r:latest -h
 >```
+
+Example environmet variables:
+
+```bash
+XURLFIND3R_KEYS_BEVIGIL=awA5nvpKU3N8ygkZ
+XURLFIND3R_KEYS_BUFFEROVER=COx9GBnhz63hcF1hlBtLb4KAdlzJly1d8xeovTjK
+XURLFIND3R_KEYS_BUILTWITH=7fcbaec4-dc49-472c-b837-3896cb255823
+XURLFIND3R_KEYS_CHAOS=d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39asdsd54bbc1aabb208c9acfb
+XURLFIND3R_KEYS_FULLHUNT=0d9652ce-516c-4315-b589-9b241ee6dc24
+XURLFIND3R_KEYS_GITHUB=asdsd54bbc1aabb208c9acfbd2dd41ce7fc9db39,d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39
+XURLFIND3R_KEYS_INTELX=2.intelx.io:00000000-0000-0000-0000-000000000000
+XURLFIND3R_KEYS_LEAKIX=xhDsgKejYTUWVNLn9R6f8afhsG6h6KM69lqEBoMJbfcvDk1v
+XURLFIND3R_KEYS_SHODAN=AAAAClP1bJJSRMEYJazgwhJKrggRwKA
+XURLFIND3R_KEYS_URLSCAN=d4c85d34-e425-446e-d4ab-f5a3412acbe8
+```
 
 ## Usage
 
