@@ -31,6 +31,7 @@ const (
 	INTELLIGENCEX      = "intelx" // Intelligence X, a search engine and data archive.
 	LEAKIX             = "leakix"
 	OPENTHREATEXCHANGE = "otx" // Open Threat Exchange, a collaborative platform for sharing threat intelligence.
+	SECURITYTRAILS     = "securitytrails"
 	SHODAN             = "shodan"
 	URLSCAN            = "urlscan" // URLScan.io, a service for scanning websites and collecting URLs.
 	WAYBACK            = "wayback" // Wayback Machine, an internet archive to retrieve historical versions of websites.
@@ -53,6 +54,7 @@ var List = []string{
 	INTELLIGENCEX,
 	LEAKIX,
 	OPENTHREATEXCHANGE,
+	SECURITYTRAILS,
 	SHODAN,
 	URLSCAN,
 	WAYBACK,

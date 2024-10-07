@@ -15,17 +15,18 @@ type Configuration struct {
 
 // Keys holds API keys for different data sources, with each source having a set of API keys.
 type Keys struct {
-	Bevigil     SourceKeys `yaml:"bevigil"`
-	Bufferover  SourceKeys `yaml:"bufferover"`
-	BuiltWith   SourceKeys `yaml:"builtwith"`
-	Certspotter SourceKeys `yaml:"certspotter"`
-	Chaos       SourceKeys `yaml:"chaos"`
-	Fullhunt    SourceKeys `yaml:"fullhunt"`
-	GitHub      SourceKeys `yaml:"github"`
-	Intelx      SourceKeys `yaml:"intelx"`
-	LeakIX      SourceKeys `yaml:"leakix"`
-	Shodan      SourceKeys `yaml:"shodan"`
-	URLScan     SourceKeys `yaml:"urlscan"`
+	Bevigil        SourceKeys `yaml:"bevigil"`
+	Bufferover     SourceKeys `yaml:"bufferover"`
+	BuiltWith      SourceKeys `yaml:"builtwith"`
+	Certspotter    SourceKeys `yaml:"certspotter"`
+	Chaos          SourceKeys `yaml:"chaos"`
+	Fullhunt       SourceKeys `yaml:"fullhunt"`
+	GitHub         SourceKeys `yaml:"github"`
+	Intelx         SourceKeys `yaml:"intelx"`
+	LeakIX         SourceKeys `yaml:"leakix"`
+	SecurityTrails SourceKeys `yaml:"securitytrails"`
+	Shodan         SourceKeys `yaml:"shodan"`
+	URLScan        SourceKeys `yaml:"urlscan"`
 }
 
 // SourceKeys is a slice of strings representing API keys. Multiple API keys

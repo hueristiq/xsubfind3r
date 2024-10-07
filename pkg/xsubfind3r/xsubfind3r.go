@@ -20,6 +20,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/intelx"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/leakix"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/otx"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/securitytrails"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/shodan"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/urlscan"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
@@ -126,6 +127,8 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 			finder.Sources[source] = &leakix.Source{}
 		case sources.OPENTHREATEXCHANGE:
 			finder.Sources[source] = &otx.Source{}
+		case sources.SECURITYTRAILS:
+			finder.Sources[source] = &securitytrails.Source{}
 		case sources.SHODAN:
 			finder.Sources[source] = &shodan.Source{}
 		case sources.URLSCAN:
