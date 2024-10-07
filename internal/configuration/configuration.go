@@ -6,7 +6,7 @@ import (
 
 	"dario.cat/mergo"
 	"github.com/hueristiq/hqgolog"
-	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/logrusorgru/aurora/v3"
 	"gopkg.in/yaml.v3"
 )

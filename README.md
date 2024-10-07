@@ -136,7 +136,6 @@ Example `config.yaml`:
 ```yaml
 version: 0.8.0
 sources:
-    - alienvault
     - anubis
     - bevigil
     - bufferover
@@ -150,6 +149,7 @@ sources:
     - hackertarget
     - intelx
     - leakix
+    - otx
     - shodan
     - urlscan
     - wayback
