@@ -93,6 +93,7 @@ func CreateUpdate(path string) (err error) {
 			SecurityTrails: []string{},
 			Shodan:         []string{},
 			URLScan:        []string{},
+			VirusTotal:     []string{},
 		},
 	}
 

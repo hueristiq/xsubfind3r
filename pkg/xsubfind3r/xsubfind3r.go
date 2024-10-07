@@ -23,6 +23,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/securitytrails"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/shodan"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/urlscan"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/virustotal"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
 )
 
@@ -135,6 +136,8 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 			finder.Sources[source] = &urlscan.Source{}
 		case sources.WAYBACK:
 			finder.Sources[source] = &wayback.Source{}
+		case sources.VIRUSTOTAL:
+			finder.Sources[source] = &virustotal.Source{}
 		}
 	}
 

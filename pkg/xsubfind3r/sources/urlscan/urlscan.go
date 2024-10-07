@@ -2,6 +2,7 @@ package urlscan
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -36,7 +37,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 		defer close(results)
 
 		key, err := config.Keys.URLScan.PickRandom()
-		if err != nil {
+		if err != nil && !errors.Is(err, sources.ErrNoKeys) {
 			result := sources.Result{
 				Type:   sources.ResultError,
 				Source: source.Name(),

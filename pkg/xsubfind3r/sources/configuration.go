@@ -27,6 +27,7 @@ type Keys struct {
 	SecurityTrails SourceKeys `yaml:"securitytrails"`
 	Shodan         SourceKeys `yaml:"shodan"`
 	URLScan        SourceKeys `yaml:"urlscan"`
+	VirusTotal     SourceKeys `yaml:"virustotal"`
 }
 
 // SourceKeys is a slice of strings representing API keys. Multiple API keys

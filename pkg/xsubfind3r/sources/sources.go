@@ -35,6 +35,7 @@ const (
 	SHODAN             = "shodan"
 	URLSCAN            = "urlscan" // URLScan.io, a service for scanning websites and collecting URLs.
 	WAYBACK            = "wayback" // Wayback Machine, an internet archive to retrieve historical versions of websites.
+	VIRUSTOTAL         = "virustotal"
 )
 
 // List contains a collection of all available source names.
@@ -58,4 +59,5 @@ var List = []string{
 	SHODAN,
 	URLSCAN,
 	WAYBACK,
+	VIRUSTOTAL,
 }
