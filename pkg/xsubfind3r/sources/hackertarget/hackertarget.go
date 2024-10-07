@@ -98,5 +98,5 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 }
 
 func (source *Source) Name() string {
-	return "hackertarget"
+	return sources.HACKERTARGET
 }

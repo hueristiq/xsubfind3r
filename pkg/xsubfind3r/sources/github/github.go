@@ -235,5 +235,5 @@ func getRawContentURL(htmlURL string) string {
 }
 
 func (source *Source) Name() string {
-	return "github"
+	return sources.GITHUB
 }

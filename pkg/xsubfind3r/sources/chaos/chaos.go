@@ -90,5 +90,5 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 }
 
 func (source *Source) Name() string {
-	return "chaos"
+	return sources.CHAOS
 }
