@@ -138,7 +138,7 @@ func main() {
 		needsKey := make(map[string]interface{})
 		keysElem := reflect.ValueOf(&config.Keys).Elem()
 
-		for i := 0; i < keysElem.NumField(); i++ {
+		for i := range keysElem.NumField() {
 			needsKey[strings.ToLower(keysElem.Type().Field(i).Name)] = keysElem.Field(i).Interface()
 		}
 

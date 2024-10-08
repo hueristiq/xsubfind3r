@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/hueristiq/hq-go-http/status"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
@@ -42,7 +43,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		var scrollId string
+		var scrollID string
 
 		getSubdomainsReqHeaders := map[string]string{
 			"Content-Type": "application/json",
@@ -54,7 +55,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			var getSubdomainsRes *http.Response
 
-			if scrollId == "" {
+			if scrollID == "" {
 				getSubdomainsReqURL := "https://api.securitytrails.com/v1/domains/list?include_ips=false&scroll=true"
 
 				type getSubdomainsReqBody struct {
@@ -84,12 +85,12 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				getSubdomainsRes, err = httpclient.Post(getSubdomainsReqURL, "", getSubdomainsReqHeaders, getSubdomainsReqBodyDataReader)
 			} else {
-				getSubdomainsReqURL := fmt.Sprintf("https://api.securitytrails.com/v1/scroll/%s", scrollId)
+				getSubdomainsReqURL := fmt.Sprintf("https://api.securitytrails.com/v1/scroll/%s", scrollID)
 
 				getSubdomainsRes, err = httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
 			}
 
-			if err != nil && getSubdomainsRes.StatusCode == 403 {
+			if err != nil && getSubdomainsRes.StatusCode == status.Forbidden {
 				getSubdomainsReqURL := fmt.Sprintf("https://api.securitytrails.com/v1/domain/%s/subdomains?children_only=false&include_inactive=true", domain)
 
 				getSubdomainsRes, err = httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
@@ -153,9 +154,9 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 				results <- result
 			}
 
-			scrollId = getSubdomainsResData.Meta.ScrollID
+			scrollID = getSubdomainsResData.Meta.ScrollID
 
-			if scrollId == "" {
+			if scrollID == "" {
 				break
 			}
 		}

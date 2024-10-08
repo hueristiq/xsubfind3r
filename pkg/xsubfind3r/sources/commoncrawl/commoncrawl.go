@@ -89,7 +89,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 		years := make([]string, 0)
 		maxYearsBack := 5
 
-		for i := 0; i < maxYearsBack; i++ {
+		for i := range maxYearsBack {
 			years = append(years, strconv.Itoa(year-i))
 		}
 
@@ -150,7 +150,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 				continue
 			}
 
-			for page := uint(0); page < getPaginationData.Pages; page++ {
+			for page := range getPaginationData.Pages {
 				getURLsReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url&page=%d", CCIndexAPI, domain, page)
 
 				getURLsRes, err := httpclient.Get(getURLsReqURL, "", getURLsReqHeaders)

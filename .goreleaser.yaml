@@ -1,6 +1,6 @@
 before:
     hooks:
-        - go mod tidy
+        - make go-mod-tidy
 
 builds:
     -

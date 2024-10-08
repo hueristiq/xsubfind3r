@@ -37,7 +37,7 @@ jobs:
                 name: Go modules hygine
                 run: |
                     go clean -modcache
-                    go mod tidy
+                    make go-mod-tidy
                 working-directory: .
             -
                 name: Go build
