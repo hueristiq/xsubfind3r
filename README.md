@@ -140,6 +140,7 @@ sources:
     - bevigil
     - builtwith
     - censys
+    - certificatedetails
     - certspotter
     - chaos
     - commoncrawl

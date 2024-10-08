@@ -21,6 +21,7 @@ const (
 	BEVIGIL            = "bevigil" // Bevigil is an OSINT (Open-Source Intelligence) source.
 	BUILTWITH          = "builtwith"
 	CENSYS             = "censys"
+	CERTIFICATEDETAILS = "certificatedetails"
 	CERTSPOTTER        = "certspotter"
 	CHAOS              = "chaos"
 	COMMONCRAWL        = "commoncrawl" // Common Crawl is a source of web data, commonly used in domain searches.
@@ -45,6 +46,7 @@ var List = []string{
 	BEVIGIL,
 	BUILTWITH,
 	CENSYS,
+	CERTIFICATEDETAILS,
 	CERTSPOTTER,
 	CHAOS,
 	COMMONCRAWL,

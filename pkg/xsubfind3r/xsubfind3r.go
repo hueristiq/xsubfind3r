@@ -10,6 +10,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/bevigil"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/builtwith"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/censys"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/certificatedetails"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/certspotter"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/chaos"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/commoncrawl"
@@ -108,6 +109,8 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 			finder.Sources[source] = &builtwith.Source{}
 		case sources.CENSYS:
 			finder.Sources[source] = &censys.Source{}
+		case sources.CERTIFICATEDETAILS:
+			finder.Sources[source] = &certificatedetails.Source{}
 		case sources.CERTSPOTTER:
 			finder.Sources[source] = &certspotter.Source{}
 		case sources.CHAOS:
