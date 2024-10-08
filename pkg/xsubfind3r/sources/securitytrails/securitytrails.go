@@ -61,7 +61,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 					Query string `json:"query"`
 				}
 
-				var getSubdomainsReqBodyData = getSubdomainsReqBody{
+				getSubdomainsReqBodyData := getSubdomainsReqBody{
 					Query: fmt.Sprintf("apex_domain='%s'", domain),
 				}
 
@@ -159,7 +159,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 				break
 			}
 		}
-
 	}()
 
 	return results

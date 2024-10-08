@@ -3,7 +3,6 @@ package chaos
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
@@ -36,13 +35,12 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		getSubdomainsReqHeaders := map[string]string{"Authorization": key}
-
 		getSubdomainsReqURL := fmt.Sprintf("https://dns.projectdiscovery.io/dns/%s/subdomains", domain)
+		getSubdomainsReqHeaders := map[string]string{
+			"Authorization": key,
+		}
 
-		var getSubdomainsRes *http.Response
-
-		getSubdomainsRes, err = httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
+		getSubdomainsRes, err := httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

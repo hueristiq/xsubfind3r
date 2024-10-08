@@ -3,7 +3,6 @@ package crtsh
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
@@ -23,13 +22,9 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 	go func() {
 		defer close(results)
 
-		var err error
-
 		getNameValuesReqURL := fmt.Sprintf("https://crt.sh/?q=%%25.%s&output=json", domain)
 
-		var getNameValuesRes *http.Response
-
-		getNameValuesRes, err = httpclient.SimpleGet(getNameValuesReqURL)
+		getNameValuesRes, err := httpclient.SimpleGet(getNameValuesReqURL)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

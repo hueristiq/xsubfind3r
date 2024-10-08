@@ -3,7 +3,6 @@ package certspotter
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
@@ -36,17 +35,12 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		getCTLogsSearchReqHeaders := map[string]string{}
-
-		if len(config.Keys.Bevigil) > 0 {
-			getCTLogsSearchReqHeaders["Authorization"] = "Bearer " + key
+		getCTLogsSearchReqURL := fmt.Sprintf("https://api.certspotter.com/v1/issuances?domain=%s&include_subdomains=true&expand=dns_names", domain)
+		getCTLogsSearchReqHeaders := map[string]string{
+			"Authorization": "Bearer " + key,
 		}
 
-		getCTLogsSearchReqURL := fmt.Sprintf("https://api.certspotter.com/v1/issuances?domain=%s&include_subdomains=true&expand=dns_names", domain)
-
-		var getCTLogsSearchRes *http.Response
-
-		getCTLogsSearchRes, err = httpclient.Get(getCTLogsSearchReqURL, "", getCTLogsSearchReqHeaders)
+		getCTLogsSearchRes, err := httpclient.Get(getCTLogsSearchReqURL, "", getCTLogsSearchReqHeaders)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -104,9 +98,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 		for {
 			getCTLogsSearchReqURL := fmt.Sprintf("https://api.certspotter.com/v1/issuances?domain=%s&include_subdomains=true&expand=dns_names&after=%s", domain, id)
 
-			var getCTLogsSearchRes *http.Response
-
-			getCTLogsSearchRes, err = httpclient.Get(getCTLogsSearchReqURL, "", getCTLogsSearchReqHeaders)
+			getCTLogsSearchRes, err := httpclient.Get(getCTLogsSearchReqURL, "", getCTLogsSearchReqHeaders)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,

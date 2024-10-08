@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -39,11 +37,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 	go func() {
 		defer close(results)
 
-		var err error
-
-		var regex *regexp.Regexp
-
-		regex, err = extractor.New(domain)
+		regex, err := extractor.New(domain)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -58,9 +52,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getIndexesReqURL := "https://index.commoncrawl.org/collinfo.json"
 
-		var getIndexesRes *http.Response
-
-		getIndexesRes, err = httpclient.SimpleGet(getIndexesReqURL)
+		getIndexesRes, err := httpclient.SimpleGet(getIndexesReqURL)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -116,15 +108,12 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 		}
 
 		for _, CCIndexAPI := range searchIndexes {
+			getPaginationReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url&showNumPages=true", CCIndexAPI, domain)
 			getURLsReqHeaders := map[string]string{
 				"Host": "index.commoncrawl.org",
 			}
 
-			getPaginationReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url&showNumPages=true", CCIndexAPI, domain)
-
-			var getPaginationRes *http.Response
-
-			getPaginationRes, err = httpclient.SimpleGet(getPaginationReqURL)
+			getPaginationRes, err := httpclient.SimpleGet(getPaginationReqURL)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
@@ -164,9 +153,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			for page := uint(0); page < getPaginationData.Pages; page++ {
 				getURLsReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url&page=%d", CCIndexAPI, domain, page)
 
-				var getURLsRes *http.Response
-
-				getURLsRes, err = httpclient.Get(getURLsReqURL, "", getURLsReqHeaders)
+				getURLsRes, err := httpclient.Get(getURLsReqURL, "", getURLsReqHeaders)
 				if err != nil {
 					result := sources.Result{
 						Type:   sources.ResultError,

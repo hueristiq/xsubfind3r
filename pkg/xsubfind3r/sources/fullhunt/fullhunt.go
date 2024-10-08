@@ -3,7 +3,6 @@ package fullhunt
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
@@ -36,17 +35,12 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		getSubdomainsReqHeaders := map[string]string{}
-
-		if len(config.Keys.Fullhunt) > 0 {
-			getSubdomainsReqHeaders["X-API-KEY"] = key
+		getSubdomainsReqURL := fmt.Sprintf("https://fullhunt.io/api/v1/domain/%s/subdomains", domain)
+		getSubdomainsReqHeaders := map[string]string{
+			"X-API-KEY": key,
 		}
 
-		getSubdomainsReqURL := fmt.Sprintf("https://fullhunt.io/api/v1/domain/%s/subdomains", domain)
-
-		var getSubdomainsRes *http.Response
-
-		getSubdomainsRes, err = httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
+		getSubdomainsRes, err := httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
