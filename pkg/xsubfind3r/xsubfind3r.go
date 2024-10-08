@@ -23,6 +23,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/otx"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/securitytrails"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/shodan"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/subdomaincenter"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/urlscan"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/virustotal"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
@@ -135,6 +136,8 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 			finder.Sources[source] = &securitytrails.Source{}
 		case sources.SHODAN:
 			finder.Sources[source] = &shodan.Source{}
+		case sources.SUBDOMAINCENTER:
+			finder.Sources[source] = &subdomaincenter.Source{}
 		case sources.URLSCAN:
 			finder.Sources[source] = &urlscan.Source{}
 		case sources.WAYBACK:

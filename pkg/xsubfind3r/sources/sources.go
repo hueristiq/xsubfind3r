@@ -34,6 +34,7 @@ const (
 	OPENTHREATEXCHANGE = "otx" // Open Threat Exchange, a collaborative platform for sharing threat intelligence.
 	SECURITYTRAILS     = "securitytrails"
 	SHODAN             = "shodan"
+	SUBDOMAINCENTER    = "subdomaincenter"
 	URLSCAN            = "urlscan" // URLScan.io, a service for scanning websites and collecting URLs.
 	WAYBACK            = "wayback" // Wayback Machine, an internet archive to retrieve historical versions of websites.
 	VIRUSTOTAL         = "virustotal"
@@ -59,6 +60,7 @@ var List = []string{
 	OPENTHREATEXCHANGE,
 	SECURITYTRAILS,
 	SHODAN,
+	SUBDOMAINCENTER,
 	URLSCAN,
 	WAYBACK,
 	VIRUSTOTAL,
