@@ -16,8 +16,8 @@ type Configuration struct {
 // Keys holds API keys for different data sources, with each source having a set of API keys.
 type Keys struct {
 	Bevigil        SourceKeys `yaml:"bevigil"`
-	Bufferover     SourceKeys `yaml:"bufferover"`
 	BuiltWith      SourceKeys `yaml:"builtwith"`
+	Censys         SourceKeys `yaml:"censys"`
 	Certspotter    SourceKeys `yaml:"certspotter"`
 	Chaos          SourceKeys `yaml:"chaos"`
 	Fullhunt       SourceKeys `yaml:"fullhunt"`

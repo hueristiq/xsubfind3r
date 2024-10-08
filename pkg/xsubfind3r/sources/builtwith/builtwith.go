@@ -3,7 +3,6 @@ package builtwith
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
@@ -19,6 +18,10 @@ type getDomainInfoResponse struct {
 			} `json:"Paths"`
 		} `json:"Result"`
 	} `json:"Results"`
+	Errors []struct {
+		Lookup  string `json:"Lookup"`
+		Message string `json:"Message"`
+	} `json:"Errors"`
 }
 
 type Source struct{}
@@ -44,9 +47,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		getDomainInfoReqURL := fmt.Sprintf("https://api.builtwith.com/v21/api.json?KEY=%s&HIDETEXT=yes&HIDEDL=yes&NOLIVE=yes&NOMETA=yes&NOPII=yes&NOATTR=yes&LOOKUP=%s", key, domain)
 
-		var getDomainInfoRes *http.Response
-
-		getDomainInfoRes, err = httpclient.SimpleGet(getDomainInfoReqURL)
+		getDomainInfoRes, err := httpclient.SimpleGet(getDomainInfoReqURL)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -79,18 +80,26 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		getDomainInfoRes.Body.Close()
 
-		for _, item := range getDomainInfoResData.Results {
-			for _, path := range item.Result.Paths {
-				value := path.Domain
-
-				if path.SubDomain != "" {
-					value = path.SubDomain + "." + value
+		if len(getDomainInfoResData.Errors) > 0 {
+			for _, entry := range getDomainInfoResData.Errors {
+				result := sources.Result{
+					Type:   sources.ResultError,
+					Source: source.Name(),
+					Error:  fmt.Errorf("%s", entry.Message),
 				}
 
+				results <- result
+			}
+
+			return
+		}
+
+		for _, item := range getDomainInfoResData.Results {
+			for _, path := range item.Result.Paths {
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
 					Source: source.Name(),
-					Value:  value,
+					Value:  path.SubDomain + "." + path.Domain,
 				}
 
 				results <- result

@@ -3,7 +3,6 @@ package anubis
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
@@ -17,13 +16,9 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 	go func() {
 		defer close(results)
 
-		var err error
-
 		getSubdomainsReqURL := fmt.Sprintf("https://jldc.me/anubis/subdomains/%s", domain)
 
-		var getSubdomainsRes *http.Response
-
-		getSubdomainsRes, err = httpclient.SimpleGet(getSubdomainsReqURL)
+		getSubdomainsRes, err := httpclient.SimpleGet(getSubdomainsReqURL)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

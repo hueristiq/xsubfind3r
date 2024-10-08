@@ -86,6 +86,7 @@ func CreateUpdate(path string) (err error) {
 		Keys: sources.Keys{
 			Bevigil:        []string{},
 			BuiltWith:      []string{},
+			Censys:         []string{},
 			Chaos:          []string{},
 			Fullhunt:       []string{},
 			GitHub:         []string{},

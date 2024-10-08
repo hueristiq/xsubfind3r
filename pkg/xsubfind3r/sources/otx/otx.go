@@ -3,7 +3,6 @@ package otx
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
@@ -26,13 +25,9 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 	go func() {
 		defer close(results)
 
-		var err error
-
 		getPassiveDNSReqURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", domain)
 
-		var getPassiveDNSRes *http.Response
-
-		getPassiveDNSRes, err = httpclient.SimpleGet(getPassiveDNSReqURL)
+		getPassiveDNSRes, err := httpclient.SimpleGet(getPassiveDNSReqURL)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

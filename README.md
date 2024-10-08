@@ -126,7 +126,7 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 
 ## Post Installation
 
-`xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[BufferOver](https://tls.bufferover.run/)**, **[BuiltWith](https://api.builtwith.com/domain-api)**, **[Certspotter](https://sslmate.com/ct_search_api/)**, **[Chaos](https://chaos.hueristiq.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, **[Github](https://github.com)**, **[Intelligence X](https://intelx.io)**, **[LeakIX](https://leakix.net)**, **[Security Trails](https://securitytrails.com/)**, **[Shodan](https://shodan.io/)** and **[VirusTotal](https://www.virustotal.com)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.config/xsubfind3r/config.yaml` file, created upon first run, and uses the YAML format, or supplied via environment variables. Multiple API keys can be specified for each of these source from which one of them will be used.
+`xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[BuiltWith](https://api.builtwith.com/domain-api)**, **[Censys](https://censys.com/)**, **[Certspotter](https://sslmate.com/ct_search_api/)**, **[Chaos](https://chaos.hueristiq.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, **[Github](https://github.com)**, **[Intelligence X](https://intelx.io)**, **[LeakIX](https://leakix.net)**, **[Security Trails](https://securitytrails.com/)**, **[Shodan](https://shodan.io/)** and **[VirusTotal](https://www.virustotal.com)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.config/xsubfind3r/config.yaml` file, created upon first run, and uses the YAML format, or supplied via environment variables. Multiple API keys can be specified for each of these source from which one of them will be used.
 
 Example `config.yaml`:
 
@@ -138,8 +138,8 @@ version: 0.8.0
 sources:
     - anubis
     - bevigil
-    - bufferover
     - builtwith
+    - censys
     - certspotter
     - chaos
     - commoncrawl
@@ -158,10 +158,10 @@ sources:
 keys:
     bevigil:
         - awA5nvpKU3N8ygkZ
-    bufferover:
-        - COx9GBnhz63hcF1hlBtLb4KAdlzJly1d8xeovTjK
     builtwith:
         - 7fcbaec4-dc49-472c-b837-3896cb255823
+    censys:
+        - 0d9652ce-516c-4315-b589-9b241ee6dc24:AAAAClP1bJJSRMEYJazgwhJKrggRwKA
     chaos:
         - d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39asdsd54bbc1aabb208c9acfb
     fullhunt:
@@ -194,7 +194,6 @@ Example environmet variables:
 
 ```bash
 XURLFIND3R_KEYS_BEVIGIL=awA5nvpKU3N8ygkZ
-XURLFIND3R_KEYS_BUFFEROVER=COx9GBnhz63hcF1hlBtLb4KAdlzJly1d8xeovTjK
 XURLFIND3R_KEYS_BUILTWITH=7fcbaec4-dc49-472c-b837-3896cb255823
 XURLFIND3R_KEYS_CHAOS=d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39asdsd54bbc1aabb208c9acfb
 XURLFIND3R_KEYS_FULLHUNT=0d9652ce-516c-4315-b589-9b241ee6dc24

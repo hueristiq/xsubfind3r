@@ -19,8 +19,8 @@ type Source interface {
 const (
 	ANUBIS             = "anubis"
 	BEVIGIL            = "bevigil" // Bevigil is an OSINT (Open-Source Intelligence) source.
-	BUFFEROVER         = "bufferover"
 	BUILTWITH          = "builtwith"
+	CENSYS             = "censys"
 	CERTSPOTTER        = "certspotter"
 	CHAOS              = "chaos"
 	COMMONCRAWL        = "commoncrawl" // Common Crawl is a source of web data, commonly used in domain searches.
@@ -43,8 +43,8 @@ const (
 var List = []string{
 	ANUBIS,
 	BEVIGIL,
-	BUFFEROVER,
 	BUILTWITH,
+	CENSYS,
 	CERTSPOTTER,
 	CHAOS,
 	COMMONCRAWL,

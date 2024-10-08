@@ -3,7 +3,6 @@ package bevigil
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
@@ -35,17 +34,12 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		getSubdomainsReqHeaders := map[string]string{}
-
-		if len(config.Keys.Bevigil) > 0 {
-			getSubdomainsReqHeaders["X-Access-Token"] = key
+		getSubdomainsReqURL := fmt.Sprintf("https://osint.bevigil.com/api/%s/subdomains/", domain)
+		getSubdomainsReqHeaders := map[string]string{
+			"X-Access-Token": key,
 		}
 
-		getSubdomainsReqURL := fmt.Sprintf("https://osint.bevigil.com/api/%s/subdomains/", domain)
-
-		var getSubdomainsRes *http.Response
-
-		getSubdomainsRes, err = httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
+		getSubdomainsRes, err := httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
