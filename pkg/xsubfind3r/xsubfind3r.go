@@ -29,129 +29,171 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
 )
 
+// Finder is the main structure that manages the interaction with OSINT sources.
+// It holds the available data sources and the configuration used for searching.
 type Finder struct {
-	Sources              map[string]sources.Source
-	SourcesConfiguration *sources.Configuration
+	// sources is a map of source names to their corresponding implementations.
+	// Each source implements the Source interface, which allows domain searches.
+	sources map[string]sources.Source
+	// configuration contains configuration options such as API keys
+	// and other settings needed by the data sources.
+	configuration *sources.Configuration
 }
 
+// Find takes a domain name and starts the subdomain search process across all
+// the sources specified in the configuration. It returns a channel through which
+// the search results (of type Result) are streamed asynchronously.
 func (finder *Finder) Find(domain string) (results chan sources.Result) {
+	// Initialize the results channel where subdomain findings are sent.
 	results = make(chan sources.Result)
 
+	// Parse the given domain using a domain parser.
 	parsed := dp.Parse(domain)
 
+	// Rebuild the domain as "root.tld" format.
 	domain = parsed.Root + "." + parsed.TopLevel
 
+	// Launch a goroutine to perform the search concurrently across all sources.
 	go func() {
+		// Ensure the results channel is closed once all search operations complete.
 		defer close(results)
 
+		// A thread-safe map to store already-seen subdomains, avoiding duplicates.
 		seenSubdomains := &sync.Map{}
 
+		// WaitGroup ensures all source goroutines finish before exiting.
 		wg := &sync.WaitGroup{}
 
-		for _, source := range finder.Sources {
+		// Iterate over all the sources in the Finder.
+		for _, source := range finder.sources {
 			wg.Add(1)
 
+			// Start a new goroutine for each source to fetch subdomains concurrently.
 			go func(source sources.Source) {
+				// Decrement the WaitGroup counter when this goroutine completes.
 				defer wg.Done()
 
-				sResults := source.Run(finder.SourcesConfiguration, domain)
+				// Call the source's Run method to start the subdomain search.
+				sResults := source.Run(finder.configuration, domain)
 
+				// Process each result as it's received from the source.
 				for sResult := range sResults {
+					// If the result is a subdomain, process it.
 					if sResult.Type == sources.ResultSubdomain {
+						// Convert the subdomain to lowercase and strip any wildcards (e.g., "*.")
 						sResult.Value = strings.ToLower(sResult.Value)
 						sResult.Value = strings.ReplaceAll(sResult.Value, "*.", "")
 
+						// Check if the subdomain has already been seen using sync.Map.
 						_, loaded := seenSubdomains.LoadOrStore(sResult.Value, struct{}{})
 						if loaded {
+							// If the subdomain is already in the map, skip it.
 							continue
 						}
 					}
 
+					// Send the result down the results channel.
 					results <- sResult
 				}
 			}(source)
 		}
 
+		// Wait for all goroutines to finish before exiting.
 		wg.Wait()
 	}()
 
+	// Return the channel that will stream subdomain results.
 	return
 }
 
+// Configuration holds the configuration for Finder, including
+// the sources to use, sources to exclude, and the necessary API keys.
 type Configuration struct {
-	SourcesToUSe     []string
+	// SourcesToUse is a list of source names that should be used for the search.
+	SourcesToUSe []string
+	// SourcesToExclude is a list of source names that should be excluded from the search.
 	SourcesToExclude []string
-	Keys             sources.Keys
+	// Keys contains the API keys for each data source.
+	Keys sources.Keys
 }
 
+// dp is a domain parser used to normalize domains into their root and top-level domain (TLD) components.
 var dp = hqgourl.NewDomainParser()
 
+// New creates a new Finder instance based on the provided Configuration.
+// It initializes the Finder with the selected sources and ensures that excluded sources are not used.
 func New(cfg *Configuration) (finder *Finder, err error) {
+	// Initialize a Finder instance with an empty map of sources and the provided configuration.
 	finder = &Finder{
-		Sources: map[string]sources.Source{},
-		SourcesConfiguration: &sources.Configuration{
+		sources: map[string]sources.Source{},
+		configuration: &sources.Configuration{
 			Keys: cfg.Keys,
 		},
 	}
 
+	// If no specific sources are provided, use the default list of all sources.
 	if len(cfg.SourcesToUSe) < 1 {
 		cfg.SourcesToUSe = sources.List
 	}
 
+	// Loop through the selected sources and initialize each one.
 	for index := range cfg.SourcesToUSe {
 		source := cfg.SourcesToUSe[index]
 
+		// Depending on the source name, initialize the appropriate source and add it to the map.
 		switch source {
 		case sources.ANUBIS:
-			finder.Sources[source] = &anubis.Source{}
+			finder.sources[source] = &anubis.Source{}
 		case sources.BEVIGIL:
-			finder.Sources[source] = &bevigil.Source{}
+			finder.sources[source] = &bevigil.Source{}
 		case sources.BUILTWITH:
-			finder.Sources[source] = &builtwith.Source{}
+			finder.sources[source] = &builtwith.Source{}
 		case sources.CENSYS:
-			finder.Sources[source] = &censys.Source{}
+			finder.sources[source] = &censys.Source{}
 		case sources.CERTIFICATEDETAILS:
-			finder.Sources[source] = &certificatedetails.Source{}
+			finder.sources[source] = &certificatedetails.Source{}
 		case sources.CERTSPOTTER:
-			finder.Sources[source] = &certspotter.Source{}
+			finder.sources[source] = &certspotter.Source{}
 		case sources.CHAOS:
-			finder.Sources[source] = &chaos.Source{}
+			finder.sources[source] = &chaos.Source{}
 		case sources.COMMONCRAWL:
-			finder.Sources[source] = &commoncrawl.Source{}
+			finder.sources[source] = &commoncrawl.Source{}
 		case sources.CRTSH:
-			finder.Sources[source] = &crtsh.Source{}
+			finder.sources[source] = &crtsh.Source{}
 		case sources.FULLHUNT:
-			finder.Sources[source] = &fullhunt.Source{}
+			finder.sources[source] = &fullhunt.Source{}
 		case sources.GITHUB:
-			finder.Sources[source] = &github.Source{}
+			finder.sources[source] = &github.Source{}
 		case sources.HACKERTARGET:
-			finder.Sources[source] = &hackertarget.Source{}
+			finder.sources[source] = &hackertarget.Source{}
 		case sources.INTELLIGENCEX:
-			finder.Sources[source] = &intelx.Source{}
+			finder.sources[source] = &intelx.Source{}
 		case sources.LEAKIX:
-			finder.Sources[source] = &leakix.Source{}
+			finder.sources[source] = &leakix.Source{}
 		case sources.OPENTHREATEXCHANGE:
-			finder.Sources[source] = &otx.Source{}
+			finder.sources[source] = &otx.Source{}
 		case sources.SECURITYTRAILS:
-			finder.Sources[source] = &securitytrails.Source{}
+			finder.sources[source] = &securitytrails.Source{}
 		case sources.SHODAN:
-			finder.Sources[source] = &shodan.Source{}
+			finder.sources[source] = &shodan.Source{}
 		case sources.SUBDOMAINCENTER:
-			finder.Sources[source] = &subdomaincenter.Source{}
+			finder.sources[source] = &subdomaincenter.Source{}
 		case sources.URLSCAN:
-			finder.Sources[source] = &urlscan.Source{}
+			finder.sources[source] = &urlscan.Source{}
 		case sources.WAYBACK:
-			finder.Sources[source] = &wayback.Source{}
+			finder.sources[source] = &wayback.Source{}
 		case sources.VIRUSTOTAL:
-			finder.Sources[source] = &virustotal.Source{}
+			finder.sources[source] = &virustotal.Source{}
 		}
 	}
 
+	// Remove any sources that are specified in the SourcesToExclude list.
 	for index := range cfg.SourcesToExclude {
 		source := cfg.SourcesToExclude[index]
 
-		delete(finder.Sources, source)
+		delete(finder.sources, source)
 	}
 
+	// Return the Finder instance with all the selected sources.
 	return
 }

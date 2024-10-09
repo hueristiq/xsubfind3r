@@ -1,47 +1,52 @@
 package sources
 
 // Source is an interface that defines methods for a data source.
-// Each source is expected to implement a way to run an operation based on configuration and a domain,
-// and provide its name.
+// Any source that implements this interface should define a process to run
+// data collection or scanning based on a configuration and domain,
+// and provide a way to retrieve the source name.
 type Source interface {
 	// Run starts the data collection or scanning process for a specific domain.
 	// It takes in a Configuration and a domain string as input and returns a channel
-	// that emits Result structs. The channel is used for sending results back asynchronously.
-	Run(config *Configuration, domain string) <-chan Result
+	// of Result structs, which will asynchronously emit results from the data source.
+	// The use of channels allows for concurrent processing and retrieval of data.
+	Run(cfg *Configuration, domain string) <-chan Result
 
 	// Name returns the name of the source. This can be used to identify the data source
-	// implementing the interface.
+	// implementing the interface. Useful for logging, reporting, or debugging purposes.
 	Name() string
 }
 
 // Constants representing the names of different data sources.
-// These sources could be APIs or services that are used to gather information about domains.
+// These constants can be used to refer to various OSINT (Open-Source Intelligence)
+// sources, threat intelligence platforms, or search engines that are commonly used
+// for gathering information about domains, IP addresses, or other targets.
 const (
-	ANUBIS             = "anubis"
-	BEVIGIL            = "bevigil" // Bevigil is an OSINT (Open-Source Intelligence) source.
-	BUILTWITH          = "builtwith"
-	CENSYS             = "censys"
-	CERTIFICATEDETAILS = "certificatedetails"
-	CERTSPOTTER        = "certspotter"
-	CHAOS              = "chaos"
-	COMMONCRAWL        = "commoncrawl" // Common Crawl is a source of web data, commonly used in domain searches.
-	CRTSH              = "crtsh"
-	FULLHUNT           = "fullhunt"
-	GITHUB             = "github" // GitHub source for finding code repositories and related metadata.
-	HACKERTARGET       = "hackertarget"
-	INTELLIGENCEX      = "intelx" // Intelligence X, a search engine and data archive.
-	LEAKIX             = "leakix"
-	OPENTHREATEXCHANGE = "otx" // Open Threat Exchange, a collaborative platform for sharing threat intelligence.
-	SECURITYTRAILS     = "securitytrails"
-	SHODAN             = "shodan"
-	SUBDOMAINCENTER    = "subdomaincenter"
-	URLSCAN            = "urlscan" // URLScan.io, a service for scanning websites and collecting URLs.
-	WAYBACK            = "wayback" // Wayback Machine, an internet archive to retrieve historical versions of websites.
-	VIRUSTOTAL         = "virustotal"
+	ANUBIS             = "anubis"             // Anubis is an OSINT tool for gathering domain information.
+	BEVIGIL            = "bevigil"            // Bevigil is an OSINT platform focused on vulnerabilities in mobile apps.
+	BUILTWITH          = "builtwith"          // BuiltWith is a service for analyzing website technologies.
+	CENSYS             = "censys"             // Censys is a search engine for internet-connected devices and their data.
+	CERTIFICATEDETAILS = "certificatedetails" // CertificateDetails provides SSL/TLS certificate information.
+	CERTSPOTTER        = "certspotter"        // CertSpotter monitors SSL/TLS certificates for domains.
+	CHAOS              = "chaos"              // Chaos by ProjectDiscovery is a source for subdomain enumeration.
+	COMMONCRAWL        = "commoncrawl"        // Common Crawl is an open repository of web data.
+	CRTSH              = "crtsh"              // crt.sh is a certificate transparency log search engine.
+	FULLHUNT           = "fullhunt"           // FullHunt is a platform for attack surface monitoring.
+	GITHUB             = "github"             // GitHub is a source for finding code repositories and related metadata.
+	HACKERTARGET       = "hackertarget"       // HackerTarget provides security scanning services.
+	INTELLIGENCEX      = "intelx"             // Intelligence X is a search engine for intelligence gathering.
+	LEAKIX             = "leakix"             // LeakIX is a search engine for finding leaked and exposed data.
+	OPENTHREATEXCHANGE = "otx"                // Open Threat Exchange (OTX) is a collaborative threat intelligence platform.
+	SECURITYTRAILS     = "securitytrails"     // SecurityTrails offers a comprehensive API for domain information.
+	SHODAN             = "shodan"             // Shodan is a search engine for internet-connected devices and vulnerabilities.
+	SUBDOMAINCENTER    = "subdomaincenter"    // SubdomainCenter is a tool for subdomain enumeration.
+	URLSCAN            = "urlscan"            // URLScan.io is a service for scanning websites and collecting URLs.
+	WAYBACK            = "wayback"            // Wayback Machine is an internet archive for historical website snapshots.
+	VIRUSTOTAL         = "virustotal"         // VirusTotal is a platform for scanning files and URLs for malware.
 )
 
 // List contains a collection of all available source names.
-// This is useful for iterating over or referencing the supported data sources.
+// This array is useful for iterating over or referencing the supported data sources
+// in loops, validation logic, or dynamic configurations.
 var List = []string{
 	ANUBIS,
 	BEVIGIL,

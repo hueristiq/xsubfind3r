@@ -48,11 +48,11 @@ func (k SourceKeys) PickRandom() (key string, err error) {
 	}
 
 	// Generate a cryptographically secure random number within the range [0, length).
-	max := big.NewInt(int64(length))
+	maximum := big.NewInt(int64(length))
 
 	var indexBig *big.Int
 
-	indexBig, err = rand.Int(rand.Reader, max)
+	indexBig, err = rand.Int(rand.Reader, maximum)
 	if err != nil {
 		err = fmt.Errorf("failed to generate random index: %w", err)
 

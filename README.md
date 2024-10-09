@@ -2,7 +2,22 @@
 
 ![made with go](https://img.shields.io/badge/made%20with-Go-1E90FF.svg) [![go report card](https://goreportcard.com/badge/github.com/hueristiq/xsubfind3r)](https://goreportcard.com/report/github.com/hueristiq/xsubfind3r) [![release](https://img.shields.io/github/release/hueristiq/xsubfind3r?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/releases) [![open issues](https://img.shields.io/github/issues-raw/hueristiq/xsubfind3r.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/hueristiq/xsubfind3r.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?color=1E90FF)](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-1E90FF.svg) [![contribution](https://img.shields.io/badge/contributions-welcome-1E90FF.svg)](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md)
 
-`xsubfind3r` is a command-line utility designed to help you discover subdomains for a given domain in a simple, efficient way. It works by gathering information from a variety of passive sources, meaning it doesn't interact directly with the target but instead gathers data that is already publicly available. This makes it a powerful tool for security researchers, IT professionals, and anyone who wants to know more about the subdomains associated with a domain.
+`xsubfind3r` is a command-line utility designed to help you discover subdomains for a given domain in a simple, efficient way. It works by gathering information from a variety of passive sources, meaning it doesn't interact directly with the target but instead gathers data that is already publicly available.
+
+The utility employs several techniques for subdomain discovery, including:
+
+* **Certificate Transparency Logs** to identify subdomains through public certificate databases. (`certspotter`, `crtsh`, `certificatedetails`)
+* **Search Engine Queries** to leverage public repositories and services that index domains. (`github`, `hackertarget`, `securitytrails`)
+* **DNS-based Enumeration** to gather information from various DNS resolvers and registrars. (`bevigil`, `chaos`, `shodan`, `censys`)
+* **Passive DNS databases** to retrieve records of domains and subdomains. (`securitytrails`, `censys`, `shodan`)
+* **Web Archives and Historical Data** to find past subdomain references through web archives. (`wayback`, `commoncrawl`)
+* **Public Code Repositories** to search for subdomains in open-source projects. (`github`)
+* **Threat Intelligence Feeds** to query platforms for known subdomains and associated intelligence.  (`otx`, `fullhunt`, `leakix`, `intelx`)
+* **OSINT Platforms** to collect publicly known subdomains from various open-source intelligence sources. (`anubis`, `fullhunt`, `bevigil`, `urlscan`)
+* **Company Profiling and Technology Stacks** to reveal subdomains associated with specific technologies used by companies. (`builtwith`)
+* **Miscellaneous**. (`subdomaincenter`)
+
+This makes `xsubfind3r` a powerful tool for security researchers, IT professionals, and anyone looking to gain insights into the subdomains associated with a domain.
 
 ## Resource
 
