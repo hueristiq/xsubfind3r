@@ -23,10 +23,9 @@
 
 ## Features
 
-* **Wide Coverage:** Fetches subdomains from multiple online passive sources to provide extensive results.
-* **Flexible Output:** Supports silent mode for only showing results and offers various output options for saving the results.
-* **Easy to Integrate:** Supports `stdin` and `stdout` for easy integration in automated workflows.
-* **Cross-Platform:** Works on Windows, Linux, and macOS.
+* Fetches subdomains from multiple online passive sources to provide extensive results
+* Supports `stdin` and `stdout` for easy integration in automated workflows
+* Cross-Platform (Windows, Linux, and macOS)
 
 ## Installation
 
