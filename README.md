@@ -2,22 +2,7 @@
 
 ![made with go](https://img.shields.io/badge/made%20with-Go-1E90FF.svg) [![go report card](https://goreportcard.com/badge/github.com/hueristiq/xsubfind3r)](https://goreportcard.com/report/github.com/hueristiq/xsubfind3r) [![release](https://img.shields.io/github/release/hueristiq/xsubfind3r?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/releases) [![open issues](https://img.shields.io/github/issues-raw/hueristiq/xsubfind3r.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/hueristiq/xsubfind3r.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?color=1E90FF)](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-1E90FF.svg) [![contribution](https://img.shields.io/badge/contributions-welcome-1E90FF.svg)](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md)
 
-`xsubfind3r` is a command-line utility designed to help you discover subdomains for a given domain in a simple, efficient way. It works by gathering information from a variety of passive sources, meaning it doesn't interact directly with the target but instead gathers data that is already publicly available.
-
-The utility employs several techniques for subdomain discovery, including:
-
-* **Certificate Transparency Logs** to identify subdomains through public certificate databases. (`certspotter`, `crtsh`, `certificatedetails`)
-* **Search Engine Queries** to leverage public repositories and services that index domains. (`github`, `hackertarget`, `securitytrails`)
-* **DNS-based Enumeration** to gather information from various DNS resolvers and registrars. (`bevigil`, `chaos`, `shodan`, `censys`)
-* **Passive DNS databases** to retrieve records of domains and subdomains. (`securitytrails`, `censys`, `shodan`)
-* **Web Archives and Historical Data** to find past subdomain references through web archives. (`wayback`, `commoncrawl`)
-* **Public Code Repositories** to search for subdomains in open-source projects. (`github`)
-* **Threat Intelligence Feeds** to query platforms for known subdomains and associated intelligence.  (`otx`, `fullhunt`, `leakix`, `intelx`)
-* **OSINT Platforms** to collect publicly known subdomains from various open-source intelligence sources. (`anubis`, `fullhunt`, `bevigil`, `urlscan`)
-* **Company Profiling and Technology Stacks** to reveal subdomains associated with specific technologies used by companies. (`builtwith`)
-* **Miscellaneous**. (`subdomaincenter`)
-
-This makes `xsubfind3r` a powerful tool for security researchers, IT professionals, and anyone looking to gain insights into the subdomains associated with a domain.
+`xsubfind3r` is a command-line utility designed to discover subdomains for a given domain in a simple, efficient way. It works by gathering information from a variety of passive sources, meaning it doesn't interact directly with the target but instead gathers data that is already publicly available. This makes `xsubfind3r` a powerful tool for security researchers, IT professionals, and anyone looking to gain insights into the subdomains associated with a domain.
 
 ## Resource
 
@@ -141,84 +126,13 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 
 ## Post Installation
 
-`xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[BuiltWith](https://api.builtwith.com/domain-api)**, **[Censys](https://censys.com/)**, **[Certspotter](https://sslmate.com/ct_search_api/)**, **[Chaos](https://chaos.hueristiq.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, **[Github](https://github.com)**, **[Intelligence X](https://intelx.io)**, **[LeakIX](https://leakix.net)**, **[Security Trails](https://securitytrails.com/)**, **[Shodan](https://shodan.io/)** and **[VirusTotal](https://www.virustotal.com)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.config/xsubfind3r/config.yaml` file, created upon first run, and uses the YAML format, or supplied via environment variables. Multiple API keys can be specified for each of these source from which one of them will be used.
+`xsubfind3r` will work right after [installation](#installation). However, some sources require API keys to work. These keys can be added to a configuration file at `$HOME/.config/xsubfind3r/config.yaml`, created upon first run, or set as environment variables.
 
-Example `config.yaml`:
-
-> [!CAUTION]
-> The keys/tokens below are invalid and used as examples, use your own keys/tokens!
-
-```yaml
-version: 0.8.0
-sources:
-    - anubis
-    - bevigil
-    - builtwith
-    - censys
-    - certificatedetails
-    - certspotter
-    - chaos
-    - commoncrawl
-    - crtsh
-    - fullhunt
-    - github
-    - hackertarget
-    - intelx
-    - leakix
-    - otx
-    - securitytrails
-    - shodan
-    - subdomaincenter
-    - urlscan
-    - wayback
-    - virustotal
-keys:
-    bevigil:
-        - awA5nvpKU3N8ygkZ
-    builtwith:
-        - 7fcbaec4-dc49-472c-b837-3896cb255823
-    censys:
-        - 0d9652ce-516c-4315-b589-9b241ee6dc24:AAAAClP1bJJSRMEYJazgwhJKrggRwKA
-    chaos:
-        - d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39asdsd54bbc1aabb208c9acfb
-    fullhunt:
-        - 0d9652ce-516c-4315-b589-9b241ee6dc24
-    github:
-        - d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39
-        - asdsd54bbc1aabb208c9acfbd2dd41ce7fc9db39
-    intelx:
-        - 2.intelx.io:00000000-0000-0000-0000-000000000000
-    leakix:
-        - xhDsgKejYTUWVNLn9R6f8afhsG6h6KM69lqEBoMJbfcvDk1v
-    securitytrails:
-        - smiSOZcrtVI214MfkLb6FoCFqXGEhcdG
-    shodan:
-        - AAAAClP1bJJSRMEYJazgwhJKrggRwKA
-    urlscan:
-        - d4c85d34-e425-446e-d4ab-f5a3412acbe8
-    virustotal:
-        - 088d5d8afdfd9ac22388e9ebb3cc60e14g92bcdf2f80680d0938116139499410
-```
-
-> [!NOTE]
-> To run `xsubfind3r` using docker with a local config file:
->
->```bash
->docker run --rm -v $HOME/.config/xsubfind3r:/root/.config/xsubfind3r hueristiq/xsubfind3r:latest -h
->```
-
-Example environmet variables:
+Example of environment variables for API keys:
 
 ```bash
-XURLFIND3R_KEYS_BEVIGIL=awA5nvpKU3N8ygkZ
-XURLFIND3R_KEYS_BUILTWITH=7fcbaec4-dc49-472c-b837-3896cb255823
-XURLFIND3R_KEYS_CHAOS=d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39asdsd54bbc1aabb208c9acfb
-XURLFIND3R_KEYS_FULLHUNT=0d9652ce-516c-4315-b589-9b241ee6dc24
-XURLFIND3R_KEYS_GITHUB=asdsd54bbc1aabb208c9acfbd2dd41ce7fc9db39,d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39
-XURLFIND3R_KEYS_INTELX=2.intelx.io:00000000-0000-0000-0000-000000000000
-XURLFIND3R_KEYS_LEAKIX=xhDsgKejYTUWVNLn9R6f8afhsG6h6KM69lqEBoMJbfcvDk1v
-XURLFIND3R_KEYS_SHODAN=AAAAClP1bJJSRMEYJazgwhJKrggRwKA
-XURLFIND3R_KEYS_URLSCAN=d4c85d34-e425-446e-d4ab-f5a3412acbe8
+XURLFIND3R_KEYS_BEVIGIL=your_bevigil_key
+XURLFIND3R_KEYS_CENSYS=your_censys_key
 ```
 
 ## Usage
@@ -293,4 +207,4 @@ A huge thanks to all the contributors who have helped make `xsubfind3r` what it 
 
 If you're interested in more utilities like this, check out:
 
-[subfinder](https://github.com/projectdiscovery/subfinder) ◇ [assetfinder](https://github.com/tomnomnom/assetfinder)
+[amass](https://github.com/owasp-amass/amass) ◇ [subfinder](https://github.com/projectdiscovery/subfinder) ◇ [assetfinder](https://github.com/tomnomnom/assetfinder)
