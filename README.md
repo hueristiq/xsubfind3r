@@ -206,4 +206,4 @@ A huge thanks to all the contributors who have helped make `xsubfind3r` what it 
 
 If you're interested in more utilities like this, check out:
 
-[amass](https://github.com/owasp-amass/amass) ◇ [subfinder](https://github.com/projectdiscovery/subfinder) ◇ [assetfinder](https://github.com/tomnomnom/assetfinder)
+[assetfinder](https://github.com/tomnomnom/assetfinder) ◇ [amass](https://github.com/owasp-amass/amass) ◇ [subfinder](https://github.com/projectdiscovery/subfinder)
