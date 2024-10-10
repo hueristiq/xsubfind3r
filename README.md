@@ -9,10 +9,10 @@
 * [Features](#features)
 * [Installation](#installation)
 	* [Install release binaries (Without Go Installed)](#install-release-binaries-without-go-installed)
-	* [Install on Docker (With Docker Installed)](#install-on-docker-with-docker-installed)
 	* [Install source (With Go Installed)](#install-source-with-go-installed)
 		* [`go install ...`](#go-install)
 		* [`go build ...`](#go-build)
+	* [Install on Docker (With Docker Installed)](#install-on-docker-with-docker-installed)
 * [Post Installation](#post-installation)
 * [Usage](#usage)
 * [Contributing](#contributing)
@@ -70,22 +70,6 @@ sudo mv xsubfind3r /usr/local/bin/
 > [!NOTE]
 > Windows users can follow [How to: Add Tool Locations to the PATH Environment Variable](https://msdn.microsoft.com/en-us/library/office/ee537574(v=office.14).aspx) in order to add `xsubfind3r` to their `PATH`.
 
-### Install on Docker (With Docker Installed)
-
-If you have Docker installed, you can use `xsubfind3r` using it's image:
-
-* Pull the docker image using:
-
-    ```bash
-    docker pull hueristiq/xsubfind3r:latest
-    ```
-
-* Run `xsubfind3r` using the image:
-
-    ```bash
-    docker run --rm hueristiq/xsubfind3r:latest -h
-    ```
-
 ### Install source (With Go Installed)
 
 Before you install from source, you need to make sure that Go is installed on your system. You can install Go by following the [official instructions](https://go.dev/doc/install) for your operating system. For this, we will assume that Go is already installed.
@@ -122,6 +106,22 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 
 > [!CAUTION]
 > While the development version is a good way to take a peek at `xsubfind3r`'s latest features before they get released, be aware that it may have bugs. Officially released versions will generally be more stable.
+
+### Install on Docker (With Docker Installed)
+
+If you have Docker installed, you can use `xsubfind3r` using it's image:
+
+* Pull the docker image using:
+
+    ```bash
+    docker pull hueristiq/xsubfind3r:latest
+    ```
+
+* Run `xsubfind3r` using the image:
+
+    ```bash
+    docker run --rm hueristiq/xsubfind3r:latest -h
+    ```
 
 ## Post Installation
 
