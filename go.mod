@@ -4,7 +4,7 @@ go 1.23.1
 
 require (
 	dario.cat/mergo v1.0.1
-	github.com/hueristiq/hq-go-http v0.0.0-20241006185211-d3c994749d4b
+	github.com/hueristiq/hq-go-http v0.0.0-20241013111525-65cf25fd7246
 	github.com/hueristiq/hq-go-limiter v0.0.0-20241006185142-215f80217800
 	github.com/hueristiq/hq-go-url v0.0.0-20241006190408-b9120b7b7d91
 	github.com/hueristiq/hqgolog v0.0.0-20230623113334-a6018965a34f
@@ -31,7 +31,7 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20241004190924-225e2abe05e6 // indirect
+	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c // indirect
 	golang.org/x/net v0.30.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
 	golang.org/x/term v0.25.0 // indirect

@@ -18,8 +18,8 @@
 * [Contributing](#contributing)
 * [Licensing](#licensing)
 * [Credits](#credits)
-    * [Contributors](#contributors)
-    * [Similar Projects](#similar-projects)
+	* [Contributors](#contributors)
+	* [Similar Projects](#similar-projects)
 
 ## Features
 
@@ -130,8 +130,8 @@ If you have Docker installed, you can use `xsubfind3r` using it's image:
 Example of environment variables for API keys:
 
 ```bash
-XURLFIND3R_KEYS_BEVIGIL=your_bevigil_key
-XURLFIND3R_KEYS_CENSYS=your_censys_key
+XSUBFIND3R_KEYS_BEVIGIL=your_bevigil_key
+XSUBFIND3R_KEYS_CENSYS=your_censys_key
 ```
 
 ## Usage
