@@ -137,9 +137,7 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 	}
 
 	// Loop through the selected sources and initialize each one.
-	for index := range cfg.SourcesToUSe {
-		source := cfg.SourcesToUSe[index]
-
+	for _, source := range cfg.SourcesToUSe {
 		// Depending on the source name, initialize the appropriate source and add it to the map.
 		switch source {
 		case sources.ANUBIS:
