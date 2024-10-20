@@ -14,8 +14,8 @@ import (
 	"github.com/hueristiq/hqgolog/formatter"
 	"github.com/hueristiq/hqgolog/levels"
 	"github.com/hueristiq/xsubfind3r/internal/configuration"
-	"github.com/hueristiq/xsubfind3r/pkg/scraper"
-	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/logrusorgru/aurora/v3"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -122,28 +122,28 @@ func main() {
 
 	var err error
 
-	var cfg *configuration.Configuration
+	var config *configuration.Configuration
 
-	if err := viper.Unmarshal(&cfg); err != nil {
+	if err := viper.Unmarshal(&config); err != nil {
 		hqgolog.Fatal().Msg(err.Error())
 	}
 
 	// if `--sources`: List suported sources & exit.
 	if listSources {
 		hqgolog.Print().Msg("")
-		hqgolog.Info().Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(cfg.Sources))).Bold())
+		hqgolog.Info().Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(config.Sources))).Bold())
 		hqgolog.Info().Msgf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold())
 		hqgolog.Print().Msg("")
 
 		needsKey := make(map[string]interface{})
-		keysElem := reflect.ValueOf(&cfg.Keys).Elem()
+		keysElem := reflect.ValueOf(&config.Keys).Elem()
 
-		for i := 0; i < keysElem.NumField(); i++ {
+		for i := range keysElem.NumField() {
 			needsKey[strings.ToLower(keysElem.Type().Field(i).Name)] = keysElem.Field(i).Interface()
 		}
 
-		for index := range cfg.Sources {
-			source := cfg.Sources[index]
+		for index := range config.Sources {
+			source := config.Sources[index]
 
 			if _, ok := needsKey[source]; ok {
 				hqgolog.Print().Msgf("> %s *", source)
@@ -199,13 +199,20 @@ func main() {
 	}
 
 	// scrape and output subdomains.
-	options := &scraper.Options{
+	cfg := &xsubfind3r.Configuration{
 		SourcesToUSe:     sourcesToUse,
 		SourcesToExclude: sourcesToExclude,
-		Keys:             cfg.Keys,
+		Keys:             config.Keys,
 	}
 
-	spr := scraper.New(options)
+	var finder *xsubfind3r.Finder
+
+	finder, err = xsubfind3r.New(cfg)
+	if err != nil {
+		hqgolog.Error().Msg(err.Error())
+
+		return
+	}
 
 	var consolidatedWriter *bufio.Writer
 
@@ -239,7 +246,7 @@ func main() {
 			hqgolog.Print().Msg("")
 		}
 
-		subdomains := spr.Scrape(domain)
+		subdomains := finder.Find(domain)
 
 		switch {
 		case output != "":
@@ -284,11 +291,11 @@ func mkdir(path string) {
 func processSubdomains(writer *bufio.Writer, subdomains chan sources.Result) {
 	for subdomain := range subdomains {
 		switch subdomain.Type {
-		case sources.Error:
+		case sources.ResultError:
 			if verbose {
 				hqgolog.Error().Msgf("%s: %s\n", subdomain.Source, subdomain.Error)
 			}
-		case sources.Subdomain:
+		case sources.ResultSubdomain:
 			if verbose {
 				hqgolog.Print().Msgf("[%s] %s", au.BrightBlue(subdomain.Source), subdomain.Value)
 			} else {

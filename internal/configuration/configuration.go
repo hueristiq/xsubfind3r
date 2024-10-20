@@ -6,7 +6,7 @@ import (
 
 	"dario.cat/mergo"
 	"github.com/hueristiq/hqgolog"
-	"github.com/hueristiq/xsubfind3r/pkg/scraper/sources"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/logrusorgru/aurora/v3"
 	"gopkg.in/yaml.v3"
 )
@@ -47,7 +47,7 @@ func (cfg *Configuration) Write(path string) (err error) {
 
 const (
 	NAME    = "xsubfind3r"
-	VERSION = "0.8.0"
+	VERSION = "0.9.0"
 )
 
 var (
@@ -84,14 +84,17 @@ func CreateUpdate(path string) (err error) {
 		Version: VERSION,
 		Sources: sources.List,
 		Keys: sources.Keys{
-			Bevigil:   []string{},
-			BuiltWith: []string{},
-			Chaos:     []string{},
-			Fullhunt:  []string{},
-			GitHub:    []string{},
-			Intelx:    []string{},
-			Shodan:    []string{},
-			URLScan:   []string{},
+			Bevigil:        []string{},
+			BuiltWith:      []string{},
+			Censys:         []string{},
+			Chaos:          []string{},
+			Fullhunt:       []string{},
+			GitHub:         []string{},
+			Intelx:         []string{},
+			SecurityTrails: []string{},
+			Shodan:         []string{},
+			URLScan:        []string{},
+			VirusTotal:     []string{},
 		},
 	}
 

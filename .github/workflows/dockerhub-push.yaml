@@ -1,4 +1,4 @@
-name: 🐋 DockerHub Push
+name: 🐳 DockerHub Push
 
 on:
     workflow_run:
@@ -9,7 +9,7 @@ on:
 
 jobs:
     push:
-        name: Push Docker image to Docker Hub
+        name: DockerHub Push
         runs-on: ubuntu-latest
         permissions:
             packages: write

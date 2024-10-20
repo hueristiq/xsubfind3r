@@ -1,32 +1,31 @@
-# xsubfind3r
+# X Subdomain Finder (`xsubfind3r`)
 
 ![made with go](https://img.shields.io/badge/made%20with-Go-1E90FF.svg) [![go report card](https://goreportcard.com/badge/github.com/hueristiq/xsubfind3r)](https://goreportcard.com/report/github.com/hueristiq/xsubfind3r) [![release](https://img.shields.io/github/release/hueristiq/xsubfind3r?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/releases) [![open issues](https://img.shields.io/github/issues-raw/hueristiq/xsubfind3r.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/hueristiq/xsubfind3r.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?color=1E90FF)](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-1E90FF.svg) [![contribution](https://img.shields.io/badge/contributions-welcome-1E90FF.svg)](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md)
 
-`xsubfind3r` is a command-line utility designed to help you discover subdomains for a given domain in a simple, efficient way. It works by gathering information from a variety of passive sources, meaning it doesn't interact directly with the target but instead gathers data that is already publicly available. This makes it a powerful tool for security researchers, IT professionals, and anyone who wants to know more about the subdomains associated with a domain.
+`xsubfind3r` is a command-line utility designed to discover subdomains for a given domain in a simple, efficient way. It works by gathering information from a variety of passive sources, meaning it doesn't interact directly with the target but instead gathers data that is already publicly available. This makes `xsubfind3r` a powerful tool for security researchers, IT professionals, and anyone looking to gain insights into the subdomains associated with a domain.
 
 ## Resource
 
 * [Features](#features)
 * [Installation](#installation)
 	* [Install release binaries (Without Go Installed)](#install-release-binaries-without-go-installed)
-	* [Install on Docker (With Docker Installed)](#install-on-docker-with-docker-installed)
 	* [Install source (With Go Installed)](#install-source-with-go-installed)
 		* [`go install ...`](#go-install)
 		* [`go build ...`](#go-build)
+	* [Install on Docker (With Docker Installed)](#install-on-docker-with-docker-installed)
 * [Post Installation](#post-installation)
 * [Usage](#usage)
 * [Contributing](#contributing)
 * [Licensing](#licensing)
 * [Credits](#credits)
-    * [Contributors](#contributors)
-    * [Similar Projects](#similar-projects)
+	* [Contributors](#contributors)
+	* [Similar Projects](#similar-projects)
 
 ## Features
 
-* **Wide Coverage:** Fetches subdomains from multiple online passive sources to provide extensive results.
-* **Flexible Output:** Supports silent mode for only showing results and offers various output options for saving the results.
-* **Easy to Integrate:** Supports `stdin` and `stdout` for easy integration in automated workflows.
-* **Cross-Platform:** Works on Windows, Linux, and macOS.
+* Fetches subdomains from multiple online passive sources to provide extensive results
+* Supports `stdin` and `stdout` for easy integration in automated workflows
+* Cross-Platform (Windows, Linux, and macOS)
 
 ## Installation
 
@@ -71,22 +70,6 @@ sudo mv xsubfind3r /usr/local/bin/
 > [!NOTE]
 > Windows users can follow [How to: Add Tool Locations to the PATH Environment Variable](https://msdn.microsoft.com/en-us/library/office/ee537574(v=office.14).aspx) in order to add `xsubfind3r` to their `PATH`.
 
-### Install on Docker (With Docker Installed)
-
-If you have Docker installed, you can use `xsubfind3r` using it's image:
-
-* Pull the docker image using:
-
-    ```bash
-    docker pull hueristiq/xsubfind3r:latest
-    ```
-
-* Run `xsubfind3r` using the image:
-
-    ```bash
-    docker run --rm hueristiq/xsubfind3r:latest -h
-    ```
-
 ### Install source (With Go Installed)
 
 Before you install from source, you need to make sure that Go is installed on your system. You can install Go by following the [official instructions](https://go.dev/doc/install) for your operating system. For this, we will assume that Go is already installed.
@@ -124,79 +107,31 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 > [!CAUTION]
 > While the development version is a good way to take a peek at `xsubfind3r`'s latest features before they get released, be aware that it may have bugs. Officially released versions will generally be more stable.
 
+### Install on Docker (With Docker Installed)
+
+If you have Docker installed, you can use `xsubfind3r` using it's image:
+
+* Pull the docker image using:
+
+    ```bash
+    docker pull hueristiq/xsubfind3r:latest
+    ```
+
+* Run `xsubfind3r` using the image:
+
+    ```bash
+    docker run --rm hueristiq/xsubfind3r:latest -h
+    ```
+
 ## Post Installation
 
-`xsubfind3r` will work right after [installation](#installation). However, **[BeVigil](https://bevigil.com)**, **[BufferOver](https://tls.bufferover.run/)**, **[BuiltWith](https://api.builtwith.com/domain-api)**, **[Certspotter](https://sslmate.com/ct_search_api/)**, **[Chaos](https://chaos.hueristiq.io/#/)**, **[Fullhunt](https://fullhunt.io/)**, **[Github](https://github.com)**, **[Intelligence X](https://intelx.io)**, **[LeakIX](https://leakix.net)** and **[Shodan](https://shodan.io/)** require API keys to work, **[URLScan](https://urlscan.io)** supports API key but not required. The API keys are stored in the `$HOME/.config/xsubfind3r/config.yaml` file, created upon first run, and uses the YAML format, or supplied via environment variables. Multiple API keys can be specified for each of these source from which one of them will be used.
+`xsubfind3r` will work right after [installation](#installation). However, some sources require API keys to work. These keys can be added to a configuration file at `$HOME/.config/xsubfind3r/config.yaml`, created upon first run, or set as environment variables.
 
-Example `config.yaml`:
-
-> [!CAUTION]
-> The keys/tokens below are invalid and used as examples, use your own keys/tokens!
-
-```yaml
-version: 0.8.0
-sources:
-    - alienvault
-    - anubis
-    - bevigil
-    - bufferover
-    - builtwith
-    - certspotter
-    - chaos
-    - commoncrawl
-    - crtsh
-    - fullhunt
-    - github
-    - hackertarget
-    - intelx
-    - leakix
-    - shodan
-    - urlscan
-    - wayback
-keys:
-    bevigil:
-        - awA5nvpKU3N8ygkZ
-    bufferover:
-        - COx9GBnhz63hcF1hlBtLb4KAdlzJly1d8xeovTjK
-    builtwith:
-        - 7fcbaec4-dc49-472c-b837-3896cb255823
-    chaos:
-        - d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39asdsd54bbc1aabb208c9acfb
-    fullhunt:
-        - 0d9652ce-516c-4315-b589-9b241ee6dc24
-    github:
-        - d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39
-        - asdsd54bbc1aabb208c9acfbd2dd41ce7fc9db39
-    intelx:
-        - 2.intelx.io:00000000-0000-0000-0000-000000000000
-    leakix:
-        - xhDsgKejYTUWVNLn9R6f8afhsG6h6KM69lqEBoMJbfcvDk1v
-    shodan:
-        - AAAAClP1bJJSRMEYJazgwhJKrggRwKA
-    urlscan:
-        - d4c85d34-e425-446e-d4ab-f5a3412acbe8
-```
-
-> [!NOTE]
-> To run `xsubfind3r` using docker with a local config file:
->
->```bash
->docker run --rm -v $HOME/.config/xsubfind3r:/root/.config/xsubfind3r hueristiq/xsubfind3r:latest -h
->```
-
-Example environmet variables:
+Example of environment variables for API keys:
 
 ```bash
-XURLFIND3R_KEYS_BEVIGIL=awA5nvpKU3N8ygkZ
-XURLFIND3R_KEYS_BUFFEROVER=COx9GBnhz63hcF1hlBtLb4KAdlzJly1d8xeovTjK
-XURLFIND3R_KEYS_BUILTWITH=7fcbaec4-dc49-472c-b837-3896cb255823
-XURLFIND3R_KEYS_CHAOS=d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39asdsd54bbc1aabb208c9acfb
-XURLFIND3R_KEYS_FULLHUNT=0d9652ce-516c-4315-b589-9b241ee6dc24
-XURLFIND3R_KEYS_GITHUB=asdsd54bbc1aabb208c9acfbd2dd41ce7fc9db39,d23a554bbc1aabb208c9acfbd2dd41ce7fc9db39
-XURLFIND3R_KEYS_INTELX=2.intelx.io:00000000-0000-0000-0000-000000000000
-XURLFIND3R_KEYS_LEAKIX=xhDsgKejYTUWVNLn9R6f8afhsG6h6KM69lqEBoMJbfcvDk1v
-XURLFIND3R_KEYS_SHODAN=AAAAClP1bJJSRMEYJazgwhJKrggRwKA
-XURLFIND3R_KEYS_URLSCAN=d4c85d34-e425-446e-d4ab-f5a3412acbe8
+XSUBFIND3R_KEYS_BEVIGIL=your_bevigil_key
+XSUBFIND3R_KEYS_CENSYS=your_censys_key
 ```
 
 ## Usage
@@ -215,7 +150,7 @@ __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 \ \/ / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
  >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |
 /_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_|
-                                             v0.8.0
+                                             v0.9.0
 
 USAGE:
  xsubfind3r [OPTIONS]
@@ -271,4 +206,4 @@ A huge thanks to all the contributors who have helped make `xsubfind3r` what it 
 
 If you're interested in more utilities like this, check out:
 
-[subfinder](https://github.com/projectdiscovery/subfinder) ◇ [assetfinder](https://github.com/tomnomnom/assetfinder)
+[assetfinder](https://github.com/tomnomnom/assetfinder) ◇ [amass](https://github.com/owasp-amass/amass) ◇ [subfinder](https://github.com/projectdiscovery/subfinder)

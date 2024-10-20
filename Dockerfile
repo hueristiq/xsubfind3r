@@ -44,11 +44,19 @@ FROM alpine:3.20.3
 # Perform system updates and install essential runtime packages:
 # - `bind-tools`: Provides DNS lookup utilities like `dig` and `host`.
 # - `ca-certificates`: Includes CA certificates to allow HTTPS connections.
+# Create a non-root user and group to enhance the security of the running container.
+# Files and processes will be owned and run by this user instead of the root user.
 RUN <<EOF
     apk --no-cache update
     apk --no-cache upgrade
     apk --no-cache add bind-tools ca-certificates
+
+    addgroup runners
+    adduser runner -D -G runners
 EOF
+
+# Switch to the non-root user. All subsequent commands will use this unprivileged user.
+USER runner
 
 # Copy the compiled binary `xsubfind3r` from the `build-stage` stage.
 # The binary is located at `/xsubfind3r/bin/xsubfind3r` in the build environment and is copied to `/usr/local/bin/` in the final image.
