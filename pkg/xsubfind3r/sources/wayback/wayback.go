@@ -23,6 +23,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 		defer close(results)
 
 		var err error
+
 		for page := uint(0); ; page++ {
 			limiter.Wait()
 

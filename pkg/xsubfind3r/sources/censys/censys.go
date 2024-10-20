@@ -56,9 +56,8 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		cursor := ""
-
 		page := 1
+		cursor := ""
 
 		certSearchReqURL := "https://search.censys.io/api/v2/certificates/search"
 		certSearchReqHeaders := map[string]string{

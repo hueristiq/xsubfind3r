@@ -3,7 +3,6 @@ package hackertarget
 import (
 	"bufio"
 	"fmt"
-	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
@@ -17,13 +16,9 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 	go func() {
 		defer close(results)
 
-		var err error
-
 		hostSearchReqURL := fmt.Sprintf("https://api.hackertarget.com/hostsearch/?q=%s", domain)
 
-		var hostSearchRes *http.Response
-
-		hostSearchRes, err = httpclient.SimpleGet(hostSearchReqURL)
+		hostSearchRes, err := httpclient.SimpleGet(hostSearchReqURL)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
