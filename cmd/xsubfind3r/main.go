@@ -93,7 +93,7 @@ func init() {
 
 	viper.SetConfigFile(configurationFilePath)
 	viper.AutomaticEnv()
-	viper.SetEnvPrefix("XURLFIND3R")
+	viper.SetEnvPrefix("XSUBFIND3R")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
