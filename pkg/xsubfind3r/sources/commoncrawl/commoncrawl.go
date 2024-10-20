@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hueristiq/xsubfind3r/pkg/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
@@ -31,24 +30,11 @@ type getURLsResponse struct {
 
 type Source struct{}
 
-func (source *Source) Run(_ *sources.Configuration, domain string) <-chan sources.Result {
+func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
-
-		regex, err := extractor.New(domain)
-		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: source.Name(),
-				Error:  err,
-			}
-
-			results <- result
-
-			return
-		}
 
 		getIndexesReqURL := "https://index.commoncrawl.org/collinfo.json"
 
@@ -202,7 +188,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 						continue
 					}
 
-					subdomains := regex.FindAllString(getURLsResData.URL, -1)
+					subdomains := cfg.Extractor.FindAllString(getURLsResData.URL, -1)
 
 					for _, subdomain := range subdomains {
 						result := sources.Result{

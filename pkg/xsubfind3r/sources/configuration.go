@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"regexp"
 )
 
 // Configuration holds the overall settings for different data sources.
 // It includes API keys for each source and flags for various parsing options.
 type Configuration struct {
+	Extractor *regexp.Regexp
+
 	Keys Keys
 }
 

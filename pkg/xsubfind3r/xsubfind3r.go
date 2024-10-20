@@ -53,6 +53,11 @@ func (finder *Finder) Find(domain string) (results chan sources.Result) {
 	// Rebuild the domain as "root.tld" format.
 	domain = parsed.Root + "." + parsed.TopLevel
 
+	finder.configuration.Extractor = hqgourl.NewDomainExtractor(
+		hqgourl.DomainExtractorWithRootDomainPattern(parsed.Root),
+		hqgourl.DomainExtractorWithTLDPattern(parsed.TopLevel),
+	).CompileRegex()
+
 	// Launch a goroutine to perform the search concurrently across all sources.
 	go func() {
 		// Ensure the results channel is closed once all search operations complete.

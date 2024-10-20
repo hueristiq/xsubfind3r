@@ -12,7 +12,6 @@ import (
 
 	"github.com/hueristiq/hq-go-http/headers"
 	"github.com/hueristiq/hq-go-http/status"
-	"github.com/hueristiq/xsubfind3r/pkg/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
@@ -32,34 +31,21 @@ type searchResponse struct {
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration, domain string) <-chan sources.Result {
+func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
-		if len(config.Keys.GitHub) == 0 {
+		if len(cfg.Keys.GitHub) == 0 {
 			return
 		}
 
-		tokens := NewTokenManager(config.Keys.GitHub)
+		tokens := NewTokenManager(cfg.Keys.GitHub)
 
 		searchReqURL := fmt.Sprintf("https://api.github.com/search/code?per_page=100&q=%q&sort=created&order=asc", domain)
 
-		regex, err := extractor.New(domain)
-		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: source.Name(),
-				Error:  err,
-			}
-
-			results <- result
-
-			return
-		}
-
-		source.Enumerate(searchReqURL, regex, tokens, results, config)
+		source.Enumerate(searchReqURL, cfg.Extractor, tokens, results, cfg)
 	}()
 
 	return results

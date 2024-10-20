@@ -3,17 +3,15 @@ package certificatedetails
 import (
 	"bufio"
 	"fmt"
-	"regexp"
 
 	"github.com/hueristiq/hq-go-http/status"
-	"github.com/hueristiq/xsubfind3r/pkg/extractor"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type Source struct{}
 
-func (source *Source) Run(_ *sources.Configuration, domain string) <-chan sources.Result {
+func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -36,21 +34,6 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			return
 		}
 
-		var regex *regexp.Regexp
-
-		regex, err = extractor.New(domain)
-		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: source.Name(),
-				Error:  err,
-			}
-
-			results <- result
-
-			return
-		}
-
 		scanner := bufio.NewScanner(getCertificateDetailsRes.Body)
 
 		for scanner.Scan() {
@@ -60,7 +43,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 				continue
 			}
 
-			match := regex.FindAllString(line, -1)
+			match := cfg.Extractor.FindAllString(line, -1)
 
 			for _, subdomain := range match {
 				result := sources.Result{

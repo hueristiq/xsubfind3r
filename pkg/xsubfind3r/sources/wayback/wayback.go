@@ -4,45 +4,27 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"regexp"
 
-	limiter "github.com/hueristiq/hq-go-limiter"
-	"github.com/hueristiq/xsubfind3r/pkg/extractor"
+	hqgolimiter "github.com/hueristiq/hq-go-limiter"
 	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type Source struct{}
 
-var rltr = limiter.New(&limiter.Configuration{
+var limiter = hqgolimiter.New(&hqgolimiter.Configuration{
 	RequestsPerMinute: 40,
 })
 
-func (source *Source) Run(_ *sources.Configuration, domain string) <-chan sources.Result {
+func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
 		var err error
-
-		var regex *regexp.Regexp
-
-		regex, err = extractor.New(domain)
-		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: source.Name(),
-				Error:  err,
-			}
-
-			results <- result
-
-			return
-		}
-
 		for page := uint(0); ; page++ {
-			rltr.Wait()
+			limiter.Wait()
 
 			getURLsReqURL := fmt.Sprintf("https://web.archive.org/cdx/search/cdx?url=*.%s/*&output=json&collapse=urlkey&fl=original&pageSize=100&page=%d", domain, page)
 
@@ -89,7 +71,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 			// Slicing as [1:] to skip first result by default
 			for _, entry := range getURLsResData[1:] {
-				match := regex.FindAllString(entry[0], -1)
+				match := cfg.Extractor.FindAllString(entry[0], -1)
 
 				for _, subdomain := range match {
 					result := sources.Result{
