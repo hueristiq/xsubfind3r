@@ -2,9 +2,10 @@ package builtwith
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -47,7 +48,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		getDomainInfoReqURL := fmt.Sprintf("https://api.builtwith.com/v21/api.json?KEY=%s&HIDETEXT=yes&HIDEDL=yes&NOLIVE=yes&NOMETA=yes&NOPII=yes&NOATTR=yes&LOOKUP=%s", key, domain)
 
-		getDomainInfoRes, err := httpclient.SimpleGet(getDomainInfoReqURL)
+		getDomainInfoRes, err := hqgohttp.GET(getDomainInfoReqURL).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -56,8 +57,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			}
 
 			results <- result
-
-			httpclient.DiscardResponse(getDomainInfoRes)
 
 			return
 		}
@@ -85,7 +84,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 				result := sources.Result{
 					Type:   sources.ResultError,
 					Source: source.Name(),
-					Error:  fmt.Errorf("%s", entry.Message),
+					Error:  fmt.Errorf("%w: %s", errStatic, entry.Message),
 				}
 
 				results <- result
@@ -113,3 +112,5 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 func (source *Source) Name() string {
 	return sources.BUILTWITH
 }
+
+var errStatic = errors.New("something went wrong")

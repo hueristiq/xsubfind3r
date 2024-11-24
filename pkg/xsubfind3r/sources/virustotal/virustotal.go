@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -38,10 +38,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		getSubdomainsReqHeaders := map[string]string{
-			"x-apikey": key,
-		}
-
 		var cursor string
 
 		for {
@@ -51,7 +47,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 				getSubdomainsReqURL = fmt.Sprintf("%s&cursor=%s", getSubdomainsReqURL, cursor)
 			}
 
-			getSubdomainsRes, err := httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
+			getSubdomainsRes, err := hqgohttp.GET(getSubdomainsReqURL).AddHeader("x-apikey", key).Send()
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
@@ -60,8 +56,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 				}
 
 				results <- result
-
-				httpclient.DiscardResponse(getSubdomainsRes)
 
 				break
 			}

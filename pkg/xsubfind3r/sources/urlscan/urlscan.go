@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
 )
@@ -49,14 +49,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		searchReqHeaders := map[string]string{
-			"Content-Type": "application/json",
-		}
-
-		if key != "" {
-			searchReqHeaders["API-Key"] = key
-		}
-
 		var after string
 
 		for {
@@ -68,7 +60,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 			var searchRes *http.Response
 
-			searchRes, err = httpclient.Get(searchReqURL, "", searchReqHeaders)
+			searchRes, err = hqgohttp.GET(searchReqURL).AddHeader("Content-Type", "application/json").AddHeader("API-Key", key).Send()
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
@@ -77,8 +69,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 				}
 
 				results <- result
-
-				httpclient.DiscardResponse(searchRes)
 
 				break
 			}

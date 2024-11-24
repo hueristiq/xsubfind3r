@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"fmt"
 
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/hq-go-http/status"
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -19,8 +19,8 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 		getCertificateDetailsReqURL := fmt.Sprintf("https://certificatedetails.com/%s", domain)
 
-		getCertificateDetailsRes, err := httpclient.SimpleGet(getCertificateDetailsReqURL)
-		if err != nil && getCertificateDetailsRes.StatusCode != status.NotFound {
+		getCertificateDetailsRes, err := hqgohttp.GET(getCertificateDetailsReqURL).Send()
+		if err != nil && getCertificateDetailsRes.StatusCode != status.NotFound.Int() {
 			result := sources.Result{
 				Type:   sources.ResultError,
 				Source: source.Name(),
@@ -28,8 +28,6 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 			}
 
 			results <- result
-
-			httpclient.DiscardResponse(getCertificateDetailsRes)
 
 			return
 		}

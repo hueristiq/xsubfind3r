@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -18,7 +18,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 		hostSearchReqURL := fmt.Sprintf("https://api.hackertarget.com/hostsearch/?q=%s", domain)
 
-		hostSearchRes, err := httpclient.SimpleGet(hostSearchReqURL)
+		hostSearchRes, err := hqgohttp.GET(hostSearchReqURL).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -27,8 +27,6 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 			}
 
 			results <- result
-
-			httpclient.DiscardResponse(hostSearchRes)
 
 			return
 		}

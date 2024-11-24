@@ -3,12 +3,13 @@ package commoncrawl
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -38,7 +39,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 		getIndexesReqURL := "https://index.commoncrawl.org/collinfo.json"
 
-		getIndexesRes, err := httpclient.SimpleGet(getIndexesReqURL)
+		getIndexesRes, err := hqgohttp.GET(getIndexesReqURL).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -47,8 +48,6 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 			}
 
 			results <- result
-
-			httpclient.DiscardResponse(getIndexesRes)
 
 			return
 		}
@@ -95,11 +94,8 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 		for _, CCIndexAPI := range searchIndexes {
 			getPaginationReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url&showNumPages=true", CCIndexAPI, domain)
-			getURLsReqHeaders := map[string]string{
-				"Host": "index.commoncrawl.org",
-			}
 
-			getPaginationRes, err := httpclient.SimpleGet(getPaginationReqURL)
+			getPaginationRes, err := hqgohttp.GET(getPaginationReqURL).Send()
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
@@ -108,8 +104,6 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 				}
 
 				results <- result
-
-				httpclient.DiscardResponse(getPaginationRes)
 
 				continue
 			}
@@ -139,7 +133,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 			for page := range getPaginationData.Pages {
 				getURLsReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url&page=%d", CCIndexAPI, domain, page)
 
-				getURLsRes, err := httpclient.Get(getURLsReqURL, "", getURLsReqHeaders)
+				getURLsRes, err := hqgohttp.GET(getURLsReqURL).AddHeader("Host", "index.commoncrawl.org").Send()
 				if err != nil {
 					result := sources.Result{
 						Type:   sources.ResultError,
@@ -148,8 +142,6 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 					}
 
 					results <- result
-
-					httpclient.DiscardResponse(getURLsRes)
 
 					continue
 				}
@@ -180,7 +172,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 						result := sources.Result{
 							Type:   sources.ResultError,
 							Source: source.Name(),
-							Error:  fmt.Errorf("%s", getURLsResData.Error),
+							Error:  fmt.Errorf("%w: %s", errStatic, getURLsResData.Error),
 						}
 
 						results <- result
@@ -226,3 +218,5 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 func (source *Source) Name() string {
 	return sources.COMMONCRAWL
 }
+
+var errStatic = errors.New("something went wrong")

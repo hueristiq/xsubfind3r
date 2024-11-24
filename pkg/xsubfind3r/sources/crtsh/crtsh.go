@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -24,7 +24,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getNameValuesReqURL := fmt.Sprintf("https://crt.sh/?q=%%25.%s&output=json", domain)
 
-		getNameValuesRes, err := httpclient.SimpleGet(getNameValuesReqURL)
+		getNameValuesRes, err := hqgohttp.GET(getNameValuesReqURL).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -33,8 +33,6 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			}
 
 			results <- result
-
-			httpclient.DiscardResponse(getNameValuesRes)
 
 			return
 		}

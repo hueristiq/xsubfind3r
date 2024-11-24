@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -60,9 +60,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 		cursor := ""
 
 		certSearchReqURL := "https://search.censys.io/api/v2/certificates/search"
-		certSearchReqHeaders := map[string]string{
-			"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte(key)),
-		}
 
 		for {
 			certSearchReqURL = fmt.Sprintf(certSearchReqURL+"?q=%s&per_page=%d", domain, maxPerPage)
@@ -71,7 +68,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 				certSearchReqURL = certSearchReqURL + "&cursor=" + cursor
 			}
 
-			certSearchRes, err := httpclient.Get(certSearchReqURL, "", certSearchReqHeaders)
+			certSearchRes, err := hqgohttp.GET(certSearchReqURL).AddHeader("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(key))).Send()
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
@@ -80,8 +77,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 				}
 
 				results <- result
-
-				httpclient.DiscardResponse(certSearchRes)
 
 				return
 			}

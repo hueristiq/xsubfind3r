@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -41,7 +41,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		var getDNSRes *http.Response
 
-		getDNSRes, err = httpclient.SimpleGet(getDNSReqURL)
+		getDNSRes, err = hqgohttp.GET(getDNSReqURL).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -50,8 +50,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			}
 
 			results <- result
-
-			httpclient.DiscardResponse(getDNSRes)
 
 			return
 		}

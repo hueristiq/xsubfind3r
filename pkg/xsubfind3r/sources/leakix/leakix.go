@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -37,19 +37,11 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		getSubdomainsReqHeaders := map[string]string{
-			"accept": "application/json",
-		}
-
-		if len(config.Keys.Bevigil) > 0 {
-			getSubdomainsReqHeaders["api-key"] = key
-		}
-
 		getSubdomainsReqURL := fmt.Sprintf("https://leakix.net/api/subdomains/%s", domain)
 
 		var getSubdomainsRes *http.Response
 
-		getSubdomainsRes, err = httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
+		getSubdomainsRes, err = hqgohttp.GET(getSubdomainsReqURL).AddHeader("accept", "application/json").AddHeader("api-key", key).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -58,8 +50,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			}
 
 			results <- result
-
-			httpclient.DiscardResponse(getSubdomainsRes)
 
 			return
 		}

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/hq-go-http/headers"
 	"github.com/hueristiq/hq-go-http/status"
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
 	"github.com/tomnomnom/linkheader"
@@ -62,18 +62,13 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 		}
 	}
 
-	searchReqHeaders := map[string]string{
-		"Accept":        "application/vnd.github.v3.text-match+json",
-		"Authorization": "token " + token.Hash,
-	}
-
 	var err error
 
 	var searchRes *http.Response
 
-	searchRes, err = httpclient.Get(searchReqURL, "", searchReqHeaders)
+	searchRes, err = hqgohttp.GET(searchReqURL).AddHeader("Accept", "application/vnd.github.v3.text-match+json").AddHeader("Authorization", "token "+token.Hash).Send()
 
-	isForbidden := searchRes != nil && searchRes.StatusCode == status.Forbidden
+	isForbidden := searchRes != nil && searchRes.StatusCode == status.Forbidden.Int()
 
 	if err != nil && !isForbidden {
 		result := sources.Result{
@@ -84,14 +79,12 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 		results <- result
 
-		httpclient.DiscardResponse(searchRes)
-
 		return
 	}
 
-	ratelimitRemaining := cast.ToInt64(searchRes.Header.Get(headers.XRatelimitRemaining))
+	ratelimitRemaining := cast.ToInt64(searchRes.Header.Get(headers.XRatelimitRemaining.String()))
 	if isForbidden && ratelimitRemaining == 0 {
-		retryAfterSeconds := cast.ToInt64(searchRes.Header.Get(headers.RetryAfter))
+		retryAfterSeconds := cast.ToInt64(searchRes.Header.Get(headers.RetryAfter.String()))
 
 		tokens.setCurrentTokenExceeded(retryAfterSeconds)
 
@@ -121,7 +114,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 		var getRawContentRes *http.Response
 
-		getRawContentRes, err = httpclient.SimpleGet(getRawContentReqURL)
+		getRawContentRes, err = hqgohttp.GET(getRawContentReqURL).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -131,12 +124,10 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 			results <- result
 
-			httpclient.DiscardResponse(getRawContentRes)
-
 			continue
 		}
 
-		if getRawContentRes.StatusCode != status.OK {
+		if getRawContentRes.StatusCode != status.OK.Int() {
 			continue
 		}
 
@@ -192,7 +183,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 		}
 	}
 
-	linksHeader := linkheader.Parse(searchRes.Header.Get(headers.Link))
+	linksHeader := linkheader.Parse(searchRes.Header.Get(headers.Link.String()))
 
 	for _, link := range linksHeader {
 		if link.Rel == "next" {

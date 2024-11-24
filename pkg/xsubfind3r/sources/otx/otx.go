@@ -2,10 +2,11 @@ package otx
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -27,7 +28,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getPassiveDNSReqURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", domain)
 
-		getPassiveDNSRes, err := httpclient.SimpleGet(getPassiveDNSReqURL)
+		getPassiveDNSRes, err := hqgohttp.GET(getPassiveDNSReqURL).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -36,8 +37,6 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			}
 
 			results <- result
-
-			httpclient.DiscardResponse(getPassiveDNSRes)
 
 			return
 		}
@@ -64,7 +63,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			result := sources.Result{
 				Type:   sources.ResultError,
 				Source: source.Name(),
-				Error:  fmt.Errorf("%s, %s", getPassiveDNSResData.Detail, getPassiveDNSResData.Error),
+				Error:  fmt.Errorf("%w: %s, %s", errStatic, getPassiveDNSResData.Detail, getPassiveDNSResData.Error),
 			}
 
 			results <- result
@@ -95,3 +94,5 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 func (source *Source) Name() string {
 	return sources.OPENTHREATEXCHANGE
 }
+
+var errStatic = errors.New("something went wrong")

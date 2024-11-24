@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/hq-go-http/status"
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -45,11 +45,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		var scrollID string
 
-		getSubdomainsReqHeaders := map[string]string{
-			"Content-Type": "application/json",
-			"APIKEY":       key,
-		}
-
 		for {
 			var err error
 
@@ -63,7 +58,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 				}
 
 				getSubdomainsReqBodyData := getSubdomainsReqBody{
-					Query: fmt.Sprintf("apex_domain='%s'", domain),
+					Query: fmt.Sprintf("apex_domain=%q", domain),
 				}
 
 				var getSubdomainsReqBodyDataBytes []byte
@@ -83,17 +78,17 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				getSubdomainsReqBodyDataReader := bytes.NewReader(getSubdomainsReqBodyDataBytes)
 
-				getSubdomainsRes, err = httpclient.Post(getSubdomainsReqURL, "", getSubdomainsReqHeaders, getSubdomainsReqBodyDataReader)
+				getSubdomainsRes, err = hqgohttp.POST(getSubdomainsReqURL).AddHeader("Content-Type", "application/json").AddHeader("APIKEY", key).Body(getSubdomainsReqBodyDataReader).Send()
 			} else {
 				getSubdomainsReqURL := fmt.Sprintf("https://api.securitytrails.com/v1/scroll/%s", scrollID)
 
-				getSubdomainsRes, err = httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
+				getSubdomainsRes, err = hqgohttp.GET(getSubdomainsReqURL).AddHeader("Content-Type", "application/json").AddHeader("APIKEY", key).Send()
 			}
 
-			if err != nil && getSubdomainsRes.StatusCode == status.Forbidden {
+			if err != nil && getSubdomainsRes.StatusCode == status.Forbidden.Int() {
 				getSubdomainsReqURL := fmt.Sprintf("https://api.securitytrails.com/v1/domain/%s/subdomains?children_only=false&include_inactive=true", domain)
 
-				getSubdomainsRes, err = httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
+				getSubdomainsRes, err = hqgohttp.GET(getSubdomainsReqURL).AddHeader("Content-Type", "application/json").AddHeader("APIKEY", key).Send()
 			}
 
 			if err != nil {
@@ -104,8 +99,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 				}
 
 				results <- result
-
-				httpclient.DiscardResponse(getSubdomainsRes)
 
 				return
 			}

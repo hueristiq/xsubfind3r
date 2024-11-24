@@ -4,7 +4,7 @@ go 1.23.1
 
 require (
 	dario.cat/mergo v1.0.1
-	github.com/hueristiq/hq-go-http v0.0.0-20241020113552-532feebd5687
+	github.com/hueristiq/hq-go-http v0.0.0-20241124123643-7d49a3db5287
 	github.com/hueristiq/hq-go-limiter v0.0.0-20241020114425-bdc49852dc29
 	github.com/hueristiq/hq-go-url v0.0.0-20241021202657-1f82b6fb3ffa
 	github.com/hueristiq/hqgolog v0.0.0-20230623113334-a6018965a34f
@@ -17,10 +17,9 @@ require (
 )
 
 require (
-	github.com/Mzack9999/go-http-digest-auth-client v0.6.1-0.20220414142836-eb8883508809 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/hueristiq/hq-go-retrier v0.0.0-20241113111747-73f1e3dac41d // indirect
+	github.com/hueristiq/hq-go-retrier v0.0.0-20241124123316-75e4987d3cb6 // indirect
 	github.com/hueristiq/hqgoutils v0.0.0-20231024005153-bd2c47932440 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect

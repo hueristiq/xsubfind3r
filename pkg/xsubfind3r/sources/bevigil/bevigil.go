@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -35,11 +35,8 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 		}
 
 		getSubdomainsReqURL := fmt.Sprintf("https://osint.bevigil.com/api/%s/subdomains/", domain)
-		getSubdomainsReqHeaders := map[string]string{
-			"X-Access-Token": key,
-		}
 
-		getSubdomainsRes, err := httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
+		getSubdomainsRes, err := hqgohttp.GET(getSubdomainsReqURL).AddHeader("X-Access-Token", key).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -48,8 +45,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			}
 
 			results <- result
-
-			httpclient.DiscardResponse(getSubdomainsRes)
 
 			return
 		}

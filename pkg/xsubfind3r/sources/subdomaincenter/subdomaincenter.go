@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -18,7 +18,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getSubdomainsReqURL := fmt.Sprintf("https://api.subdomain.center/?domain=%s", domain)
 
-		getSubdomainsRes, err := httpclient.SimpleGet(getSubdomainsReqURL)
+		getSubdomainsRes, err := hqgohttp.GET(getSubdomainsReqURL).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -27,8 +27,6 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 			}
 
 			results <- result
-
-			httpclient.DiscardResponse(getSubdomainsRes)
 
 			return
 		}
