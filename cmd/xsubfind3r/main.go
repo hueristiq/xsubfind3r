@@ -31,23 +31,25 @@ var (
 	sourcesToUse          []string
 	sourcesToExclude      []string
 	monochrome            bool
-	output                string
-	outputDirectory       string
+	outputFilePath        string
+	outputDirectoryPath   string
 	silent                bool
 	verbose               bool
 )
 
 func init() {
-	// Handle CLI arguments, flags & help message (pflag)
-	pflag.StringVarP(&configurationFilePath, "configuration", "c", configuration.ConfigurationFilePath, "")
+	pflag.StringVarP(&configurationFilePath, "configuration", "c", configuration.DefaultConfigurationFilePath, "")
+
 	pflag.StringSliceVarP(&domains, "domain", "d", []string{}, "")
 	pflag.StringVarP(&domainsListFilePath, "list", "l", "", "")
+
 	pflag.BoolVar(&listSources, "sources", false, "")
 	pflag.StringSliceVarP(&sourcesToUse, "use-sources", "u", []string{}, "")
 	pflag.StringSliceVarP(&sourcesToExclude, "exclude-sources", "e", []string{}, "")
+
 	pflag.BoolVar(&monochrome, "monochrome", false, "")
-	pflag.StringVarP(&output, "output", "o", "", "")
-	pflag.StringVarP(&outputDirectory, "output-directory", "O", "", "")
+	pflag.StringVarP(&outputFilePath, "output", "o", "", "")
+	pflag.StringVarP(&outputDirectoryPath, "output-directory", "O", "", "")
 	pflag.BoolVarP(&silent, "silent", "s", false, "")
 	pflag.BoolVarP(&verbose, "verbose", "v", false, "")
 
@@ -59,7 +61,7 @@ func init() {
 		h += fmt.Sprintf(" %s [OPTIONS]\n", configuration.NAME)
 
 		h += "\nCONFIGURATION:\n"
-		defaultConfigurationFilePath := strings.ReplaceAll(configuration.ConfigurationFilePath, configuration.UserDotConfigDirectoryPath, "$HOME/.config")
+		defaultConfigurationFilePath := strings.ReplaceAll(configuration.DefaultConfigurationFilePath, configuration.UserDotConfigDirectoryPath, "$HOME/.config")
 		h += fmt.Sprintf(" -c, --configuration string            configuration file (default: %s)\n", defaultConfigurationFilePath)
 
 		h += "\nINPUT:\n"
@@ -86,8 +88,7 @@ func init() {
 
 	pflag.Parse()
 
-	// Initialize configuration management (...with viper)
-	if err := configuration.CreateUpdate(configurationFilePath); err != nil {
+	if err := configuration.CreateOrUpdate(configurationFilePath); err != nil {
 		hqgolog.Fatal().Msg(err.Error())
 	}
 
@@ -100,7 +101,6 @@ func init() {
 		log.Fatalln(err)
 	}
 
-	// Initialize logger (hqgolog)
 	hqgolog.DefaultLogger.SetMaxLevel(levels.LevelInfo)
 
 	if verbose {
@@ -115,35 +115,33 @@ func init() {
 }
 
 func main() {
-	// print banner.
 	if !silent {
 		fmt.Fprintln(os.Stderr, configuration.BANNER)
 	}
 
 	var err error
 
-	var config *configuration.Configuration
+	var cfg *configuration.Configuration
 
-	if err := viper.Unmarshal(&config); err != nil {
+	if err := viper.Unmarshal(&cfg); err != nil {
 		hqgolog.Fatal().Msg(err.Error())
 	}
 
-	// if `--sources`: List suported sources & exit.
 	if listSources {
 		hqgolog.Print().Msg("")
-		hqgolog.Info().Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(config.Sources))).Bold())
+		hqgolog.Info().Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(cfg.Sources))).Bold())
 		hqgolog.Info().Msgf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold())
 		hqgolog.Print().Msg("")
 
 		needsKey := make(map[string]interface{})
-		keysElem := reflect.ValueOf(&config.Keys).Elem()
+		keysElem := reflect.ValueOf(&cfg.Keys).Elem()
 
 		for i := range keysElem.NumField() {
 			needsKey[strings.ToLower(keysElem.Type().Field(i).Name)] = keysElem.Field(i).Interface()
 		}
 
-		for index := range config.Sources {
-			source := config.Sources[index]
+		for index := range cfg.Sources {
+			source := cfg.Sources[index]
 
 			if _, ok := needsKey[source]; ok {
 				hqgolog.Print().Msgf("> %s *", source)
@@ -157,7 +155,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	// load input domains from file
 	if domainsListFilePath != "" {
 		var file *os.File
 
@@ -181,7 +178,6 @@ func main() {
 		}
 	}
 
-	// load input domains from stdin
 	if hasStdin() {
 		scanner := bufio.NewScanner(os.Stdin)
 
@@ -198,16 +194,13 @@ func main() {
 		}
 	}
 
-	// scrape and output subdomains.
-	cfg := &xsubfind3r.Configuration{
-		SourcesToUSe:     sourcesToUse,
-		SourcesToExclude: sourcesToExclude,
-		Keys:             config.Keys,
-	}
-
 	var finder *xsubfind3r.Finder
 
-	finder, err = xsubfind3r.New(cfg)
+	finder, err = xsubfind3r.New(&xsubfind3r.Configuration{
+		SourcesToUSe:     sourcesToUse,
+		SourcesToExclude: sourcesToExclude,
+		Keys:             cfg.Keys,
+	})
 	if err != nil {
 		hqgolog.Error().Msg(err.Error())
 
@@ -216,14 +209,14 @@ func main() {
 
 	var consolidatedWriter *bufio.Writer
 
-	if output != "" {
-		directory := filepath.Dir(output)
+	if outputFilePath != "" {
+		directory := filepath.Dir(outputFilePath)
 
 		mkdir(directory)
 
 		var consolidatedFile *os.File
 
-		consolidatedFile, err = os.OpenFile(output, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+		consolidatedFile, err = os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
 			hqgolog.Fatal().Msg(err.Error())
 		}
@@ -233,8 +226,8 @@ func main() {
 		consolidatedWriter = bufio.NewWriter(consolidatedFile)
 	}
 
-	if outputDirectory != "" {
-		mkdir(outputDirectory)
+	if outputDirectoryPath != "" {
+		mkdir(outputDirectoryPath)
 	}
 
 	for index := range domains {
@@ -249,12 +242,12 @@ func main() {
 		subdomains := finder.Find(domain)
 
 		switch {
-		case output != "":
+		case outputFilePath != "":
 			processSubdomains(consolidatedWriter, subdomains)
-		case outputDirectory != "":
+		case outputDirectoryPath != "":
 			var domainFile *os.File
 
-			domainFile, err = os.OpenFile(filepath.Join(outputDirectory, domain+".txt"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+			domainFile, err = os.OpenFile(filepath.Join(outputDirectoryPath, domain+".txt"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 			if err != nil {
 				hqgolog.Fatal().Msg(err.Error())
 			}

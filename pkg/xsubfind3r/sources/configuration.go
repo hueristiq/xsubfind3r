@@ -11,9 +11,8 @@ import (
 // Configuration holds the overall settings for different data sources.
 // It includes API keys for each source and flags for various parsing options.
 type Configuration struct {
+	Keys      Keys
 	Extractor *regexp.Regexp
-
-	Keys Keys
 }
 
 // Keys holds API keys for different data sources, with each source having a set of API keys.
@@ -43,14 +42,12 @@ type SourceKeys []string
 func (k SourceKeys) PickRandom() (key string, err error) {
 	length := len(k)
 
-	// Return an error if no keys are available
 	if length == 0 {
 		err = ErrNoKeys
 
 		return
 	}
 
-	// Generate a cryptographically secure random number within the range [0, length).
 	maximum := big.NewInt(int64(length))
 
 	var indexBig *big.Int
@@ -62,10 +59,8 @@ func (k SourceKeys) PickRandom() (key string, err error) {
 		return
 	}
 
-	// Convert the big integer index to a standard int64.
 	index := indexBig.Int64()
 
-	// Select the API key at the generated index.
 	key = k[index]
 
 	return

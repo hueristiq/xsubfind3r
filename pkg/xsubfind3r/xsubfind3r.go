@@ -29,16 +29,25 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
 )
 
-// Finder is the main structure that manages the interaction with OSINT sources.
-// It holds the available data sources and the configuration used for searching.
+// Finder is the main structure for managing and executing subdomain enumeration.
+// It holds the configured data sources and uses a provided configuration to control the behavior.
+//
+// Fields:
+// - sources: A map of enabled data sources to be used for enumeration.
+// - configuration: The settings and API keys required for the sources.
 type Finder struct {
 	sources       map[string]sources.Source
 	configuration *sources.Configuration
 }
 
-// Find takes a domain name and starts the subdomain search process across all
-// the sources specified in the configuration. It returns a channel through which
-// the search results (of type Result) are streamed asynchronously.
+// Find performs subdomain enumeration for a given domain.
+// It uses all the enabled sources and streams the results asynchronously through a channel.
+//
+// Parameters:
+// - domain string: The target domain to find subdomains for.
+//
+// Returns:
+// - results chan sources.Result: A channel that streams the results of type `sources.Result`.
 func (finder *Finder) Find(domain string) (results chan sources.Result) {
 	results = make(chan sources.Result)
 
@@ -54,7 +63,7 @@ func (finder *Finder) Find(domain string) (results chan sources.Result) {
 	go func() {
 		defer close(results)
 
-		seenSubdomains := &sync.Map{}
+		seen := &sync.Map{}
 
 		wg := &sync.WaitGroup{}
 
@@ -71,7 +80,7 @@ func (finder *Finder) Find(domain string) (results chan sources.Result) {
 						sResult.Value = strings.ToLower(sResult.Value)
 						sResult.Value = strings.ReplaceAll(sResult.Value, "*.", "")
 
-						_, loaded := seenSubdomains.LoadOrStore(sResult.Value, struct{}{})
+						_, loaded := seen.LoadOrStore(sResult.Value, struct{}{})
 						if loaded {
 							continue
 						}
@@ -88,8 +97,13 @@ func (finder *Finder) Find(domain string) (results chan sources.Result) {
 	return
 }
 
-// Configuration holds the configuration for Finder, including
-// the sources to use, sources to exclude, and the necessary API keys.
+// Configuration represents the user-defined settings for the Finder.
+// It specifies which sources to use or exclude and includes API keys for external sources.
+//
+// Fields:
+// - SourcesToUse []string: List of sources to be used for enumeration.
+// - SourcesToExclude []string: List of sources to be excluded.
+// - Keys sources.Keys: API keys for authenticated sources.
 type Configuration struct {
 	SourcesToUSe     []string
 	SourcesToExclude []string
@@ -99,8 +113,15 @@ type Configuration struct {
 // dp is a domain parser used to normalize domains into their root and top-level domain (TLD) components.
 var dp = hqgourl.NewDomainParser()
 
-// New creates a new Finder instance based on the provided Configuration.
-// It initializes the Finder with the selected sources and ensures that excluded sources are not used.
+// New creates and initializes a new Finder instance.
+// It enables the specified sources, applies exclusions, and sets the required configuration.
+//
+// Parameters:
+// - cfg *Configuration: The configuration specifying sources, exclusions, and API keys.
+//
+// Returns:
+// - finder *Finder: A pointer to the initialized Finder instance.
+// - err error: Returns an error if initialization fails, otherwise nil.
 func New(cfg *Configuration) (finder *Finder, err error) {
 	finder = &Finder{
 		sources: map[string]sources.Source{},
