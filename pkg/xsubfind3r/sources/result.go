@@ -1,14 +1,13 @@
 package sources
 
-// Result represents the outcome of an operation performed by a source, such as subdomain
-// enumeration or data collection. It encapsulates details about the result, including
+// Result represents the outcome of subdomain discovery. It encapsulates details about the result, including
 // its type, the originating source, the actual data (if available), and any error
 // encountered during the operation.
 //
 // Fields:
 //   - Type (ResultType): Specifies the kind of result (e.g., subdomain or error).
 //   - Source (string): Identifies the source that produced this result (e.g., "crtsh", "shodan").
-//   - Value (string): Contains the actual data retrieved by the source, such as a subdomain name.
+//   - Value (string): Contains the actual subdomain retrieved from the source.
 //     This field is empty if the result is an error.
 //   - Error (error): Holds the error encountered during the operation, if any. If no error
 //     occurred, this field is nil.
@@ -38,8 +37,7 @@ type Result struct {
 // It allows for distinguishing between different types of outcomes produced by sources.
 //
 // Enumeration Values:
-//   - ResultSubdomain: Indicates a successful result containing a subdomain or other
-//     relevant data retrieved by the source.
+//   - ResultSubdomain: Indicates a successful result containing a subdomain retrieved from the source.
 //   - ResultError: Represents a result indicating that an error occurred during the operation.
 //
 // Usage:
