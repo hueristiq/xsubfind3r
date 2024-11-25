@@ -78,17 +78,17 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 				getSubdomainsReqBodyDataReader := bytes.NewReader(getSubdomainsReqBodyDataBytes)
 
-				getSubdomainsRes, err = hqgohttp.POST(getSubdomainsReqURL).AddHeader("Content-Type", "application/json").AddHeader("APIKEY", key).Body(getSubdomainsReqBodyDataReader).Send()
+				getSubdomainsRes, err = hqgohttp.POST(getSubdomainsReqURL).AddHeader("Content-Type", "application/json").AddHeader("APIKEY", key).Body(getSubdomainsReqBodyDataReader).Send() //nolint:bodyclose
 			} else {
 				getSubdomainsReqURL := fmt.Sprintf("https://api.securitytrails.com/v1/scroll/%s", scrollID)
 
-				getSubdomainsRes, err = hqgohttp.GET(getSubdomainsReqURL).AddHeader("Content-Type", "application/json").AddHeader("APIKEY", key).Send()
+				getSubdomainsRes, err = hqgohttp.GET(getSubdomainsReqURL).AddHeader("Content-Type", "application/json").AddHeader("APIKEY", key).Send() //nolint:bodyclose
 			}
 
 			if err != nil && getSubdomainsRes.StatusCode == status.Forbidden.Int() {
 				getSubdomainsReqURL := fmt.Sprintf("https://api.securitytrails.com/v1/domain/%s/subdomains?children_only=false&include_inactive=true", domain)
 
-				getSubdomainsRes, err = hqgohttp.GET(getSubdomainsReqURL).AddHeader("Content-Type", "application/json").AddHeader("APIKEY", key).Send()
+				getSubdomainsRes, err = hqgohttp.GET(getSubdomainsReqURL).AddHeader("Content-Type", "application/json").AddHeader("APIKEY", key).Send() //nolint:bodyclose
 			}
 
 			if err != nil {

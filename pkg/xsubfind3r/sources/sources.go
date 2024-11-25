@@ -1,52 +1,102 @@
 package sources
 
-// Source is an interface that defines methods for a data source.
-// Any source that implements this interface should define a process to run
-// data collection or scanning based on a configuration and domain,
-// and provide a way to retrieve the source name.
+// Source is an interface that defines the blueprint for a data source.
+// Any data source integrated into the application must implement this interface.
+// It provides methods for initiating data collection and identifying the source.
+//
+// Methods:
+//   - Run: Executes the data collection or scanning process for a specific domain
+//     and configuration, returning results asynchronously through a channel.
+//   - Name: Returns the name of the data source, which is helpful for logging,
+//     debugging, or identifying the source in reports.
 type Source interface {
-	// Run starts the data collection or scanning process for a specific domain.
-	// It takes in a Configuration and a domain string as input and returns a channel
-	// of Result structs, which will asynchronously emit results from the data source.
-	// The use of channels allows for concurrent processing and retrieval of data.
+	// Run starts the data collection process for the specified domain using the provided
+	// configuration. It returns a channel that emits `Result` structs asynchronously,
+	// allowing concurrent processing and streaming of results.
+	//
+	// Parameters:
+	// - cfg *Configuration: The configuration settings, such as API keys and options,
+	//   required to interact with the data source.
+	// - domain string: The target domain for which data is to be collected.
+	//
+	// Returns:
+	// - <-chan Result: A channel that streams the results produced by the data source.
 	Run(cfg *Configuration, domain string) <-chan Result
-
-	// Name returns the name of the source. This can be used to identify the data source
-	// implementing the interface. Useful for logging, reporting, or debugging purposes.
+	// Name retrieves the unique identifier or name of the data source. This is primarily
+	// used for distinguishing between multiple sources, logging activity, and reporting
+	// during subdomain enumeration.
+	//
+	// Returns:
+	// - string: The name of the data source.
 	Name() string
 }
 
-// Constants representing the names of different data sources.
-// These constants can be used to refer to various OSINT (Open-Source Intelligence)
-// sources, threat intelligence platforms, or search engines that are commonly used
-// for gathering information about domains, IP addresses, or other targets.
+// The following constants define the names of supported data sources.
+// These constants are used as unique identifiers for the corresponding sources.
+// Each source provides different types of data, such as subdomains, SSL/TLS certificates,
+// historical records, or vulnerability data.
+//
+// List of Constants:
+//
+// - ANUBIS: An OSINT tool for gathering domain information.
+// - BEVIGIL: Focuses on vulnerabilities in mobile applications.
+// - BUILTWITH: Analyzes website technologies and services.
+// - CENSYS: Search engine for internet-connected devices and related metadata.
+// - CERTIFICATEDETAILS: Fetches information about SSL/TLS certificates.
+// - CERTSPOTTER: Monitors certificate transparency logs.
+// - CHAOS: ProjectDiscovery’s service for subdomain enumeration.
+// - COMMONCRAWL: Repository of open web data.
+// - CRTSH: Certificate transparency log search engine.
+// - FULLHUNT: Platform for attack surface monitoring.
+// - GITHUB: Searches code repositories for relevant data.
+// - HACKERTARGET: Offers security scanning and OSINT capabilities.
+// - INTELLIGENCEX: Search engine for intelligence data.
+// - LEAKIX: Search engine for leaked and exposed data.
+// - OPENTHREATEXCHANGE: Collaborative threat intelligence platform.
+// - SECURITYTRAILS: Provides comprehensive domain and DNS information.
+// - SHODAN: Search engine for internet-connected devices and vulnerabilities.
+// - SUBDOMAINCENTER: Tool dedicated to subdomain enumeration.
+// - URLSCAN: Service for website scanning and URL collection.
+// - WAYBACK: Internet archive for historical website snapshots.
+// - VIRUSTOTAL: Malware scanning for files and URLs.
 const (
-	ANUBIS             = "anubis"             // Anubis is an OSINT tool for gathering domain information.
-	BEVIGIL            = "bevigil"            // Bevigil is an OSINT platform focused on vulnerabilities in mobile apps.
-	BUILTWITH          = "builtwith"          // BuiltWith is a service for analyzing website technologies.
-	CENSYS             = "censys"             // Censys is a search engine for internet-connected devices and their data.
-	CERTIFICATEDETAILS = "certificatedetails" // CertificateDetails provides SSL/TLS certificate information.
-	CERTSPOTTER        = "certspotter"        // CertSpotter monitors SSL/TLS certificates for domains.
-	CHAOS              = "chaos"              // Chaos by ProjectDiscovery is a source for subdomain enumeration.
-	COMMONCRAWL        = "commoncrawl"        // Common Crawl is an open repository of web data.
-	CRTSH              = "crtsh"              // crt.sh is a certificate transparency log search engine.
-	FULLHUNT           = "fullhunt"           // FullHunt is a platform for attack surface monitoring.
-	GITHUB             = "github"             // GitHub is a source for finding code repositories and related metadata.
-	HACKERTARGET       = "hackertarget"       // HackerTarget provides security scanning services.
-	INTELLIGENCEX      = "intelx"             // Intelligence X is a search engine for intelligence gathering.
-	LEAKIX             = "leakix"             // LeakIX is a search engine for finding leaked and exposed data.
-	OPENTHREATEXCHANGE = "otx"                // Open Threat Exchange (OTX) is a collaborative threat intelligence platform.
-	SECURITYTRAILS     = "securitytrails"     // SecurityTrails offers a comprehensive API for domain information.
-	SHODAN             = "shodan"             // Shodan is a search engine for internet-connected devices and vulnerabilities.
-	SUBDOMAINCENTER    = "subdomaincenter"    // SubdomainCenter is a tool for subdomain enumeration.
-	URLSCAN            = "urlscan"            // URLScan.io is a service for scanning websites and collecting URLs.
-	WAYBACK            = "wayback"            // Wayback Machine is an internet archive for historical website snapshots.
-	VIRUSTOTAL         = "virustotal"         // VirusTotal is a platform for scanning files and URLs for malware.
+	ANUBIS             = "anubis"
+	BEVIGIL            = "bevigil"
+	BUILTWITH          = "builtwith"
+	CENSYS             = "censys"
+	CERTIFICATEDETAILS = "certificatedetails"
+	CERTSPOTTER        = "certspotter"
+	CHAOS              = "chaos"
+	COMMONCRAWL        = "commoncrawl"
+	CRTSH              = "crtsh"
+	FULLHUNT           = "fullhunt"
+	GITHUB             = "github"
+	HACKERTARGET       = "hackertarget"
+	INTELLIGENCEX      = "intelx"
+	LEAKIX             = "leakix"
+	OPENTHREATEXCHANGE = "otx"
+	SECURITYTRAILS     = "securitytrails"
+	SHODAN             = "shodan"
+	SUBDOMAINCENTER    = "subdomaincenter"
+	URLSCAN            = "urlscan"
+	WAYBACK            = "wayback"
+	VIRUSTOTAL         = "virustotal"
 )
 
-// List contains a collection of all available source names.
-// This array is useful for iterating over or referencing the supported data sources
-// in loops, validation logic, or dynamic configurations.
+// List is a collection of all supported source names.
+// It provides a convenient way to iterate over, validate, or configure the data sources dynamically.
+// Developers can use this list for tasks such as enabling specific sources or verifying
+// that a provided source name is valid.
+//
+// Usage:
+// - Iterate over the List to dynamically load supported sources.
+// - Validate user input by checking against the entries in the List.
+//
+// Example:
+//
+//	for _, source := range List {
+//	    fmt.Println("Supported source:", source)
+//	}
 var List = []string{
 	ANUBIS,
 	BEVIGIL,

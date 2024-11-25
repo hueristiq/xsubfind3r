@@ -1,4 +1,4 @@
 // Package xsubfind3r provides functionality to perform OSINT (Open Source Intelligence)
-// based subdomain enumeration by integrating with multiple data sources. It allows
-// users to configure which sources to query and manage API keys for authenticated sources.
+// based subdomain discovery by integrating with multiple data sources.
+// The package provides flexible configuration options and supports asynchronous result streaming.
 package xsubfind3r

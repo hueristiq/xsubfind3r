@@ -29,25 +29,26 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
 )
 
-// Finder is the main structure for managing and executing subdomain enumeration.
-// It holds the configured data sources and uses a provided configuration to control the behavior.
+// Finder is the primary structure for performing subdomain discovery.
+// It manages data sources and configuration settings.
 //
 // Fields:
-// - sources: A map of enabled data sources to be used for enumeration.
-// - configuration: The settings and API keys required for the sources.
+// - sources: A map of string keys to Source interfaces representing enabled enumeration sources.
+// - configuration: A pointer to the sources.Configuration struct containing API keys and settings.
 type Finder struct {
 	sources       map[string]sources.Source
 	configuration *sources.Configuration
 }
 
-// Find performs subdomain enumeration for a given domain.
-// It uses all the enabled sources and streams the results asynchronously through a channel.
+// Find initiates the subdomain discovery process for a specific domain.
+// It normalizes the domain name, applies source-specific logic, and streams results via a channel.
+// It uses all the enabled sources and streams the results asynchronously through the channel.
 //
 // Parameters:
-// - domain string: The target domain to find subdomains for.
+// - domain string: The target domain for subdomain discovery.
 //
 // Returns:
-// - results chan sources.Result: A channel that streams the results of type `sources.Result`.
+// - results chan sources.Result: A channel that streams subdomain enumeration results.
 func (finder *Finder) Find(domain string) (results chan sources.Result) {
 	results = make(chan sources.Result)
 
@@ -113,15 +114,15 @@ type Configuration struct {
 // dp is a domain parser used to normalize domains into their root and top-level domain (TLD) components.
 var dp = hqgourl.NewDomainParser()
 
-// New creates and initializes a new Finder instance.
-// It enables the specified sources, applies exclusions, and sets the required configuration.
+// New initializes a new Finder instance with the specified configuration.
+// It sets up the enabled sources, applies exclusions, and configures the Finder.
 //
 // Parameters:
-// - cfg *Configuration: The configuration specifying sources, exclusions, and API keys.
+// - cfg *Configuration: The user-defined configuration for sources and API keys.
 //
 // Returns:
 // - finder *Finder: A pointer to the initialized Finder instance.
-// - err error: Returns an error if initialization fails, otherwise nil.
+// - err error: An error object if initialization fails, or nil on success.
 func New(cfg *Configuration) (finder *Finder, err error) {
 	finder = &Finder{
 		sources: map[string]sources.Source{},
