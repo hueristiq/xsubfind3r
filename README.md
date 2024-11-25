@@ -19,7 +19,7 @@
 * [Licensing](#licensing)
 * [Credits](#credits)
 	* [Contributors](#contributors)
-	* [Similar Projects](#similar-projects)
+	* [Alternatives](#alternatives)
 
 ## Features
 
@@ -202,7 +202,7 @@ A huge thanks to all the contributors who have helped make `xsubfind3r` what it 
 
 [![contributors](https://contrib.rocks/image?repo=hueristiq/xsubfind3r&max=500)](https://github.com/hueristiq/xsubfind3r/graphs/contributors)
 
-### Similar Projects
+### Alternatives
 
 If you're interested in more utilities like this, check out:
 
