@@ -25,6 +25,7 @@
 
 * Fetches subdomains from multiple online passive sources to provide extensive results
 * Supports `stdin` and `stdout` for easy integration in automated workflows
+* Supports multiple output formats (JSONL, file, stdout)
 * Cross-Platform (Windows, Linux, and macOS)
 
 ## Installation
@@ -145,18 +146,19 @@ xsubfind3r -h
 Here's what the help message looks like:
 
 ```text
-                _      __ _           _ _____
-__  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
+
+                _      __ _           _ _____      
+__  _____ _   _| |__  / _(_)_ __   __| |___ / _ __ 
 \ \/ / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
- >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |
-/_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_|
+ >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |   
+/_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_| 
                                              v0.9.1
 
 USAGE:
  xsubfind3r [OPTIONS]
 
 CONFIGURATION:
- -c, --configuration string            configuration file (default: $HOME/.config/xsubfind3r/config.yaml)
+ -c, --configuration string            configuration file path (default: $HOME/.config/xsubfind3r/config.yaml)
 
 INPUT:
  -d, --domain string[]                 target domain
@@ -166,25 +168,19 @@ TIP: For multiple input domains use comma(,) separated value with `-d`,
      specify multiple `-d`, load from file with `-l` or load from stdin.
 
 SOURCES:
-     --sources bool                    list supported sources
- -u, --sources-to-use string[]         comma(,) separated sources to use
+     --sources bool                    list available sources
  -e, --sources-to-exclude string[]     comma(,) separated sources to exclude
+ -u, --sources-to-use string[]         comma(,) separated sources to use
 
 OUTPUT:
-     --monochrome bool                 display no color output
+     --json bool                       output subdomains in JSONL format
+     --monochrome bool                 stdout monochrome output
  -o, --output string                   output subdomains file path
  -O, --output-directory string         output subdomains directory path
- -s, --silent bool                     display output subdomains only
- -v, --verbose bool                    display verbose output
+ -s, --silent bool                     stdout subdomains only output
+ -v, --verbose bool                    stdout verbose output
+
 ```
-
-For example, to discover subdomains for `example.com`:
-
-```bash
-xsubfind3r -d example.com
-```
-
-You can also use multiple domains by separating them with commas or providing a list from a file.
 
 ## Contributing
 
