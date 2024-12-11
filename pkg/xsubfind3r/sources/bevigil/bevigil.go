@@ -15,13 +15,13 @@ type getSubdomainsResponse struct {
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration, domain string) <-chan sources.Result {
+func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
-		key, err := config.Keys.Bevigil.PickRandom()
+		key, err := cfg.Keys.Bevigil.PickRandom()
 		if key == "" || err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

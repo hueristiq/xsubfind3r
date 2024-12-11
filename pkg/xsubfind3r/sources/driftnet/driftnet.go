@@ -102,7 +102,7 @@ type TitleHTML struct {
 
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration, domain string) <-chan sources.Result {
+func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -159,7 +159,7 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 
 		for _, value := range getResultsResData.Observations.SubjectCert.Values {
 			for entry := range value {
-				subdomains := config.Extractor.FindAllString(entry, -1)
+				subdomains := cfg.Extractor.FindAllString(entry, -1)
 
 				for i := range subdomains {
 					subdomain := subdomains[i]
