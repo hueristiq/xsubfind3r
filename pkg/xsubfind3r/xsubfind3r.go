@@ -15,6 +15,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/chaos"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/commoncrawl"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/crtsh"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/driftnet"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/fullhunt"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/github"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/hackertarget"
@@ -153,6 +154,8 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 			finder.sources[source] = &chaos.Source{}
 		case sources.COMMONCRAWL:
 			finder.sources[source] = &commoncrawl.Source{}
+		case sources.DRIFTNET:
+			finder.sources[source] = &driftnet.Source{}
 		case sources.CRTSH:
 			finder.sources[source] = &crtsh.Source{}
 		case sources.FULLHUNT:

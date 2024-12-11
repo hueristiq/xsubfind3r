@@ -47,6 +47,7 @@ type Source interface {
 // - CHAOS: ProjectDiscovery’s service for subdomain enumeration.
 // - COMMONCRAWL: Repository of open web data.
 // - CRTSH: Certificate transparency log search engine.
+// - DRIFTNET
 // - FULLHUNT: Platform for attack surface monitoring.
 // - GITHUB: Searches code repositories for relevant data.
 // - HACKERTARGET: Offers security scanning and OSINT capabilities.
@@ -69,6 +70,7 @@ const (
 	CHAOS              = "chaos"
 	COMMONCRAWL        = "commoncrawl"
 	CRTSH              = "crtsh"
+	DRIFTNET           = "driftnet"
 	FULLHUNT           = "fullhunt"
 	GITHUB             = "github"
 	HACKERTARGET       = "hackertarget"
@@ -107,6 +109,7 @@ var List = []string{
 	CHAOS,
 	COMMONCRAWL,
 	CRTSH,
+	DRIFTNET,
 	FULLHUNT,
 	GITHUB,
 	HACKERTARGET,
