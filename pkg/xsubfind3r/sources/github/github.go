@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/headers"
-	"go.source.hueristiq.com/http/status"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
 	"github.com/tomnomnom/linkheader"
+	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/headers"
+	"go.source.hueristiq.com/http/status"
 )
 
 type searchResponse struct {

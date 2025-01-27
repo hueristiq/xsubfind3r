@@ -4,7 +4,6 @@ import (
 	"strings"
 	"sync"
 
-	hqgourl "go.source.hueristiq.com/url"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/anubis"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/bevigil"
@@ -28,6 +27,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/urlscan"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/virustotal"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
+	hqgourl "go.source.hueristiq.com/url"
 )
 
 // Finder is the primary structure for performing subdomain discovery.

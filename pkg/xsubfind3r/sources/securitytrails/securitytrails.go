@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
 	"go.source.hueristiq.com/http/status"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type getSubdomainsResponse struct {

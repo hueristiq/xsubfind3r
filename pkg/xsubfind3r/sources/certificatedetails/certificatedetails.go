@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"fmt"
 
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
 	"go.source.hueristiq.com/http/status"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type Source struct{}

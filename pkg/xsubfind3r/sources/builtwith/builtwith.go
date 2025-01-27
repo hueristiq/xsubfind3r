@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	hqgohttp "go.source.hueristiq.com/http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	hqgohttp "go.source.hueristiq.com/http"
 )
 
 type getDomainInfoResponse struct {

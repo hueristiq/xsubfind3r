@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	hqgohttp "go.source.hueristiq.com/http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
+	hqgohttp "go.source.hueristiq.com/http"
 )
 
 type searchResponse struct {
