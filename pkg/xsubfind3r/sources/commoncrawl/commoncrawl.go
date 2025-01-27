@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
+	hqgohttp "go.source.hueristiq.com/http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 

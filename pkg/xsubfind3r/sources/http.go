@@ -1,7 +1,7 @@
 package sources
 
 import (
-	hqgohttp "github.com/hueristiq/hq-go-http"
+	hqgohttp "go.source.hueristiq.com/http"
 )
 
 // init is a special Go function that runs automatically when the package is imported.

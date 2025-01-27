@@ -4,7 +4,7 @@ import (
 	"strings"
 	"sync"
 
-	hqgourl "github.com/hueristiq/hq-go-url"
+	hqgourl "go.source.hueristiq.com/url"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/anubis"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/bevigil"

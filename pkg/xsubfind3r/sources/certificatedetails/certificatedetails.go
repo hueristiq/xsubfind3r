@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"fmt"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
-	"github.com/hueristiq/hq-go-http/status"
+	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/status"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
