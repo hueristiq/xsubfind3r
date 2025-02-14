@@ -11,7 +11,11 @@ import (
 
 type getSubdomainsResponse struct {
 	Data []struct {
-		ID string `json:"id"`
+		ID    string `json:"id"`
+		Type  string `json:"type"`
+		Links struct {
+			Self string `json:"self"`
+		} `json:"links"`
 	} `json:"data"`
 	Meta struct {
 		Cursor string `json:"cursor"`
