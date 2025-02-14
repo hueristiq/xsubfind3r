@@ -85,7 +85,7 @@ func init() {
 		h += " -u, --sources-to-use string[]         comma(,) separated sources to use\n"
 
 		h += "\nOUTPUT:\n"
-		h += "     --json bool                       output subdomains in JSONL format\n"
+		h += "     --jsonl bool                      output subdomains in JSONL format\n"
 		h += "     --monochrome bool                 stdout monochrome output\n"
 		h += " -o, --output string                   output subdomains file path\n"
 		h += " -O, --output-directory string         output subdomains directory path\n"
