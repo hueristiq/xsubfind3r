@@ -7,6 +7,7 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/method"
 )
 
 type getNameValuesResponse []struct {
@@ -24,7 +25,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getNameValuesReqURL := fmt.Sprintf("https://crt.sh/?q=%%25.%s&output=json", domain)
 
-		getNameValuesRes, err := hqgohttp.GET(getNameValuesReqURL).Send()
+		getNameValuesRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getNameValuesReqURL).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

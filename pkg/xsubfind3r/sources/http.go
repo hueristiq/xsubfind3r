@@ -38,7 +38,9 @@ import (
 //   - This setup ensures all HTTP requests made using `hqgohttp.DefaultClient` include
 //     consistent headers, improving usability and compliance with expected defaults.
 func init() {
-	hqgohttp.DefaultClient.Headers["Accept"] = "*/*"
-	hqgohttp.DefaultClient.Headers["Accept-Language"] = "en"
-	hqgohttp.DefaultClient.Headers["Connection"] = "close"
+	hqgohttp.DefaultClient.WithHeaders(map[string]string{
+		"Accept":          "*/*",
+		"Accept-Language": "en",
+		"Connection":      "close",
+	})
 }

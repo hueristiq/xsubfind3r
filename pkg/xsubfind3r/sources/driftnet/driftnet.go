@@ -7,6 +7,7 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/method"
 )
 
 type getResultsResponse struct {
@@ -110,7 +111,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 		getResultsReqURL := fmt.Sprintf("https://api.driftnet.io/v1/multi/summary?summary_limit=10&timeout=30&from=2024-12-01&to=2024-12-11&field=host:%s", domain)
 
-		getResultsRes, err := hqgohttp.GET(getResultsReqURL).AddHeader("Authorization", "Bearer anon").Send()
+		getResultsRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getResultsReqURL).AddHeader("Authorization", "Bearer anon").Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

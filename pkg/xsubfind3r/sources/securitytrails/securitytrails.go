@@ -9,6 +9,7 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/method"
 	"go.source.hueristiq.com/http/status"
 )
 
@@ -78,17 +79,17 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 				getSubdomainsReqBodyDataReader := bytes.NewReader(getSubdomainsReqBodyDataBytes)
 
-				getSubdomainsRes, err = hqgohttp.POST(getSubdomainsReqURL).AddHeader("Content-Type", "application/json").AddHeader("APIKEY", key).Body(getSubdomainsReqBodyDataReader).Send() //nolint:bodyclose
+				getSubdomainsRes, err = hqgohttp.Request().Method(method.POST.String()).URL(getSubdomainsReqURL).AddHeader("Content-Type", "application/json").AddHeader("APIKEY", key).Body(getSubdomainsReqBodyDataReader).Send() //nolint:bodyclose
 			} else {
 				getSubdomainsReqURL := fmt.Sprintf("https://api.securitytrails.com/v1/scroll/%s", scrollID)
 
-				getSubdomainsRes, err = hqgohttp.GET(getSubdomainsReqURL).AddHeader("Content-Type", "application/json").AddHeader("APIKEY", key).Send() //nolint:bodyclose
+				getSubdomainsRes, err = hqgohttp.Request().Method(method.GET.String()).URL(getSubdomainsReqURL).AddHeader("Content-Type", "application/json").AddHeader("APIKEY", key).Send() //nolint:bodyclose
 			}
 
 			if err != nil && getSubdomainsRes.StatusCode == status.Forbidden.Int() {
 				getSubdomainsReqURL := fmt.Sprintf("https://api.securitytrails.com/v1/domain/%s/subdomains?children_only=false&include_inactive=true", domain)
 
-				getSubdomainsRes, err = hqgohttp.GET(getSubdomainsReqURL).AddHeader("Content-Type", "application/json").AddHeader("APIKEY", key).Send() //nolint:bodyclose
+				getSubdomainsRes, err = hqgohttp.Request().Method(method.GET.String()).URL(getSubdomainsReqURL).AddHeader("Content-Type", "application/json").AddHeader("APIKEY", key).Send() //nolint:bodyclose
 			}
 
 			if err != nil {

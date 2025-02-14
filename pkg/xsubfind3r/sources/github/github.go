@@ -12,9 +12,10 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
-	"github.com/tomnomnom/linkheader"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/headers"
+	"go.source.hueristiq.com/http/header"
+	hparser "go.source.hueristiq.com/http/header/parser"
+	"go.source.hueristiq.com/http/method"
 	"go.source.hueristiq.com/http/status"
 )
 
@@ -66,7 +67,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 	var searchRes *http.Response
 
-	searchRes, err = hqgohttp.GET(searchReqURL).AddHeader("Accept", "application/vnd.github.v3.text-match+json").AddHeader("Authorization", "token "+token.Hash).Send()
+	searchRes, err = hqgohttp.Request().Method(method.GET.String()).URL(searchReqURL).AddHeader("Accept", "application/vnd.github.v3.text-match+json").AddHeader("Authorization", "token "+token.Hash).Send()
 
 	isForbidden := searchRes != nil && searchRes.StatusCode == status.Forbidden.Int()
 
@@ -82,9 +83,9 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 		return
 	}
 
-	ratelimitRemaining := cast.ToInt64(searchRes.Header.Get(headers.XRatelimitRemaining.String()))
+	ratelimitRemaining := cast.ToInt64(searchRes.Header.Get(header.XRatelimitRemaining.String()))
 	if isForbidden && ratelimitRemaining == 0 {
-		retryAfterSeconds := cast.ToInt64(searchRes.Header.Get(headers.RetryAfter.String()))
+		retryAfterSeconds := cast.ToInt64(searchRes.Header.Get(header.RetryAfter.String()))
 
 		tokens.setCurrentTokenExceeded(retryAfterSeconds)
 
@@ -114,7 +115,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 		var getRawContentRes *http.Response
 
-		getRawContentRes, err = hqgohttp.GET(getRawContentReqURL).Send()
+		getRawContentRes, err = hqgohttp.Request().Method(method.GET.String()).URL(getRawContentReqURL).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -183,7 +184,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 		}
 	}
 
-	linksHeader := linkheader.Parse(searchRes.Header.Get(headers.Link.String()))
+	linksHeader := hparser.ParseLinkHeader(searchRes.Header.Get(header.Link.String()))
 
 	for _, link := range linksHeader {
 		if link.Rel == "next" {

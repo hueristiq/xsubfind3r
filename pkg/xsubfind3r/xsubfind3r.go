@@ -1,6 +1,8 @@
 package xsubfind3r
 
 import (
+	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -27,7 +29,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/urlscan"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/virustotal"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
-	hqgourl "go.source.hueristiq.com/url"
+	"go.source.hueristiq.com/url/parser"
 )
 
 // Finder is the primary structure for performing subdomain discovery.
@@ -57,10 +59,9 @@ func (finder *Finder) Find(domain string) (results chan sources.Result) {
 
 	domain = parsed.SLD + "." + parsed.TLD
 
-	finder.configuration.Extractor = hqgourl.NewDomainExtractor(
-		hqgourl.DomainExtractorWithRootDomainPattern(parsed.SLD),
-		hqgourl.DomainExtractorWithTLDPattern(parsed.TLD),
-	).CompileRegex()
+	pattern := fmt.Sprintf(`^(?i)(?:((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+))?(%s)$`, regexp.QuoteMeta(domain))
+
+	finder.configuration.Extractor = regexp.MustCompile(pattern)
 
 	go func() {
 		defer close(results)
@@ -113,7 +114,7 @@ type Configuration struct {
 }
 
 // dp is a domain parser used to normalize domains into their root and top-level domain (TLD) components.
-var dp = hqgourl.NewDomainParser()
+var dp = parser.NewDomainParser()
 
 // New initializes a new Finder instance with the specified configuration.
 // It sets up the enabled sources, applies exclusions, and configures the Finder.

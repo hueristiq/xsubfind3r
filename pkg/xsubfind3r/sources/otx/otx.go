@@ -8,6 +8,7 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/method"
 )
 
 type getPassiveDNSResponse struct {
@@ -28,7 +29,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getPassiveDNSReqURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", domain)
 
-		getPassiveDNSRes, err := hqgohttp.GET(getPassiveDNSReqURL).Send()
+		getPassiveDNSRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getPassiveDNSReqURL).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

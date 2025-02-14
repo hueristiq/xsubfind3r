@@ -8,6 +8,7 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/method"
 )
 
 type getSubdomainsResponse struct {
@@ -41,7 +42,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 		var getSubdomainsRes *http.Response
 
-		getSubdomainsRes, err = hqgohttp.GET(getSubdomainsReqURL).AddHeader("accept", "application/json").AddHeader("api-key", key).Send()
+		getSubdomainsRes, err = hqgohttp.Request().Method(method.GET.String()).URL(getSubdomainsReqURL).AddHeader("accept", "application/json").AddHeader("api-key", key).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

@@ -7,6 +7,7 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/method"
 )
 
 type getDNSResponse struct {
@@ -41,7 +42,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 		var getDNSRes *http.Response
 
-		getDNSRes, err = hqgohttp.GET(getDNSReqURL).Send()
+		getDNSRes, err = hqgohttp.Request().Method(method.GET.String()).URL(getDNSReqURL).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

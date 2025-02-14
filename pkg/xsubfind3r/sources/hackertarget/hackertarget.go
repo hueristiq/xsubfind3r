@@ -6,6 +6,7 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/method"
 )
 
 type Source struct{}
@@ -18,7 +19,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 		hostSearchReqURL := fmt.Sprintf("https://api.hackertarget.com/hostsearch/?q=%s", domain)
 
-		hostSearchRes, err := hqgohttp.GET(hostSearchReqURL).Send()
+		hostSearchRes, err := hqgohttp.Request().Method(method.GET.String()).URL(hostSearchReqURL).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

@@ -10,6 +10,7 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/method"
 )
 
 type searchRequestBody struct {
@@ -96,7 +97,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 		var searchRes *http.Response
 
-		searchRes, err = hqgohttp.POST(searchReqURL).AddHeader("Content-Type", "application/json").Body(searchReqBodyReader).Send()
+		searchRes, err = hqgohttp.Request().Method(method.POST.String()).URL(searchReqURL).AddHeader("Content-Type", "application/json").Body(searchReqBodyReader).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -133,7 +134,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 		for status == 0 || status == 3 {
 			var getResultsRes *http.Response
 
-			getResultsRes, err = hqgohttp.GET(getResultsReqURL).Send()
+			getResultsRes, err = hqgohttp.Request().Method(method.GET.String()).URL(getResultsReqURL).Send()
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,

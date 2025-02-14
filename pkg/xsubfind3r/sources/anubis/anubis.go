@@ -6,6 +6,7 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/method"
 )
 
 type Source struct{}
@@ -18,7 +19,7 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 
 		getSubdomainsReqURL := fmt.Sprintf("https://jldc.me/anubis/subdomains/%s", domain)
 
-		getSubdomainsRes, err := hqgohttp.GET(getSubdomainsReqURL).Send()
+		getSubdomainsRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getSubdomainsReqURL).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

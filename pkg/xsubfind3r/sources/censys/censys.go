@@ -7,6 +7,7 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/method"
 )
 
 type certSearchResponse struct {
@@ -68,7 +69,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 				certSearchReqURL = certSearchReqURL + "&cursor=" + cursor
 			}
 
-			certSearchRes, err := hqgohttp.GET(certSearchReqURL).AddHeader("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(key))).Send()
+			certSearchRes, err := hqgohttp.Request().Method(method.GET.String()).URL(certSearchReqURL).AddHeader("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(key))).Send()
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,

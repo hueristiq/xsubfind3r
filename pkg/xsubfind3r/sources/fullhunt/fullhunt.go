@@ -6,6 +6,7 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/method"
 )
 
 type getSubdomainsResponse struct {
@@ -37,7 +38,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 		getSubdomainsReqURL := fmt.Sprintf("https://fullhunt.io/api/v1/domain/%s/subdomains", domain)
 
-		getSubdomainsRes, err := hqgohttp.GET(getSubdomainsReqURL).AddHeader("X-API-KEY", key).Send()
+		getSubdomainsRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getSubdomainsReqURL).AddHeader("X-API-KEY", key).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

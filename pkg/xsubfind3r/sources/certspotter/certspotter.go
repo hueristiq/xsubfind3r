@@ -7,6 +7,7 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/method"
 )
 
 type getCTLogsSearchResponse struct {
@@ -37,7 +38,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 		getCTLogsSearchReqURL := fmt.Sprintf("https://api.certspotter.com/v1/issuances?domain=%s&include_subdomains=true&expand=dns_names", domain)
 
-		getCTLogsSearchRes, err := hqgohttp.GET(getCTLogsSearchReqURL).AddHeader("Authorization", "Bearer "+key).Send()
+		getCTLogsSearchRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getCTLogsSearchReqURL).AddHeader("Authorization", "Bearer "+key).Send()
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -93,7 +94,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 		for {
 			getCTLogsSearchReqURL := fmt.Sprintf("https://api.certspotter.com/v1/issuances?domain=%s&include_subdomains=true&expand=dns_names&after=%s", domain, id)
 
-			getCTLogsSearchRes, err := hqgohttp.GET(getCTLogsSearchReqURL).AddHeader("Authorization", "Bearer "+key).Send()
+			getCTLogsSearchRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getCTLogsSearchReqURL).AddHeader("Authorization", "Bearer "+key).Send()
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
