@@ -4,28 +4,27 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
 
-	"github.com/hueristiq/hqgolog"
-	"github.com/hueristiq/hqgolog/formatter"
-	"github.com/hueristiq/hqgolog/levels"
 	"github.com/hueristiq/xsubfind3r/internal/configuration"
 	"github.com/hueristiq/xsubfind3r/internal/input"
+	"github.com/hueristiq/xsubfind3r/internal/logger"
+	"github.com/hueristiq/xsubfind3r/internal/logger/formatter"
+	"github.com/hueristiq/xsubfind3r/internal/logger/levels"
 	"github.com/hueristiq/xsubfind3r/internal/output"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	"github.com/logrusorgru/aurora/v3"
+	"github.com/logrusorgru/aurora/v4"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 var (
-	au aurora.Aurora
+	au = aurora.New(aurora.WithColors(true))
 
 	configurationFilePath string
 
@@ -63,14 +62,16 @@ func init() {
 
 	pflag.CommandLine.SortFlags = false
 	pflag.Usage = func() {
-		fmt.Fprintln(os.Stderr, configuration.BANNER)
+		logger.Info().Label("").Msg(configuration.BANNER(au))
 
 		h := "USAGE:\n"
 		h += fmt.Sprintf(" %s [OPTIONS]\n", configuration.NAME)
 
 		h += "\nCONFIGURATION:\n"
+
 		defaultConfigurationFilePath := strings.ReplaceAll(configuration.DefaultConfigurationFilePath, configuration.UserDotConfigDirectoryPath, "$HOME/.config")
-		h += fmt.Sprintf(" -c, --configuration string            configuration file path (default: %s)\n", defaultConfigurationFilePath)
+
+		h += fmt.Sprintf(" -c, --configuration string            configuration file path (default: %v)\n", au.Underline(defaultConfigurationFilePath).Bold())
 
 		h += "\nINPUT:\n"
 		h += " -d, --domain string[]                 target domain\n"
@@ -98,7 +99,7 @@ func init() {
 	pflag.Parse()
 
 	if err := configuration.CreateOrUpdate(configurationFilePath); err != nil {
-		hqgolog.Fatal().Msg(err.Error())
+		logger.Fatal().Msg(err.Error())
 	}
 
 	viper.SetConfigFile(configurationFilePath)
@@ -107,40 +108,38 @@ func init() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalln(err)
+		logger.Fatal().Msg(err.Error())
 	}
 
-	hqgolog.DefaultLogger.SetMaxLevel(levels.LevelInfo)
-
-	if verbose {
-		hqgolog.DefaultLogger.SetMaxLevel(levels.LevelDebug)
-	}
-
-	hqgolog.DefaultLogger.SetFormatter(formatter.NewCLI(&formatter.CLIOptions{
+	logger.DefaultLogger.SetFormatter(formatter.NewConsoleFormatter(&formatter.ConsoleFormatterConfiguration{
 		Colorize: !monochrome,
 	}))
 
-	au = aurora.NewAurora(!monochrome)
+	if verbose {
+		logger.DefaultLogger.SetMaxLogLevel(levels.LevelDebug)
+	}
+
+	if silent {
+		logger.DefaultLogger.SetMaxLogLevel(levels.LevelSilent)
+	}
+
+	au = aurora.New(aurora.WithColors(!monochrome))
 }
 
 func main() {
-	if !silent {
-		fmt.Fprintln(os.Stderr, configuration.BANNER)
-	}
+	logger.Info().Label("").Msg(configuration.BANNER(au))
 
 	var err error
 
 	var cfg *configuration.Configuration
 
 	if err := viper.Unmarshal(&cfg); err != nil {
-		hqgolog.Fatal().Msg(err.Error())
+		logger.Fatal().Msg(err.Error())
 	}
 
 	if listSources {
-		hqgolog.Print().Msg("")
-		hqgolog.Info().Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(cfg.Sources))).Bold())
-		hqgolog.Info().Msgf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold())
-		hqgolog.Print().Msg("")
+		logger.Info().Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(cfg.Sources))).Bold())
+		logger.Info().Msgf("sources marked with %v take in key(s) or token(s).\n\n", au.Underline("*").Bold())
 
 		needsKey := make(map[string]interface{})
 		keysElem := reflect.ValueOf(&cfg.Keys).Elem()
@@ -153,13 +152,11 @@ func main() {
 			source := cfg.Sources[index]
 
 			if _, ok := needsKey[source]; ok {
-				hqgolog.Print().Msgf("> %s *", source)
+				logger.Print().Msgf("> %s *", source)
 			} else {
-				hqgolog.Print().Msgf("> %s", source)
+				logger.Print().Msgf("> %s", source)
 			}
 		}
-
-		hqgolog.Print().Msg("")
 
 		os.Exit(0)
 	}
@@ -169,7 +166,7 @@ func main() {
 
 		file, err = os.Open(inputDomainsListFilePath)
 		if err != nil {
-			hqgolog.Error().Msg(err.Error())
+			logger.Error().Msg(err.Error())
 		}
 
 		scanner := bufio.NewScanner(file)
@@ -183,7 +180,7 @@ func main() {
 		}
 
 		if err = scanner.Err(); err != nil {
-			hqgolog.Error().Msg(err.Error())
+			logger.Error().Msg(err.Error())
 		}
 
 		file.Close()
@@ -201,7 +198,7 @@ func main() {
 		}
 
 		if err = scanner.Err(); err != nil {
-			hqgolog.Error().Msg(err.Error())
+			logger.Error().Msg(err.Error())
 		}
 	}
 
@@ -213,7 +210,7 @@ func main() {
 		Keys:             cfg.Keys,
 	})
 	if err != nil {
-		hqgolog.Fatal().Msg(err.Error())
+		logger.Fatal().Msg(err.Error())
 
 		return
 	}
@@ -227,11 +224,7 @@ func main() {
 	for index := range inputDomains {
 		domain := inputDomains[index]
 
-		if !silent {
-			hqgolog.Print().Msg("")
-			hqgolog.Info().Msgf("Finding subdomains for %v...", au.Underline(domain).Bold())
-			hqgolog.Print().Msg("")
-		}
+		logger.Info().Msgf("Finding subdomains for %v...\n\n", au.Underline(domain).Bold())
 
 		writers := []io.Writer{
 			os.Stdout,
@@ -243,14 +236,14 @@ func main() {
 		case outputFilePath != "":
 			file, err = outputWritter.CreateFile(outputFilePath)
 			if err != nil {
-				hqgolog.Error().Msg(err.Error())
+				logger.Error().Msg(err.Error())
 			}
 
 			writers = append(writers, file)
 		case outputDirectoryPath != "":
 			file, err = outputWritter.CreateFile(filepath.Join(outputDirectoryPath, domain))
 			if err != nil {
-				hqgolog.Error().Msg(err.Error())
+				logger.Error().Msg(err.Error())
 			}
 
 			writers = append(writers, file)
@@ -265,11 +258,11 @@ func main() {
 				switch result.Type {
 				case sources.ResultError:
 					if verbose {
-						hqgolog.Error().Msgf("%s: %s\n", result.Source, result.Error)
+						logger.Error().Msgf("%s: %s", result.Source, result.Error)
 					}
 				case sources.ResultSubdomain:
 					if err := outputWritter.Write(writer, domain, result); err != nil {
-						hqgolog.Error().Msg(err.Error())
+						logger.Error().Msg(err.Error())
 					}
 				}
 			}

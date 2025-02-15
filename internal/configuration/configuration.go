@@ -1,13 +1,13 @@
 package configuration
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
 	"dario.cat/mergo"
-	"github.com/hueristiq/hqgolog"
+	"github.com/hueristiq/xsubfind3r/internal/logger"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/logrusorgru/aurora/v4"
 	"gopkg.in/yaml.v3"
 )
 
@@ -51,26 +51,32 @@ const (
 )
 
 var (
-	BANNER = fmt.Sprintf(`
+	BANNER = func(au *aurora.Aurora) (banner string) {
+		banner = au.Sprintf(
+			au.BrightBlue(`
                 _      __ _           _ _____
 __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 \ \/ / __| | | | '_ \| |_| | '_ \ / _`+"`"+` | |_ \| '__|
  >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |
 /_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_|
-                                             v%s
+                                             %s`).Bold(),
+			au.BrightRed("v"+VERSION).Bold().Italic(),
+		) + "\n\n"
 
-                          Hueristiq (hueristiq.com)
-`, VERSION)
+		return
+	}
+
 	UserDotConfigDirectoryPath = func() (userDotConfig string) {
 		var err error
 
 		userDotConfig, err = os.UserConfigDir()
 		if err != nil {
-			hqgolog.Fatal().Msg(err.Error())
+			logger.Fatal().Msg(err.Error())
 		}
 
 		return
 	}()
+
 	DefaultConfigurationFilePath = filepath.Join(UserDotConfigDirectoryPath, NAME, "config.yaml")
 	DefaultConfiguration         = Configuration{
 		Version: VERSION,
