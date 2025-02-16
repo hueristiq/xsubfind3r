@@ -139,7 +139,8 @@ func main() {
 
 	if listSources {
 		logger.Info().Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(cfg.Sources))).Bold())
-		logger.Info().Msgf("sources marked with %v take in key(s) or token(s).\n\n", au.Underline("*").Bold())
+		logger.Info().Msgf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold())
+		logger.Print().Msg("")
 
 		needsKey := make(map[string]interface{})
 		keysElem := reflect.ValueOf(&cfg.Keys).Elem()
@@ -157,6 +158,8 @@ func main() {
 				logger.Print().Msgf("> %s", source)
 			}
 		}
+
+		logger.Print().Msg("")
 
 		os.Exit(0)
 	}
@@ -224,7 +227,8 @@ func main() {
 	for index := range inputDomains {
 		domain := inputDomains[index]
 
-		logger.Info().Msgf("Finding subdomains for %v...\n\n", au.Underline(domain).Bold())
+		logger.Info().Msgf("Finding subdomains for %v...", au.Underline(domain).Bold())
+		logger.Print().Msg("")
 
 		writers := []io.Writer{
 			os.Stdout,
@@ -269,5 +273,7 @@ func main() {
 		}
 
 		file.Close()
+
+		logger.Print().Msg("")
 	}
 }
