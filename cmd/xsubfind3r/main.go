@@ -93,7 +93,8 @@ func init() {
 		h += " -s, --silent bool                     stdout subdomains only output\n"
 		h += " -v, --verbose bool                    stdout verbose output\n"
 
-		fmt.Fprintln(os.Stderr, h)
+		logger.Info().Label("").Msg(h)
+		logger.Print().Msg("")
 	}
 
 	pflag.Parse()
