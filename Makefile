@@ -138,12 +138,6 @@ docker-build:
 #   - When no target is provided, the default action (set by .DEFAULT_GOAL) is to show this help text.
 help:
 	@echo ""
-	@echo "*****************************************************************************"
-	@echo ""
-	@echo "PROJECT : $(PROJECT)"
-	@echo ""
-	@echo "*****************************************************************************"
-	@echo ""
 	@echo "Available commands:"
 	@echo ""
 	@echo " Git Hooks:"
