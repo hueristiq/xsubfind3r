@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 
 	"dario.cat/mergo"
-	"github.com/hueristiq/xsubfind3r/internal/logger"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/logrusorgru/aurora/v4"
+	"go.source.hueristiq.com/logger"
 	"gopkg.in/yaml.v3"
 )
 
