@@ -6,24 +6,24 @@
 
 ## Resource
 
-* [Features](#features)
-* [Installation](#installation)
-	* [Install release binaries (Without Go Installed)](#install-release-binaries-without-go-installed)
-	* [Install source (With Go Installed)](#install-source-with-go-installed)
-		* [`go install ...`](#go-install)
-		* [`go build ...`](#go-build)
-	* [Install on Docker (With Docker Installed)](#install-on-docker-with-docker-installed)
-* [Post Installation](#post-installation)
-* [Usage](#usage)
-* [Contributing](#contributing)
-* [Licensing](#licensing)
+- [Features](#features)
+- [Installation](#installation)
+	- [Install release binaries (Without Go Installed)](#install-release-binaries-without-go-installed)
+	- [Install source (With Go Installed)](#install-source-with-go-installed)
+		- [`go install ...`](#go-install)
+		- [`go build ...`](#go-build)
+	- [Install on Docker (With Docker Installed)](#install-on-docker-with-docker-installed)
+- [Post Installation](#post-installation)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [Licensing](#licensing)
 
 ## Features
 
-* Fetches subdomains from multiple online passive sources to provide extensive results
-* Supports `stdin` and `stdout` for easy integration in automated workflows
-* Supports multiple output formats (JSONL, file, stdout)
-* Cross-Platform (Windows, Linux, and macOS)
+- Fetches subdomains from multiple online passive sources to provide extensive results
+- Supports `stdin` and `stdout` for easy integration in automated workflows
+- Supports multiple output formats (JSONL, file, stdout)
+- Cross-Platform (Windows, Linux, and macOS)
 
 ## Installation
 
@@ -31,13 +31,13 @@
 
 Visit the [releases page](https://github.com/hueristiq/xsubfind3r/releases) and find the appropriate archive for your operating system and architecture. Download the archive from your browser or copy its URL and retrieve it with `wget` or `curl`:
 
-* ...with `wget`:
+- ...with `wget`:
 
 	```bash
 	wget https://github.com/hueristiq/xsubfind3r/releases/download/v<version>/xsubfind3r-<version>-linux-amd64.tar.gz
 	```
 
-* ...or, with `curl`:
+- ...or, with `curl`:
 
 	```bash
 	curl -OL https://github.com/hueristiq/xsubfind3r/releases/download/v<version>/xsubfind3r-<version>-linux-amd64.tar.gz
@@ -80,20 +80,20 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 
 #### `go build ...`
 
-* Clone the repository
+- Clone the repository
 
 	```bash
 	git clone https://github.com/hueristiq/xsubfind3r.git 
 	```
 
-* Build the utility
+- Build the utility
 
 	```bash
 	cd xsubfind3r/cmd/xsubfind3r && \
 	go build .
 	```
 
-* Move the `xsubfind3r` binary to somewhere in your `PATH`. For example, on GNU/Linux and OS X systems:
+- Move the `xsubfind3r` binary to somewhere in your `PATH`. For example, on GNU/Linux and OS X systems:
 
 	```bash
 	sudo mv xsubfind3r /usr/local/bin/
@@ -109,13 +109,13 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 
 If you have Docker installed, you can use `xsubfind3r` using it's image:
 
-* Pull the docker image using:
+- Pull the docker image using:
 
     ```bash
     docker pull hueristiq/xsubfind3r:latest
     ```
 
-* Run `xsubfind3r` using the image:
+- Run `xsubfind3r` using the image:
 
     ```bash
     docker run --rm hueristiq/xsubfind3r:latest -h
