@@ -55,9 +55,9 @@ type Finder struct {
 func (finder *Finder) Find(domain string) (results chan sources.Result) {
 	results = make(chan sources.Result)
 
-	parsed := dp.Parse(domain)
+	parsed, _ := up.Parse(domain)
 
-	domain = parsed.SLD + "." + parsed.TLD
+	domain = parsed.Domain.SecondLevelDomain + "." + parsed.Domain.TopLevelDomain
 
 	pattern := fmt.Sprintf(`^(?i)(?:((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+))?(%s)$`, regexp.QuoteMeta(domain))
 
@@ -114,7 +114,9 @@ type Configuration struct {
 }
 
 // dp is a domain parser used to normalize domains into their root and top-level domain (TLD) components.
-var dp = parser.NewDomainParser()
+var up = parser.New(
+	parser.WithDefaultScheme("http"),
+)
 
 // New initializes a new Finder instance with the specified configuration.
 // It sets up the enabled sources, applies exclusions, and configures the Finder.

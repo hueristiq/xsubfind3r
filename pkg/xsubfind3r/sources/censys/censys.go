@@ -7,7 +7,6 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/method"
 )
 
 type certSearchResponse struct {
@@ -63,13 +62,21 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 		certSearchReqURL := "https://search.censys.io/api/v2/certificates/search"
 
 		for {
-			certSearchReqURL = fmt.Sprintf(certSearchReqURL+"?q=%s&per_page=%d", domain, maxPerPage)
-
-			if cursor != "" {
-				certSearchReqURL = certSearchReqURL + "&cursor=" + cursor
+			certSearchReqCFG := &hqgohttp.RequestConfiguration{
+				Params: map[string]string{
+					"q":        domain,
+					"per_page": fmt.Sprintf("%d", maxPerPage),
+				},
+				Headers: map[string]string{
+					"Authprization": "Basic " + base64.StdEncoding.EncodeToString([]byte(key)),
+				},
 			}
 
-			certSearchRes, err := hqgohttp.Request().Method(method.GET.String()).URL(certSearchReqURL).AddHeader("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(key))).Send()
+			if cursor != "" {
+				certSearchReqCFG.Params["cursor"] = cursor
+			}
+
+			certSearchRes, err := hqgohttp.Get(certSearchReqURL, certSearchReqCFG)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,

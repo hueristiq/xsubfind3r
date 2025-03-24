@@ -2,11 +2,9 @@ package hackertarget
 
 import (
 	"bufio"
-	"fmt"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/method"
 )
 
 type Source struct{}
@@ -17,9 +15,14 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 	go func() {
 		defer close(results)
 
-		hostSearchReqURL := fmt.Sprintf("https://api.hackertarget.com/hostsearch/?q=%s", domain)
+		hostSearchReqURL := "https://api.hackertarget.com/hostsearch"
+		hostSearchReqCFG := &hqgohttp.RequestConfiguration{
+			Params: map[string]string{
+				"q": domain,
+			},
+		}
 
-		hostSearchRes, err := hqgohttp.Request().Method(method.GET.String()).URL(hostSearchReqURL).Send()
+		hostSearchRes, err := hqgohttp.Get(hostSearchReqURL, hostSearchReqCFG)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

@@ -11,7 +11,6 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/method"
 )
 
 type getIndexesResponse []struct {
@@ -40,7 +39,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 		getIndexesReqURL := "https://index.commoncrawl.org/collinfo.json"
 
-		getIndexesRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getIndexesReqURL).Send()
+		getIndexesRes, err := hqgohttp.Get(getIndexesReqURL)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -94,9 +93,16 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 		}
 
 		for _, CCIndexAPI := range searchIndexes {
-			getPaginationReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url&showNumPages=true", CCIndexAPI, domain)
+			getPaginationReqCFG := &hqgohttp.RequestConfiguration{
+				Params: map[string]string{
+					"url":          "*." + domain + "/*",
+					"output":       "json",
+					"fl":           "url",
+					"showNumPages": "true",
+				},
+			}
 
-			getPaginationRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getPaginationReqURL).Send()
+			getPaginationRes, err := hqgohttp.Get(CCIndexAPI, getPaginationReqCFG)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
@@ -132,9 +138,19 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 			}
 
 			for page := range getPaginationData.Pages {
-				getURLsReqURL := fmt.Sprintf("%s?url=*.%s/*&output=json&fl=url&page=%d", CCIndexAPI, domain, page)
+				getURLsReqCFG := &hqgohttp.RequestConfiguration{
+					Headers: map[string]string{
+						"Host": "index.commoncrawl.org",
+					},
+					Params: map[string]string{
+						"url":    "*." + domain + "/*",
+						"output": "json",
+						"fl":     "url",
+						"page":   fmt.Sprintf("%d", page),
+					},
+				}
 
-				getURLsRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getURLsReqURL).AddHeader("Host", "index.commoncrawl.org").Send()
+				getURLsRes, err := hqgohttp.Get(CCIndexAPI, getURLsReqCFG)
 				if err != nil {
 					result := sources.Result{
 						Type:   sources.ResultError,

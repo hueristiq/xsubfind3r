@@ -1,9 +1,5 @@
 package sources
 
-import (
-	hqgohttp "go.source.hueristiq.com/http"
-)
-
 // init is a special Go function that runs automatically when the package is imported.
 // It is used here to configure default HTTP headers for the `hqgohttp.DefaultClient`.
 //
@@ -38,9 +34,4 @@ import (
 //   - This setup ensures all HTTP requests made using `hqgohttp.DefaultClient` include
 //     consistent headers, improving usability and compliance with expected defaults.
 func init() {
-	hqgohttp.DefaultClient.WithHeaders(map[string]string{
-		"Accept":          "*/*",
-		"Accept-Language": "en",
-		"Connection":      "close",
-	})
 }

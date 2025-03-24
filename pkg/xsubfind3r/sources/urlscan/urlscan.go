@@ -3,14 +3,12 @@ package urlscan
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/method"
 )
 
 type searchResponse struct {
@@ -53,15 +51,25 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 		var after string
 
 		for {
-			searchReqURL := fmt.Sprintf("https://urlscan.io/api/v1/search/?q=domain:%s&size=10000", domain)
+			searchReqURL := "https://urlscan.io/api/v1/search"
+			searchReqCFG := &hqgohttp.RequestConfiguration{
+				Params: map[string]string{
+					"q":    "domain:" + domain,
+					"size": "10000",
+				},
+				Headers: map[string]string{
+					"Content-Type": "application/json",
+					"API-Key":      key,
+				},
+			}
 
 			if after != "" {
-				searchReqURL += "&search_after=" + after
+				searchReqCFG.Params["search_after"] = after
 			}
 
 			var searchRes *http.Response
 
-			searchRes, err = hqgohttp.Request().Method(method.GET.String()).URL(searchReqURL).AddHeader("Content-Type", "application/json").AddHeader("API-Key", key).Send()
+			searchRes, err = hqgohttp.Get(searchReqURL, searchReqCFG)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,

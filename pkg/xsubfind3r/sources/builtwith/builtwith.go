@@ -7,7 +7,6 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/method"
 )
 
 type getDomainInfoResponse struct {
@@ -47,9 +46,21 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 			return
 		}
 
-		getDomainInfoReqURL := fmt.Sprintf("https://api.builtwith.com/v21/api.json?KEY=%s&HIDETEXT=yes&HIDEDL=yes&NOLIVE=yes&NOMETA=yes&NOPII=yes&NOATTR=yes&LOOKUP=%s", key, domain)
+		getDomainInfoReqURL := "https://api.builtwith.com/v21/api.json"
+		getDomainInfoReqCFG := &hqgohttp.RequestConfiguration{
+			Params: map[string]string{
+				"KEY":      key,
+				"HIDETEXT": "yes",
+				"HIDEDL":   "yes",
+				"NOLIVE":   "yes",
+				"NOMETA":   "yes",
+				"NOPII":    "yes",
+				"NOATTR":   "yes",
+				"LOOKUP":   domain,
+			},
+		}
 
-		getDomainInfoRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getDomainInfoReqURL).Send()
+		getDomainInfoRes, err := hqgohttp.Get(getDomainInfoReqURL, getDomainInfoReqCFG)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

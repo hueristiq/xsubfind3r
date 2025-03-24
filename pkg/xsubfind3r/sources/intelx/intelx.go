@@ -10,7 +10,6 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/method"
 )
 
 type searchRequestBody struct {
@@ -95,9 +94,15 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 		searchReqBodyReader := bytes.NewBuffer(searchReqBodyBytes)
 
+		searchReqCFG := &hqgohttp.RequestConfiguration{
+			Headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+		}
+
 		var searchRes *http.Response
 
-		searchRes, err = hqgohttp.Request().Method(method.POST.String()).URL(searchReqURL).AddHeader("Content-Type", "application/json").Body(searchReqBodyReader).Send()
+		searchRes, err = hqgohttp.Post(searchReqURL, searchReqBodyReader, searchReqCFG)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -128,13 +133,20 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 		searchRes.Body.Close()
 
-		getResultsReqURL := fmt.Sprintf("https://%s/phonebook/search/result?k=%s&id=%s&limit=10000", intelXHost, intelXKey, searchResData.ID)
+		getResultsReqURL := fmt.Sprintf("https://%s/phonebook/search/result", intelXHost)
+		getResultsReqCFG := &hqgohttp.RequestConfiguration{
+			Params: map[string]string{
+				"k":     intelXKey,
+				"id":    searchResData.ID,
+				"limit": "10000",
+			},
+		}
 		status := 0
 
 		for status == 0 || status == 3 {
 			var getResultsRes *http.Response
 
-			getResultsRes, err = hqgohttp.Request().Method(method.GET.String()).URL(getResultsReqURL).Send()
+			getResultsRes, err = hqgohttp.Get(getResultsReqURL, getResultsReqCFG)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,

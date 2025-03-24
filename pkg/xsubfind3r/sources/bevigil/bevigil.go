@@ -6,7 +6,6 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/method"
 )
 
 type getSubdomainsResponse struct {
@@ -36,8 +35,13 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 		}
 
 		getSubdomainsReqURL := fmt.Sprintf("https://osint.bevigil.com/api/%s/subdomains/", domain)
+		getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
+			Headers: map[string]string{
+				"X-Access-Token": key,
+			},
+		}
 
-		getSubdomainsRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getSubdomainsReqURL).AddHeader("X-Access-Token", key).Send()
+		getSubdomainsRes, err := hqgohttp.Get(getSubdomainsReqURL, getSubdomainsReqCFG)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

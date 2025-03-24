@@ -6,7 +6,6 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/method"
 )
 
 type getSubdomainsResponse struct {
@@ -46,13 +45,21 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 		var cursor string
 
 		for {
-			getSubdomainsReqURL := fmt.Sprintf("https://www.virustotal.com/api/v3/domains/%s/subdomains?limit=1000", domain)
-
-			if cursor != "" {
-				getSubdomainsReqURL = fmt.Sprintf("%s&cursor=%s", getSubdomainsReqURL, cursor)
+			getSubdomainsReqURL := fmt.Sprintf("https://www.virustotal.com/api/v3/domains/%s/subdomains", domain)
+			getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
+				Headers: map[string]string{
+					"x-apikey": key,
+				},
+				Params: map[string]string{
+					"limit": "1000",
+				},
 			}
 
-			getSubdomainsRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getSubdomainsReqURL).AddHeader("x-apikey", key).Send()
+			if cursor != "" {
+				getSubdomainsReqCFG.Params["cursor"] = cursor
+			}
+
+			getSubdomainsRes, err := hqgohttp.Get(getSubdomainsReqURL, getSubdomainsReqCFG)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,

@@ -2,12 +2,10 @@ package certspotter
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/method"
 )
 
 type getCTLogsSearchResponse struct {
@@ -36,9 +34,16 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 			return
 		}
 
-		getCTLogsSearchReqURL := fmt.Sprintf("https://api.certspotter.com/v1/issuances?domain=%s&include_subdomains=true&expand=dns_names", domain)
+		getCTLogsSearchReqURL := "https://api.certspotter.com/v1/issuances"
+		getCTLogsSearchReqCFG := &hqgohttp.RequestConfiguration{
+			Params: map[string]string{
+				"domain":             domain,
+				"include_subdomains": "true",
+				"expand":             "dns_names",
+			},
+		}
 
-		getCTLogsSearchRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getCTLogsSearchReqURL).AddHeader("Authorization", "Bearer "+key).Send()
+		getCTLogsSearchRes, err := hqgohttp.Get(getCTLogsSearchReqURL, getCTLogsSearchReqCFG)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -92,9 +97,20 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 		id := getCTLogsSearchResData[len(getCTLogsSearchResData)-1].ID
 
 		for {
-			getCTLogsSearchReqURL := fmt.Sprintf("https://api.certspotter.com/v1/issuances?domain=%s&include_subdomains=true&expand=dns_names&after=%s", domain, id)
+			getCTLogsSearchReqURL := "https://api.certspotter.com/v1/issuances"
+			getCTLogsSearchReqCFG := &hqgohttp.RequestConfiguration{
+				Params: map[string]string{
+					"domain":             domain,
+					"include_subdomains": "true",
+					"expand":             "dns_names",
+					"after":              id,
+				},
+				Headers: map[string]string{
+					"Authorization": "Bearer " + key,
+				},
+			}
 
-			getCTLogsSearchRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getCTLogsSearchReqURL).AddHeader("Authorization", "Bearer "+key).Send()
+			getCTLogsSearchRes, err := hqgohttp.Get(getCTLogsSearchReqURL, getCTLogsSearchReqCFG)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,

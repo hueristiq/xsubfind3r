@@ -15,7 +15,6 @@ import (
 	hqgohttp "go.source.hueristiq.com/http"
 	"go.source.hueristiq.com/http/header"
 	hparser "go.source.hueristiq.com/http/header/parser"
-	"go.source.hueristiq.com/http/method"
 	"go.source.hueristiq.com/http/status"
 )
 
@@ -63,11 +62,18 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 		}
 	}
 
+	searchResCFG := &hqgohttp.RequestConfiguration{
+		Headers: map[string]string{
+			"Accept":        "application/vnd.github.v3.text-match+json",
+			"Authorization": "token " + token.Hash,
+		},
+	}
+
 	var err error
 
 	var searchRes *http.Response
 
-	searchRes, err = hqgohttp.Request().Method(method.GET.String()).URL(searchReqURL).AddHeader("Accept", "application/vnd.github.v3.text-match+json").AddHeader("Authorization", "token "+token.Hash).Send()
+	searchRes, err = hqgohttp.Get(searchReqURL, searchResCFG)
 
 	isForbidden := searchRes != nil && searchRes.StatusCode == status.Forbidden.Int()
 
@@ -115,7 +121,7 @@ func (source *Source) Enumerate(searchReqURL string, domainRegexp *regexp.Regexp
 
 		var getRawContentRes *http.Response
 
-		getRawContentRes, err = hqgohttp.Request().Method(method.GET.String()).URL(getRawContentReqURL).Send()
+		getRawContentRes, err = hqgohttp.Get(getRawContentReqURL)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

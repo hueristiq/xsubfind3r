@@ -2,12 +2,10 @@ package crtsh
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/method"
 )
 
 type getNameValuesResponse []struct {
@@ -23,9 +21,15 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 	go func() {
 		defer close(results)
 
-		getNameValuesReqURL := fmt.Sprintf("https://crt.sh/?q=%%25.%s&output=json", domain)
+		getNameValuesReqURL := "https://crt.sh"
+		getNameValuesReqCFG := &hqgohttp.RequestConfiguration{
+			Params: map[string]string{
+				"q":      "%%25." + domain,
+				"output": "json",
+			},
+		}
 
-		getNameValuesRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getNameValuesReqURL).Send()
+		getNameValuesRes, err := hqgohttp.Get(getNameValuesReqURL, getNameValuesReqCFG)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

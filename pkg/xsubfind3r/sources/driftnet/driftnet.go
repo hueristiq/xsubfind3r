@@ -2,12 +2,10 @@ package driftnet
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/method"
 )
 
 type getResultsResponse struct {
@@ -109,9 +107,21 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 	go func() {
 		defer close(results)
 
-		getResultsReqURL := fmt.Sprintf("https://api.driftnet.io/v1/multi/summary?summary_limit=10&timeout=30&from=2024-12-01&to=2024-12-11&field=host:%s", domain)
+		getResultsReqURL := "https://api.driftnet.io/v1/multi/summary"
+		getResultsReqCFG := &hqgohttp.RequestConfiguration{
+			Headers: map[string]string{
+				"Authorization": "Bearer anon",
+			},
+			Params: map[string]string{
+				"summary_limit": "10",
+				"timeout":       "30",
+				"from":          "2024-12-01",
+				"to":            "2024-12-11",
+				"field":         "host:" + domain,
+			},
+		}
 
-		getResultsRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getResultsReqURL).AddHeader("Authorization", "Bearer anon").Send()
+		getResultsRes, err := hqgohttp.Get(getResultsReqURL, getResultsReqCFG)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

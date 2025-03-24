@@ -6,7 +6,6 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/method"
 	"go.source.hueristiq.com/http/status"
 )
 
@@ -20,7 +19,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 
 		getCertificateDetailsReqURL := fmt.Sprintf("https://certificatedetails.com/%s", domain)
 
-		getCertificateDetailsRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getCertificateDetailsReqURL).Send()
+		getCertificateDetailsRes, err := hqgohttp.Get(getCertificateDetailsReqURL)
 		if err != nil && getCertificateDetailsRes.StatusCode != status.NotFound.Int() {
 			result := sources.Result{
 				Type:   sources.ResultError,

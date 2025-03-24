@@ -2,11 +2,9 @@ package subdomaincenter
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/method"
 )
 
 type Source struct{}
@@ -17,9 +15,14 @@ func (source *Source) Run(_ *sources.Configuration, domain string) <-chan source
 	go func() {
 		defer close(results)
 
-		getSubdomainsReqURL := fmt.Sprintf("https://api.subdomain.center/?domain=%s", domain)
+		getSubdomainsReqURL := "https://api.subdomain.center"
+		getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
+			Params: map[string]string{
+				"domain": domain,
+			},
+		}
 
-		getSubdomainsRes, err := hqgohttp.Request().Method(method.GET.String()).URL(getSubdomainsReqURL).Send()
+		getSubdomainsRes, err := hqgohttp.Get(getSubdomainsReqURL, getSubdomainsReqCFG)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

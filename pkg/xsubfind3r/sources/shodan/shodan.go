@@ -7,7 +7,6 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/method"
 )
 
 type getDNSResponse struct {
@@ -38,11 +37,16 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 			return
 		}
 
-		getDNSReqURL := fmt.Sprintf("https://api.shodan.io/dns/domain/%s?key=%s", domain, key)
+		getDNSReqURL := fmt.Sprintf("https://api.shodan.io/dns/domain/%s", domain)
+		getDNSReqCFG := &hqgohttp.RequestConfiguration{
+			Params: map[string]string{
+				"key": key,
+			},
+		}
 
 		var getDNSRes *http.Response
 
-		getDNSRes, err = hqgohttp.Request().Method(method.GET.String()).URL(getDNSReqURL).Send()
+		getDNSRes, err = hqgohttp.Get(getDNSReqURL, getDNSReqCFG)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
