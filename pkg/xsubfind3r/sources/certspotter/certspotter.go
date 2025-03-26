@@ -1,3 +1,12 @@
+// Package certspotter provides an implementation of the sources.Source interface
+// for interacting with the Certspotter API.
+//
+// The Certspotter API offers certificate transparency search capabilities that
+// allow for the discovery of subdomains by returning certificate issuance data.
+// This package defines a Source type that implements the Run and Name methods as
+// specified by the sources.Source interface. The Run method sends queries to the
+// Certspotter API, processes the JSON responses (including handling pagination via
+// the "after" parameter), and streams discovered subdomains or errors via a channel.
 package certspotter
 
 import (
@@ -6,16 +15,57 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/header"
 )
 
+// getCTLogsSearchResponse represents the structure of the JSON response returned by the Certspotter API.
+//
+// It contains the following fields:
+//   - ID: A unique identifier for the certificate record.
+//   - DNSNames: A slice of strings representing the DNS names (subdomains) associated with the certificate.
 type getCTLogsSearchResponse struct {
 	ID       string   `json:"id"`
 	DNSNames []string `json:"dns_names"`
 }
 
+// Source represents the Certspotter data source implementation.
+// It implements the sources.Source interface, providing functionality
+// for retrieving subdomains from the Certspotter API.
 type Source struct{}
 
-func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+// Run initiates the process of retrieving subdomain information from the Certspotter API for a given domain.
+//
+// It constructs HTTP GET requests to the Certspotter API endpoint, processes the JSON responses,
+// and streams each discovered subdomain as a sources.Result via a channel.
+//
+// Parameters:
+//   - domain (string): The target domain for which to retrieve subdomains.
+//   - cfg (*sources.Configuration): The configuration settings (which include API keys) used to authenticate with the Certspotter API.
+//
+// Returns:
+//   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
+//     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
+//     encountered during the operation.
+//
+// The function executes the following steps:
+//  1. Attempts to retrieve a random API key from the configuration's Certspotter keys.
+//  2. Constructs an initial API request URL ("https://api.certspotter.com/v1/issuances") with query parameters:
+//     - "domain": set to the target domain.
+//     - "include_subdomains": set to "true" to include subdomains.
+//     - "expand": set to "dns_names" to expand DNS name details.
+//  3. Sends an HTTP GET request using the hqgohttp package and decodes the JSON response into a slice
+//     of getCTLogsSearchResponse objects.
+//  4. If the response is empty, terminates the operation.
+//  5. Iterates over the received certificate records and, for each DNS name, checks if it is equal to the
+//     target domain or a valid subdomain (ends with "." concatenated with the target domain). Valid subdomains
+//     are streamed as sources.Result of type ResultSubdomain.
+//  6. Retrieves the "ID" from the last record and enters a loop to paginate through additional results by
+//     using the "after" parameter.
+//  7. For each subsequent request, includes the "after" parameter and the Authorization header ("Bearer" token)
+//     to retrieve additional certificate records. Processes each response similarly to stream subdomains.
+//  8. Terminates the pagination loop when no more records are returned.
+//  9. Closes the results channel upon completion.
+func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -106,7 +156,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 					"after":              id,
 				},
 				Headers: map[string]string{
-					"Authorization": "Bearer " + key,
+					header.Authorization.String(): "Bearer " + key,
 				},
 			}
 
@@ -168,6 +218,12 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 	return results
 }
 
-func (source *Source) Name() string {
+// Name returns the unique identifier for the Certspotter data source.
+// This identifier is used for logging, debugging, and to associate results
+// with the correct data source.
+//
+// Returns:
+//   - name (string): The constant sources.CERTSPOTTER representing the Certspotter source.
+func (source *Source) Name() (name string) {
 	return sources.CERTSPOTTER
 }

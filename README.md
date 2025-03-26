@@ -181,9 +181,9 @@ OUTPUT:
 
 ## Contributing
 
-Feel free to submit [Pull Requests](https://github.com/hueristiq/xsubfind3r/pulls) or report [Issues](https://github.com/hueristiq/xsubfind3r/issues). For more details, check out the [contribution guidelines](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md).
+Contributions are welcome and encouraged! Feel free to submit [Pull Requests](https://github.com/hueristiq/xsubfind3r/pulls) or report [Issues](https://github.com/hueristiq/xsubfind3r/issues). For more details, check out the [contribution guidelines](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md).
 
-Huge thanks to the [contributors](https://github.com/hueristiq/xsubfind3r/graphs/contributors) thus far!
+A big thank you to all the [contributors](https://github.com/hueristiq/xsubfind3r/graphs/contributors) for your ongoing support!
 
 ![contributors](https://contrib.rocks/image?repo=hueristiq/xsubfind3r&max=500)
 

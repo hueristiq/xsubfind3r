@@ -1,3 +1,11 @@
+// Package driftnet provides an implementation of the sources.Source interface
+// for interacting with the Driftnet API.
+//
+// The Driftnet API aggregates multi-dimensional observation data, including host and certificate
+// information, from which subdomains can be extracted. This package defines a Source type that
+// implements the Run and Name methods as specified by the sources.Source interface. The Run method
+// sends a query to the Driftnet API, processes the JSON response, extracts subdomains from observations
+// (from host data and subject certificate data), and streams discovered subdomains or errors via a channel.
 package driftnet
 
 import (
@@ -6,8 +14,15 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/header"
 )
 
+// getResultsResponse represents the structure of the JSON response returned by the Driftnet API.
+//
+// It contains two main sections:
+//   - Enrichments: Contains various enrichment data (e.g. CVE, JA4XHash, nuclei-name, product-tag, etc.).
+//   - Observations: Contains observed data such as ASN, host, HTTP headers, IP, and subject certificates.
+//     The Observations.Host.Values field and Observations.SubjectCert.Values field are used to extract subdomains.
 type getResultsResponse struct {
 	Enrichments  Enrichments  `json:"enrichments"`
 	Observations Observations `json:"observations"`
@@ -99,9 +114,42 @@ type TitleHTML struct {
 	Values      map[string]map[string]int `json:"values"`
 }
 
+// Source represents the Driftnet data source implementation.
+// It implements the sources.Source interface, providing functionality
+// for retrieving subdomains from the Driftnet API.
 type Source struct{}
 
-func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+// Run initiates the process of retrieving subdomain information from the Driftnet API for a given domain.
+//
+// It constructs an HTTP GET request to the Driftnet API multi-summary endpoint, decodes the JSON response,
+// and streams each discovered subdomain as a sources.Result via a channel.
+//
+// Parameters:
+//   - domain (string): The target domain for which to retrieve subdomains.
+//   - cfg (*sources.Configuration): The configuration settings (which include API keys and the regular expression extractor)
+//     used to process the response and extract valid subdomains.
+//
+// Returns:
+//   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
+//     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
+//     encountered during the operation.
+//
+// The function executes the following steps:
+//  1. Constructs the API request URL ("https://api.driftnet.io/v1/multi/summary") with query parameters:
+//     - "summary_limit": The maximum number of summary records to retrieve.
+//     - "timeout": The timeout value for the query.
+//     - "from" and "to": The time range for the query.
+//     - "field": Set to "host:" concatenated with the target domain.
+//  2. Sends an HTTP GET request using the hqgohttp package with a preset authorization header ("Bearer anon").
+//  3. Decodes the JSON response into a getResultsResponse struct.
+//  4. Iterates over the Observations.Host.Values map:
+//     - For each key (representing a subdomain), validates that it equals the target domain or ends with "." concatenated with the target domain.
+//     - Streams each valid subdomain as a sources.Result of type ResultSubdomain.
+//  5. Iterates over the Observations.SubjectCert.Values map:
+//     - Applies the regular expression from cfg.Extractor to each value to extract subdomains.
+//     - Streams each valid extracted subdomain as a sources.Result of type ResultSubdomain.
+//  6. Closes the results channel upon completion.
+func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -110,7 +158,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 		getResultsReqURL := "https://api.driftnet.io/v1/multi/summary"
 		getResultsReqCFG := &hqgohttp.RequestConfiguration{
 			Headers: map[string]string{
-				"Authorization": "Bearer anon",
+				header.Authorization.String(): "Bearer anon",
 			},
 			Params: map[string]string{
 				"summary_limit": "10",
@@ -194,6 +242,12 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 	return results
 }
 
-func (source *Source) Name() string {
+// Name returns the unique identifier for the Driftnet data source.
+// This identifier is used for logging, debugging, and to associate results
+// with the correct data source.
+//
+// Returns:
+//   - name (string): The constant sources.DRIFTNET representing the Driftnet source.
+func (source *Source) Name() (name string) {
 	return sources.DRIFTNET
 }

@@ -1,3 +1,12 @@
+// Package xsubfind3r provides the core functionality for performing subdomain
+// discovery using multiple data sources. It integrates various sources that implement
+// the sources.Source interface, coordinates concurrent subdomain enumeration, and
+// aggregates the results.
+//
+// The package defines a Finder type, which manages enabled sources and configuration
+// settings, and provides a Find method to initiate subdomain discovery for a given domain.
+// It also defines a Configuration type for user-defined settings and API keys, and
+// initializes HTTP client configurations for reliable network requests.
 package xsubfind3r
 
 import (
@@ -5,6 +14,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/anubis"
@@ -29,6 +39,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/urlscan"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/virustotal"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
+	hqgohttp "go.source.hueristiq.com/http"
 	"go.source.hueristiq.com/url/parser"
 )
 
@@ -36,8 +47,8 @@ import (
 // It manages data sources and configuration settings.
 //
 // Fields:
-// - sources: A map of string keys to Source interfaces representing enabled enumeration sources.
-// - configuration: A pointer to the sources.Configuration struct containing API keys and settings.
+//   - sources (map[string]sources.Source): A map of string keys to sources.Source interfaces representing the enabled enumeration sources.
+//   - configuration (*sources.Configuration): A pointer to the sources.Configuration struct containing API keys and other settings.
 type Finder struct {
 	sources       map[string]sources.Source
 	configuration *sources.Configuration
@@ -45,13 +56,13 @@ type Finder struct {
 
 // Find initiates the subdomain discovery process for a specific domain.
 // It normalizes the domain name, applies source-specific logic, and streams results via a channel.
-// It uses all the enabled sources and streams the results asynchronously through the channel.
+// The method uses all enabled sources concurrently and aggregates their results.
 //
 // Parameters:
-// - domain string: The target domain for subdomain discovery.
+//   - domain (string): The target domain for subdomain discovery.
 //
 // Returns:
-// - results chan sources.Result: A channel that streams subdomain enumeration results.
+//   - results (chan sources.Result): A channel that streams subdomain enumeration results.
 func (finder *Finder) Find(domain string) (results chan sources.Result) {
 	results = make(chan sources.Result)
 
@@ -59,7 +70,7 @@ func (finder *Finder) Find(domain string) (results chan sources.Result) {
 
 	domain = parsed.Domain.SecondLevelDomain + "." + parsed.Domain.TopLevelDomain
 
-	pattern := fmt.Sprintf(`^(?i)(?:((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+))?(%s)$`, regexp.QuoteMeta(domain))
+	pattern := fmt.Sprintf(`(?i)(?:((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+))?(%s)`, regexp.QuoteMeta(domain))
 
 	finder.configuration.Extractor = regexp.MustCompile(pattern)
 
@@ -76,7 +87,7 @@ func (finder *Finder) Find(domain string) (results chan sources.Result) {
 			go func(source sources.Source) {
 				defer wg.Done()
 
-				sResults := source.Run(finder.configuration, domain)
+				sResults := source.Run(domain, finder.configuration)
 
 				for sResult := range sResults {
 					if sResult.Type == sources.ResultSubdomain {
@@ -104,9 +115,9 @@ func (finder *Finder) Find(domain string) (results chan sources.Result) {
 // It specifies which sources to use or exclude and includes API keys for external sources.
 //
 // Fields:
-// - SourcesToUse []string: List of sources to be used for enumeration.
-// - SourcesToExclude []string: List of sources to be excluded.
-// - Keys sources.Keys: API keys for authenticated sources.
+//   - SourcesToUSe ([]string): List of source names to be used for enumeration.
+//   - SourcesToExclude ([]string): List of source names to be excluded from enumeration.
+//   - Keys (sources.Keys): API keys for authenticated sources.
 type Configuration struct {
 	SourcesToUSe     []string
 	SourcesToExclude []string
@@ -118,15 +129,23 @@ var up = parser.New(
 	parser.WithDefaultScheme("http"),
 )
 
+func init() {
+	cfg := hqgohttp.DefaultSprayingClientConfiguration
+
+	cfg.Timeout = 1 * time.Hour
+
+	hqgohttp.DefaultClient, _ = hqgohttp.NewClient(cfg)
+}
+
 // New initializes a new Finder instance with the specified configuration.
 // It sets up the enabled sources, applies exclusions, and configures the Finder.
 //
 // Parameters:
-// - cfg *Configuration: The user-defined configuration for sources and API keys.
+//   - cfg (*Configuration): The user-defined configuration for sources and API keys.
 //
 // Returns:
-// - finder *Finder: A pointer to the initialized Finder instance.
-// - err error: An error object if initialization fails, or nil on success.
+//   - finder (*Finder): A pointer to the initialized Finder instance.
+//   - err (error): An error object if initialization fails, or nil on success.
 func New(cfg *Configuration) (finder *Finder, err error) {
 	finder = &Finder{
 		sources: map[string]sources.Source{},

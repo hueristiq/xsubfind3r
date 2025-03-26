@@ -53,7 +53,7 @@ func init() {
 	pflag.StringSliceVarP(&sourcesToExclude, "exclude-sources", "e", []string{}, "")
 	pflag.StringSliceVarP(&sourcesToUse, "use-sources", "u", []string{}, "")
 
-	pflag.BoolVar(&outputInJSONL, "json", false, "")
+	pflag.BoolVar(&outputInJSONL, "jsonl", false, "")
 	pflag.BoolVar(&monochrome, "monochrome", false, "")
 	pflag.StringVarP(&outputFilePath, "output", "o", "", "")
 	pflag.StringVarP(&outputDirectoryPath, "output-directory", "O", "", "")

@@ -1,3 +1,10 @@
+// Package chaos provides an implementation of the sources.Source interface
+// for interacting with the Chaos API.
+//
+// The Chaos API offers subdomain discovery by querying ProjectDiscovery's DNS API.
+// This package defines a Source type that implements the Run and Name methods as
+// specified by the sources.Source interface. The Run method sends a query to the Chaos API,
+// processes the JSON response, and streams discovered subdomains or errors via a channel.
 package chaos
 
 import (
@@ -6,17 +13,51 @@ import (
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
+	"go.source.hueristiq.com/http/header"
 )
 
+// getSubdomainsResponse represents the structure of the JSON response returned by the Chaos API.
+//
+// It contains the following fields:
+//   - Domain: The primary domain for which subdomains are being queried.
+//   - Subdomains: A slice of strings representing the discovered subdomains.
+//   - Count: The total number of discovered subdomains.
 type getSubdomainsResponse struct {
 	Domain     string   `json:"domain"`
 	Subdomains []string `json:"subdomains"`
 	Count      int      `json:"count"`
 }
 
+// Source represents the Chaos API data source implementation.
+// It implements the sources.Source interface, providing functionality
+// for retrieving subdomains from the Chaos API.
 type Source struct{}
 
-func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+// Run initiates the process of retrieving subdomain information from the Chaos API for a given domain.
+//
+// It constructs an HTTP GET request to the Chaos API endpoint, decodes the JSON response,
+// and streams each discovered subdomain as a sources.Result via a channel.
+//
+// Parameters:
+//   - domain (string): The target domain for which to retrieve subdomains.
+//   - cfg (*sources.Configuration): The configuration settings (which include API keys)
+//     used to authenticate with the Chaos API.
+//
+// Returns:
+//   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
+//     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
+//     encountered during the operation.
+//
+// The function executes the following steps:
+//  1. Attempts to retrieve a random API key from the configuration's Chaos keys.
+//  2. Constructs the API request URL using the target domain.
+//  3. Configures the HTTP request with the required authentication header.
+//  4. Sends an HTTP GET request using the hqgohttp package.
+//  5. Decodes the JSON response into a getSubdomainsResponse struct.
+//  6. Iterates over the discovered subdomains, concatenates each with the primary domain
+//     to form full subdomain strings, and streams each as a sources.Result of type ResultSubdomain.
+//  7. Closes the results channel upon completion.
+func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -38,7 +79,7 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 		getSubdomainsReqURL := fmt.Sprintf("https://dns.projectdiscovery.io/dns/%s/subdomains", domain)
 		getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
 			Headers: map[string]string{
-				"Authorization": key,
+				header.Authorization.String(): key,
 			},
 		}
 
@@ -87,6 +128,12 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 	return results
 }
 
-func (source *Source) Name() string {
+// Name returns the unique identifier for the Chaos data source.
+// This identifier is used for logging, debugging, and to associate results
+// with the correct data source.
+//
+// Returns:
+//   - name (string): The constant sources.CHAOS representing the Chaos source.
+func (source *Source) Name() (name string) {
 	return sources.CHAOS
 }

@@ -1,3 +1,11 @@
+// Package builtwith provides an implementation of the sources.Source interface
+// for interacting with the BuiltWith API.
+//
+// The BuiltWith API offers detailed information on the technologies used by a domain,
+// including subdomain discovery. This package defines a Source type that implements the
+// Run and Name methods as specified by the sources.Source interface. The Run method sends
+// a query to the BuiltWith API, processes the JSON response, and streams discovered subdomains
+// or errors via a channel.
 package builtwith
 
 import (
@@ -9,6 +17,12 @@ import (
 	hqgohttp "go.source.hueristiq.com/http"
 )
 
+// getDomainInfoResponse represents the structure of the JSON response returned by the BuiltWith API.
+//
+// It contains two primary components:
+//   - Results: A slice of result objects, each of which includes technology paths with domain,
+//     URL, and subdomain information.
+//   - Errors:  A slice of error objects, each containing details about an error encountered during the API request.
 type getDomainInfoResponse struct {
 	Results []struct {
 		Result struct {
@@ -25,9 +39,35 @@ type getDomainInfoResponse struct {
 	} `json:"Errors"`
 }
 
+// Source represents the BuiltWith data source implementation.
+// It implements the sources.Source interface, providing functionality
+// for retrieving subdomains from the BuiltWith API.
 type Source struct{}
 
-func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+// Run initiates the process of retrieving subdomain information from the BuiltWith API for a given domain.
+//
+// It constructs an HTTP GET request to the BuiltWith API endpoint, decodes the JSON response,
+// and streams each discovered subdomain as a sources.Result via a channel.
+//
+// Parameters:
+//   - domain (string): The target domain for which to retrieve subdomains.
+//   - cfg (*sources.Configuration): The configuration settings (which include API keys) used to authenticate with the BuiltWith API.
+//
+// Returns:
+//   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
+//     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
+//     encountered during the operation.
+//
+// The function executes the following steps:
+//  1. Attempts to retrieve a random API key from the configuration's BuiltWith keys.
+//  2. Constructs the API request URL and configures the required parameters, including the API key and query options.
+//  3. Sends the HTTP GET request using the hqgohttp package.
+//  4. Decodes the JSON response into a getDomainInfoResponse struct.
+//  5. Checks for errors in the response; if any are found, streams each error as a sources.Result of type ResultError.
+//  6. Iterates over the results and their associated paths, concatenating SubDomain and Domain to form full subdomain strings,
+//     and streams each discovered subdomain as a sources.Result of type ResultSubdomain.
+//  7. Closes the results channel upon completion.
+func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -121,8 +161,16 @@ func (source *Source) Run(cfg *sources.Configuration, domain string) <-chan sour
 	return results
 }
 
-func (source *Source) Name() string {
+// Name returns the unique identifier for the BuiltWith data source.
+// This identifier is used for logging, debugging, and to associate results
+// with the correct data source.
+//
+// Returns:
+//   - name (string): The constant sources.BUILTWITH representing the BuiltWith source.
+func (source *Source) Name() (name string) {
 	return sources.BUILTWITH
 }
 
+// errStatic is a sentinel error used to prepend error messages when the BuiltWith API response
+// contains error messages.
 var errStatic = errors.New("something went wrong")
