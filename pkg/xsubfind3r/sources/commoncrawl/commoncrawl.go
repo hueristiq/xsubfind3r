@@ -76,24 +76,13 @@ type Source struct{}
 //
 // Parameters:
 //   - domain (string): The target domain for which to retrieve subdomains.
-//   - cfg (*sources.Configuration): The configuration settings (which include API keys and the regular expression extractor)
-//     used to authenticate with the Common Crawl API and to extract subdomains from URLs.
+//   - cfg (*sources.Configuration): The configuration instance containing API keys,
+//     the URL validation function, and any additional settings required by the source.
 //
 // Returns:
 //   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
 //     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
 //     encountered during the operation.
-//
-// The function executes the following steps:
-//  1. Sends an HTTP GET request to retrieve index metadata from the Common Crawl collection info endpoint.
-//  2. Filters the retrieved indexes to select those corresponding to the current year and the past few years (up to 5 years back).
-//  3. For each selected index API URL, constructs a query with parameters to search for URLs matching the target domain.
-//  4. Sends an HTTP GET request to retrieve pagination information (number of pages) for the query.
-//  5. For each page, sends an HTTP GET request to retrieve URLs.
-//  6. Uses a buffered scanner to iterate over each line of the response, decoding each JSON record.
-//  7. Checks for errors in each record and, if none, extracts subdomains from the URL using the provided regular expression (cfg.Extractor).
-//  8. Streams each discovered subdomain as a sources.Result of type ResultSubdomain or any encountered error as a ResultError.
-//  9. Closes the results channel upon completion.
 func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
@@ -293,12 +282,11 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 	return results
 }
 
-// Name returns the unique identifier for the Common Crawl data source.
-// This identifier is used for logging, debugging, and to associate results
-// with the correct data source.
+// Name returns the unique identifier for the data source.
+// This identifier is used for logging, debugging, and associating results with the correct data source.
 //
 // Returns:
-//   - name (string): The constant sources.COMMONCRAWL representing the Common Crawl source.
+//   - name (string): The unique identifier for the data source.
 func (source *Source) Name() (name string) {
 	return sources.COMMONCRAWL
 }

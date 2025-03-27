@@ -35,28 +35,15 @@ type Source struct{}
 
 // Run initiates the process of retrieving subdomain information from the Chaos API for a given domain.
 //
-// It constructs an HTTP GET request to the Chaos API endpoint, decodes the JSON response,
-// and streams each discovered subdomain as a sources.Result via a channel.
-//
 // Parameters:
 //   - domain (string): The target domain for which to retrieve subdomains.
-//   - cfg (*sources.Configuration): The configuration settings (which include API keys)
-//     used to authenticate with the Chaos API.
+//   - cfg (*sources.Configuration): The configuration instance containing API keys,
+//     the URL validation function, and any additional settings required by the source.
 //
 // Returns:
 //   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
 //     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
 //     encountered during the operation.
-//
-// The function executes the following steps:
-//  1. Attempts to retrieve a random API key from the configuration's Chaos keys.
-//  2. Constructs the API request URL using the target domain.
-//  3. Configures the HTTP request with the required authentication header.
-//  4. Sends an HTTP GET request using the hqgohttp package.
-//  5. Decodes the JSON response into a getSubdomainsResponse struct.
-//  6. Iterates over the discovered subdomains, concatenates each with the primary domain
-//     to form full subdomain strings, and streams each as a sources.Result of type ResultSubdomain.
-//  7. Closes the results channel upon completion.
 func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
@@ -128,12 +115,11 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 	return results
 }
 
-// Name returns the unique identifier for the Chaos data source.
-// This identifier is used for logging, debugging, and to associate results
-// with the correct data source.
+// Name returns the unique identifier for the data source.
+// This identifier is used for logging, debugging, and associating results with the correct data source.
 //
 // Returns:
-//   - name (string): The constant sources.CHAOS representing the Chaos source.
+//   - name (string): The unique identifier for the data source.
 func (source *Source) Name() (name string) {
 	return sources.CHAOS
 }

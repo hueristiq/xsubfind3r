@@ -23,27 +23,15 @@ type Source struct{}
 
 // Run initiates a subdomain discovery operation for the given domain using the Anubis API.
 //
-// It constructs an HTTP GET request to the Anubis API endpoint, decodes the JSON response,
-// and streams each discovered subdomain as a sources.Result via a channel.
-//
 // Parameters:
 //   - domain (string): The target domain for which subdomains are to be retrieved.
-//   - _ (*sources.Configuration): The configuration settings (unused in this implementation).
+//   - _ (*sources.Configuration): The configuration instance containing API keys,
+//     the URL validation function, and any additional settings required by the source.
 //
 // Returns:
 //   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
-//     Each result represents either a discovered subdomain or an error encountered during the operation.
-//
-// The function performs the following steps:
-//  1. Creates a results channel to send discovered subdomains or errors.
-//  2. Constructs the URL for the Anubis API endpoint using the provided domain.
-//  3. Sends an HTTP GET request to the API endpoint via the hqgohttp package.
-//  4. If an error occurs during the HTTP request, sends an error result through the channel.
-//  5. If the response is successful, decodes the JSON response into a slice of strings.
-//  6. On JSON decoding error, sends an error result and closes the response body.
-//  7. After successfully decoding the subdomains, closes the response body and sends each
-//     subdomain as an individual result through the channel.
-//  8. Closes the channel after all results have been processed.
+//     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
+//     encountered during the operation.
 func (source *Source) Run(domain string, _ *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
@@ -97,11 +85,11 @@ func (source *Source) Run(domain string, _ *sources.Configuration) <-chan source
 	return results
 }
 
-// Name returns the unique identifier for the Anubis data source.
+// Name returns the unique identifier for the data source.
 // This identifier is used for logging, debugging, and associating results with the correct data source.
 //
 // Returns:
-//   - name (string): The constant sources.ANUBIS representing the Anubis source.
+//   - name (string): The unique identifier for the data source.
 func (source *Source) Name() (name string) {
 	return sources.ANUBIS
 }

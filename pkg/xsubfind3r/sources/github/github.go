@@ -49,14 +49,10 @@ type Source struct{}
 
 // Run initiates the process of retrieving subdomain information from GitHub for a given domain.
 //
-// It checks if there are available API keys for GitHub in the configuration.
-// If keys are available, it creates a token manager and constructs an initial search URL,
-// then calls the Enumerate method to process the search results.
-//
 // Parameters:
-//   - domain (string): The target domain for which subdomains are to be retrieved.
-//   - cfg (*sources.Configuration): The configuration settings (which include API keys and the regex extractor)
-//     used to authenticate with GitHub and extract subdomains from search results.
+//   - domain (string): The target domain for which to retrieve subdomains.
+//   - cfg (*sources.Configuration): The configuration instance containing API keys,
+//     the URL validation function, and any additional settings required by the source.
 //
 // Returns:
 //   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
@@ -248,11 +244,11 @@ func (source *Source) Enumerate(searchReqURL string, tokens *Tokens, cfg *source
 	}
 }
 
-// Name returns the unique identifier for the GitHub data source.
+// Name returns the unique identifier for the data source.
 // This identifier is used for logging, debugging, and associating results with the correct data source.
 //
 // Returns:
-//   - name (string): The constant sources.GITHUB representing the GitHub source.
+//   - name (string): The unique identifier for the data source.
 func (source *Source) Name() string {
 	return sources.GITHUB
 }

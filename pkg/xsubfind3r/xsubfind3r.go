@@ -124,7 +124,6 @@ type Configuration struct {
 	Keys             sources.Keys
 }
 
-// dp is a domain parser used to normalize domains into their root and top-level domain (TLD) components.
 var up = parser.New(
 	parser.WithDefaultScheme("http"),
 )

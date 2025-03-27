@@ -52,12 +52,11 @@ type Source interface {
 	Name() (name string)
 }
 
-// Configuration holds the settings and parameters used by the Finder and its sources.
+// Configuration holds settings and parameters passed to each data source.
 //
 // Fields:
-//   - Keys (Keys): Contains the API keys for various data sources, allowing authenticated access.
-//   - Extractor (*regexp.Regexp): A compiled regular expression used to extract or validate
-//     domain-related patterns, ensuring consistent parsing and validation.
+//   - Keys (Keys): API credentials for different data sources.
+//   - Extractor (*regexp.Regexp): A compiled regular expression used to extract subdomains.
 type Configuration struct {
 	Keys      Keys
 	Extractor *regexp.Regexp
@@ -66,21 +65,6 @@ type Configuration struct {
 // Keys stores API keys for different data sources. Each field represents a collection of API keys
 // for a specific source, and is defined using the SourceKeys type (a slice of strings). These keys are
 // used for authentication when interacting with external APIs or services.
-//
-// Fields (each field is a SourceKeys slice):
-//   - Bevigil: API keys for the Bevigil data source.
-//   - BuiltWith: API keys for the BuiltWith data source.
-//   - Censys: API keys for the Censys data source.
-//   - Certspotter: API keys for the Certspotter data source.
-//   - Chaos: API keys for the Chaos data source.
-//   - Fullhunt: API keys for the Fullhunt data source.
-//   - GitHub: API keys for the GitHub data source.
-//   - Intelx: API keys for the Intelx data source.
-//   - LeakIX: API keys for the LeakIX data source.
-//   - SecurityTrails: API keys for the SecurityTrails data source.
-//   - Shodan: API keys for the Shodan data source.
-//   - URLScan: API keys for the URLScan data source.
-//   - VirusTotal: API keys for the VirusTotal data source.
 type Keys struct {
 	Bevigil        SourceKeys `yaml:"bevigil"`
 	BuiltWith      SourceKeys `yaml:"builtwith"`
@@ -103,12 +87,14 @@ type Keys struct {
 type SourceKeys []string
 
 // PickRandom selects and returns a random API key from the SourceKeys slice.
-// It uses a cryptographically secure random number generator to ensure a secure and unbiased selection.
-// If the slice is empty, it returns the ErrNoKeys error.
+//
+// It uses a cryptographically secure RNG (rand.Reader) to prevent predictable
+// selection. This is particularly useful for evenly distributing usage
+// across multiple keys or avoiding rate limits.
 //
 // Returns:
-//   - key (string): A randomly selected API key from the slice.
-//   - err (error): An error if the slice is empty or if randomness generation fails.
+//   - key (string): A randomly chosen key from the slice.
+//   - err (error): An error if the slice is empty or if secure RNG fails.
 func (k SourceKeys) PickRandom() (key string, err error) {
 	length := len(k)
 
@@ -158,17 +144,16 @@ type Result struct {
 // It allows for distinguishing between different types of outcomes produced by sources.
 //
 // Enumeration Values:
-//   - ResultSubdomain: Indicates a successful result containing a subdomain or related data.
-//   - ResultError: Represents an outcome where an error occurred during the data collection.
+//   - ResultSubdomain: Indicates a successful result containing a subdomain retrieved from the source.
+//   - ResultError: Represents a result indicating that an error occurred during the operation.
 type ResultType int
 
 // Constants representing the types of results that can be produced by a data source.
 //
 // List of Constants:
-//   - ResultSubdomain: Represents a successful result containing subdomain data or
-//     other relevant information.
+//   - ResultSubdomain: Represents a successful result containing subdomain.
 //   - ResultError: Indicates an error encountered during the operation, with details
-//     provided in the Error field of the Result.
+//     provided in the `Error` field of the `Result`.
 const (
 	ResultSubdomain ResultType = iota
 	ResultError
@@ -177,9 +162,7 @@ const (
 // Supported data source constants.
 //
 // The following constants define the names of supported data sources.
-// Each constant is used as a unique identifier for its corresponding data source,
-// which might provide different types of data (e.g., subdomains, SSL/TLS certificates,
-// historical records, vulnerability data, etc.).
+// Each constant is used as a unique identifier for its corresponding data source.
 const (
 	ANUBIS             = "anubis"
 	BEVIGIL            = "bevigil"
@@ -213,7 +196,7 @@ var ErrNoKeys = errors.New("no keys available for the source")
 // List is a collection of all supported source names.
 //
 // This slice provides a convenient way to iterate over, validate, or dynamically configure
-// the data sources available in the application. Developers can use List to:.
+// the data sources available in the application.
 var List = []string{
 	ANUBIS,
 	BEVIGIL,

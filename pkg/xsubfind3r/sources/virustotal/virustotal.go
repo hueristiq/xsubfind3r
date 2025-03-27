@@ -48,28 +48,15 @@ type Source struct{}
 
 // Run initiates the process of retrieving subdomain information from the VirusTotal API for a given domain.
 //
-// It constructs an HTTP GET request to the VirusTotal API endpoint, handles pagination via a cursor,
-// decodes the JSON response, and streams each discovered subdomain as a sources.Result via a channel.
-//
 // Parameters:
 //   - domain (string): The target domain for which to retrieve subdomains.
-//   - cfg (*sources.Configuration): The configuration settings (which include API keys) used to authenticate with the Virustotal API.
+//   - cfg (*sources.Configuration): The configuration instance containing API keys,
+//     the URL validation function, and any additional settings required by the source.
 //
 // Returns:
 //   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
 //     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
 //     encountered during the operation.
-//
-// The function executes the following steps:
-//  1. Attempts to retrieve a random API key from the configuration's VirusTotal keys.
-//  2. Initializes a pagination cursor variable.
-//  3. Enters a loop to send HTTP GET requests to the VirusTotal API, including the pagination cursor if present.
-//  4. Decodes the JSON response into a getSubdomainsResponse struct.
-//  5. Checks if the response contains an error message; if so, streams an error result and terminates the loop.
-//  6. Streams each discovered subdomain from the Data slice as a sources.Result of type ResultSubdomain.
-//  7. Updates the pagination cursor from the Meta.Cursor field.
-//  8. Terminates the loop when no further pagination cursor is provided.
-//  9. Closes the results channel upon completion.
 func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
@@ -172,12 +159,11 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 	return results
 }
 
-// Name returns the unique identifier for the VirusTotal data source.
-// This identifier is used for logging, debugging, and to associate results
-// with the correct data source.
+// Name returns the unique identifier for the data source.
+// This identifier is used for logging, debugging, and associating results with the correct data source.
 //
 // Returns:
-//   - name (string): The constant sources.VIRUSTOTAL representing the VirusTotal source.
+//   - name (string): The unique identifier for the data source.
 func (source *Source) Name() (name string) {
 	return sources.VIRUSTOTAL
 }

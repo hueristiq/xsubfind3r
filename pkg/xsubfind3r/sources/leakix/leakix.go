@@ -11,7 +11,6 @@ package leakix
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
@@ -39,25 +38,15 @@ type Source struct{}
 
 // Run initiates the process of retrieving subdomain information from the LeakIX API for a given domain.
 //
-// It constructs an HTTP GET request to the LeakIX API endpoint, decodes the JSON response,
-// and streams each discovered subdomain as a sources.Result via a channel.
-//
 // Parameters:
 //   - domain (string): The target domain for which to retrieve subdomains.
-//   - cfg (*sources.Configuration): The configuration settings (which include API keys) used to authenticate with the LeakIX API.
+//   - cfg (*sources.Configuration): The configuration instance containing API keys,
+//     the URL validation function, and any additional settings required by the source.
 //
 // Returns:
 //   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
 //     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
 //     encountered during the operation.
-//
-// The function executes the following steps:
-//  1. Attempts to retrieve a random API key from the configuration's LeakIX keys.
-//  2. Constructs the API request URL and configures the required headers for authentication.
-//  3. Sends an HTTP GET request using the hqgohttp package.
-//  4. Decodes the JSON response into a slice of getSubdomainsResponse structs.
-//  5. Iterates over the response records, streaming each subdomain as a sources.Result of type ResultSubdomain.
-//  6. Closes the results channel upon completion.
 func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
@@ -85,9 +74,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			},
 		}
 
-		var getSubdomainsRes *http.Response
-
-		getSubdomainsRes, err = hqgohttp.Get(getSubdomainsReqURL, getSubdomainsReqCFG)
+		getSubdomainsRes, err := hqgohttp.Get(getSubdomainsReqURL, getSubdomainsReqCFG)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -132,12 +119,11 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 	return results
 }
 
-// Name returns the unique identifier for the LeakIX data source.
-// This identifier is used for logging, debugging, and to associate results
-// with the correct data source.
+// Name returns the unique identifier for the data source.
+// This identifier is used for logging, debugging, and associating results with the correct data source.
 //
 // Returns:
-//   - name (string): The constant sources.LEAKIX representing the LeakIX source.
+//   - name (string): The unique identifier for the data source.
 func (source *Source) Name() (name string) {
 	return sources.LEAKIX
 }

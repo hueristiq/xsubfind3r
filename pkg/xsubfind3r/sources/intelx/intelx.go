@@ -73,32 +73,21 @@ type getResultsResponse struct {
 }
 
 // Source represents the IntelX data source implementation.
-// It implements the sources.Source interface, providing functionality for retrieving
-// subdomains from the IntelX API.
+// It implements the sources.Source interface, providing functionality
+// for retrieving subdomains from the IntelX API.
 type Source struct{}
 
 // Run initiates the process of retrieving subdomain information from the IntelX API for a given domain.
 //
 // Parameters:
 //   - domain (string): The target domain for which to retrieve subdomains.
-//   - cfg (*sources.Configuration): The configuration settings (which include API keys) used to authenticate with the IntelX API.
+//   - cfg (*sources.Configuration): The configuration instance containing API keys,
+//     the URL validation function, and any additional settings required by the source.
 //
 // Returns:
 //   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
 //     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
 //     encountered during the operation.
-//
-// It performs the following steps:
-//  1. Retrieves a random API key from the configuration's IntelX keys. The key is expected to be
-//     in the format "host:key", where "host" is the IntelX host and "key" is the API key.
-//  2. Splits the key into the IntelX host and API key components.
-//  3. Constructs a search request to the IntelX phonebook search endpoint using the target domain.
-//  4. Sends a POST request with the search request body in JSON format.
-//  5. Decodes the JSON response to obtain a search ID.
-//  6. Constructs a GET request to poll for detailed search results using the search ID.
-//  7. In a loop, polls for search results until the status indicates that results are ready (status is not 0 or 3).
-//  8. For each result returned, streams the discovered subdomain as a sources.Result of type ResultSubdomain.
-//  9. Closes the results channel upon completion.
 func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
@@ -256,11 +245,11 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 	return results
 }
 
-// Name returns the unique identifier for the IntelX data source.
-// This identifier is used for logging, debugging, and to associate results with the correct data source.
+// Name returns the unique identifier for the data source.
+// This identifier is used for logging, debugging, and associating results with the correct data source.
 //
 // Returns:
-//   - name (string): The constant sources.INTELLIGENCEX representing the IntelX source.
+//   - name (string): The unique identifier for the data source.
 func (source *Source) Name() (name string) {
 	return sources.INTELLIGENCEX
 }

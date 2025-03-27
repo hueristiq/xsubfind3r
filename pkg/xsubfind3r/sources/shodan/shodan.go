@@ -10,7 +10,6 @@ package shodan
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
@@ -37,26 +36,15 @@ type Source struct{}
 
 // Run initiates the process of retrieving subdomain information from the Shodan API for a given domain.
 //
-// It constructs an HTTP GET request to the Shodan API endpoint, decodes the JSON response,
-// and streams each discovered subdomain as a sources.Result via a channel.
-//
 // Parameters:
 //   - domain (string): The target domain for which to retrieve subdomains.
-//   - cfg (*sources.Configuration): The configuration settings (which include API keys) used to authenticate with the Shodan API.
+//   - cfg (*sources.Configuration): The configuration instance containing API keys,
+//     the URL validation function, and any additional settings required by the source.
 //
 // Returns:
 //   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
 //     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
 //     encountered during the operation.
-//
-// The function executes the following steps:
-//  1. Attempts to retrieve a random API key from the configuration's Shodan keys.
-//  2. Constructs the API request URL and configures the required parameters for authentication.
-//  3. Sends an HTTP GET request using the hqgohttp package.
-//  4. Decodes the JSON response into a getDNSResponse struct.
-//  5. Iterates over the discovered subdomains, concatenating each with the target domain to form full subdomain strings,
-//     and streams each discovered subdomain as a sources.Result of type ResultSubdomain.
-//  6. Closes the results channel upon completion.
 func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
@@ -83,9 +71,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			},
 		}
 
-		var getDNSRes *http.Response
-
-		getDNSRes, err = hqgohttp.Get(getDNSReqURL, getDNSReqCFG)
+		getDNSRes, err := hqgohttp.Get(getDNSReqURL, getDNSReqCFG)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -130,12 +116,11 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 	return results
 }
 
-// Name returns the unique identifier for the Shodan data source.
-// This identifier is used for logging, debugging, and to associate results
-// with the correct data source.
+// Name returns the unique identifier for the data source.
+// This identifier is used for logging, debugging, and associating results with the correct data source.
 //
 // Returns:
-//   - name (string): The constant sources.SHODAN representing the Shodan source.
+//   - name (string): The unique identifier for the data source.
 func (source *Source) Name() (name string) {
 	return sources.SHODAN
 }

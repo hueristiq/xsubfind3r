@@ -16,34 +16,21 @@ import (
 )
 
 // Source represents the HackerTarget data source implementation.
-// It implements the sources.Source interface, providing functionality for retrieving
-// subdomains from the HackerTarget API.
+// It implements the sources.Source interface, providing functionality
+// for retrieving subdomains from the HackerTarget API.
 type Source struct{}
 
 // Run initiates the process of retrieving subdomain information from the HackerTarget API for a given domain.
 //
-// It constructs an HTTP GET request to the HackerTarget API endpoint, processes the response line-by-line,
-// applies the configured regular expression to extract subdomain matches, and streams each discovered subdomain
-// as a sources.Result via a channel.
-//
 // Parameters:
 //   - domain (string): The target domain for which to retrieve subdomains.
-//   - cfg (*sources.Configuration): The configuration settings (which include the regex extractor)
-//     used to parse and extract subdomains from the response.
+//   - cfg (*sources.Configuration): The configuration instance containing API keys,
+//     the URL validation function, and any additional settings required by the source.
 //
 // Returns:
 //   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
 //     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
 //     encountered during the operation.
-//
-// The function executes the following steps:
-//  1. Constructs the API request URL ("https://api.hackertarget.com/hostsearch") with the target domain as a query parameter.
-//  2. Sends an HTTP GET request using the hqgohttp package.
-//  3. Reads the response body using a bufio.Scanner.
-//  4. For each non-empty line in the response, applies the configured regular expression to extract subdomain matches.
-//  5. Streams each extracted subdomain as a sources.Result of type ResultSubdomain.
-//  6. If an error occurs during scanning, streams a sources.Result of type ResultError.
-//  7. Closes the results channel upon completion.
 func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
@@ -112,12 +99,11 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 	return results
 }
 
-// Name returns the unique identifier for the HackerTarget data source.
-// This identifier is used for logging, debugging, and to associate results
-// with the correct data source.
+// Name returns the unique identifier for the data source.
+// This identifier is used for logging, debugging, and associating results with the correct data source.
 //
 // Returns:
-//   - name (string): The constant sources.HACKERTARGET representing the HackerTarget source.
+//   - name (string): The unique identifier for the data source.
 func (source *Source) Name() (name string) {
 	return sources.HACKERTARGET
 }

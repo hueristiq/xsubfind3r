@@ -35,30 +35,15 @@ type Source struct{}
 
 // Run initiates the process of retrieving subdomain information from the CRT.SH API for a given domain.
 //
-// It constructs an HTTP GET request to the CRT.SH API endpoint, decodes the JSON response,
-// and streams each discovered subdomain as a sources.Result via a channel.
-//
 // Parameters:
 //   - domain (string): The target domain for which to retrieve subdomains.
-//   - _ (*sources.Configuration): The configuration settings (not used in this implementation).
+//   - _ (*sources.Configuration): The configuration instance containing API keys,
+//     the URL validation function, and any additional settings required by the source.
 //
 // Returns:
 //   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
 //     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
 //     encountered during the operation.
-//
-// The function executes the following steps:
-//  1. Constructs the API request URL and configures the required query parameters:
-//     - The query parameter "q" is set to "%." concatenated with the target domain, which searches for subdomains.
-//     - The "output" parameter is set to "json" to request a JSON-formatted response.
-//  2. Sets the necessary header "Content-Type" to "application/json".
-//  3. Sends an HTTP GET request using the hqgohttp package.
-//  4. Decodes the JSON response into a getNameValuesResponse slice.
-//  5. Iterates over each record in the response:
-//     - Splits the NameValue string on newline characters to extract individual subdomains.
-//     - Filters the subdomains to ensure they either equal the target domain or are valid subdomains of it.
-//     - Streams each valid subdomain as a sources.Result of type ResultSubdomain.
-//  6. Closes the results channel upon completion.
 func (source *Source) Run(domain string, _ *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
@@ -129,12 +114,11 @@ func (source *Source) Run(domain string, _ *sources.Configuration) <-chan source
 	return results
 }
 
-// Name returns the unique identifier for the CRT.SH data source.
-// This identifier is used for logging, debugging, and to associate results
-// with the correct data source.
+// Name returns the unique identifier for the data source.
+// This identifier is used for logging, debugging, and associating results with the correct data source.
 //
 // Returns:
-//   - name (string): The constant sources.CRTSH representing the CRT.SH source.
+//   - name (string): The unique identifier for the data source.
 func (source *Source) Name() (name string) {
 	return sources.CRTSH
 }
