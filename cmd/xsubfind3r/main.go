@@ -24,35 +24,29 @@ import (
 )
 
 var (
-	au = aurora.New(aurora.WithColors(true))
-
-	configurationFilePath string
-
+	configurationFilePath    string
 	inputDomains             []string
 	inputDomainsListFilePath string
+	listSources              bool
+	sourcesToExclude         []string
+	sourcesToUse             []string
+	outputInJSONL            bool
+	monochrome               bool
+	outputFilePath           string
+	outputDirectoryPath      string
+	silent                   bool
+	verbose                  bool
 
-	listSources      bool
-	sourcesToExclude []string
-	sourcesToUse     []string
-
-	outputInJSONL       bool
-	monochrome          bool
-	outputFilePath      string
-	outputDirectoryPath string
-	silent              bool
-	verbose             bool
+	au = aurora.New(aurora.WithColors(true))
 )
 
 func init() {
 	pflag.StringVarP(&configurationFilePath, "configuration", "c", configuration.DefaultConfigurationFilePath, "")
-
 	pflag.StringSliceVarP(&inputDomains, "domain", "d", []string{}, "")
 	pflag.StringVarP(&inputDomainsListFilePath, "list", "l", "", "")
-
 	pflag.BoolVar(&listSources, "sources", false, "")
 	pflag.StringSliceVarP(&sourcesToExclude, "exclude-sources", "e", []string{}, "")
 	pflag.StringSliceVarP(&sourcesToUse, "use-sources", "u", []string{}, "")
-
 	pflag.BoolVar(&outputInJSONL, "jsonl", false, "")
 	pflag.BoolVar(&monochrome, "monochrome", false, "")
 	pflag.StringVarP(&outputFilePath, "output", "o", "", "")
@@ -60,7 +54,6 @@ func init() {
 	pflag.BoolVarP(&silent, "silent", "s", false, "")
 	pflag.BoolVarP(&verbose, "verbose", "v", false, "")
 
-	pflag.CommandLine.SortFlags = false
 	pflag.Usage = func() {
 		logger.Info().Label("").Msg(configuration.BANNER(au))
 
@@ -219,10 +212,10 @@ func main() {
 		return
 	}
 
-	outputWritter := output.NewWritter()
+	writer := output.NewWriter()
 
 	if outputInJSONL {
-		outputWritter.SetFormatToJSONL()
+		writer.SetFormatToJSONL()
 	}
 
 	for index := range inputDomains {
@@ -231,7 +224,7 @@ func main() {
 		logger.Info().Msgf("Finding subdomains for %v...", au.Underline(domain).Bold())
 		logger.Print().Msg("")
 
-		writers := []io.Writer{
+		outputs := []io.Writer{
 			os.Stdout,
 		}
 
@@ -239,26 +232,24 @@ func main() {
 
 		switch {
 		case outputFilePath != "":
-			file, err = outputWritter.CreateFile(outputFilePath)
+			file, err = writer.CreateFile(outputFilePath)
 			if err != nil {
 				logger.Error().Msg(err.Error())
 			}
 
-			writers = append(writers, file)
+			outputs = append(outputs, file)
 		case outputDirectoryPath != "":
-			file, err = outputWritter.CreateFile(filepath.Join(outputDirectoryPath, domain))
+			file, err = writer.CreateFile(filepath.Join(outputDirectoryPath, domain))
 			if err != nil {
 				logger.Error().Msg(err.Error())
 			}
 
-			writers = append(writers, file)
+			outputs = append(outputs, file)
 		}
 
-		results := finder.Find(domain)
-
-		for result := range results {
-			for index := range writers {
-				writer := writers[index]
+		for result := range finder.Find(domain) {
+			for index := range outputs {
+				o := outputs[index]
 
 				switch result.Type {
 				case sources.ResultError:
@@ -266,7 +257,7 @@ func main() {
 						logger.Error().Msgf("%s: %s", result.Source, result.Error)
 					}
 				case sources.ResultSubdomain:
-					if err := outputWritter.Write(writer, domain, result); err != nil {
+					if err := writer.Write(o, domain, result); err != nil {
 						logger.Error().Msg(err.Error())
 					}
 				}
