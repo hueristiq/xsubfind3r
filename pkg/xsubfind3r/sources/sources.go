@@ -201,8 +201,8 @@ const (
 	SHODAN             = "shodan"
 	SUBDOMAINCENTER    = "subdomaincenter"
 	URLSCAN            = "urlscan"
-	WAYBACK            = "wayback"
 	VIRUSTOTAL         = "virustotal"
+	WAYBACK            = "wayback"
 )
 
 // ErrNoKeys is a sentinel error returned when a SourceKeys slice contains no API keys.
@@ -235,6 +235,6 @@ var List = []string{
 	SHODAN,
 	SUBDOMAINCENTER,
 	URLSCAN,
-	WAYBACK,
 	VIRUSTOTAL,
+	WAYBACK,
 }
