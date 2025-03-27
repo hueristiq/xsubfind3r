@@ -200,10 +200,10 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 			finder.sources[source] = &subdomaincenter.Source{}
 		case sources.URLSCAN:
 			finder.sources[source] = &urlscan.Source{}
-		case sources.WAYBACK:
-			finder.sources[source] = &wayback.Source{}
 		case sources.VIRUSTOTAL:
 			finder.sources[source] = &virustotal.Source{}
+		case sources.WAYBACK:
+			finder.sources[source] = &wayback.Source{}
 		}
 	}
 
