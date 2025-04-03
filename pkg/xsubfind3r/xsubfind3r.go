@@ -40,7 +40,6 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/virustotal"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
 	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/url/parser"
 )
 
 // Finder is the primary structure for performing subdomain discovery.
@@ -65,10 +64,6 @@ type Finder struct {
 //   - results (chan sources.Result): A channel that streams subdomain enumeration results.
 func (finder *Finder) Find(domain string) (results chan sources.Result) {
 	results = make(chan sources.Result)
-
-	parsed, _ := up.Parse(domain)
-
-	domain = parsed.Domain.SecondLevelDomain + "." + parsed.Domain.TopLevelDomain
 
 	pattern := fmt.Sprintf(`(?i)(?:((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+))?(%s)`, regexp.QuoteMeta(domain))
 
@@ -123,10 +118,6 @@ type Configuration struct {
 	SourcesToExclude []string
 	Keys             sources.Keys
 }
-
-var up = parser.New(
-	parser.WithDefaultScheme("http"),
-)
 
 func init() {
 	cfg := hqgohttp.DefaultSprayingClientConfiguration
