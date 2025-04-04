@@ -76,7 +76,10 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			return
 		}
 
-		getSubdomainsReqURL := fmt.Sprintf("https://api.securitytrails.com/v1/domain/%s/subdomains", domain)
+		getSubdomainsReqURL := fmt.Sprintf(
+			"https://api.securitytrails.com/v1/domain/%s/subdomains",
+			domain,
+		)
 		getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
 			Params: map[string]string{
 				"children_only":    "false",

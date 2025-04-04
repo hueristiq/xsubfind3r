@@ -41,7 +41,13 @@ var (
 )
 
 func init() {
-	pflag.StringVarP(&configurationFilePath, "configuration", "c", configuration.DefaultConfigurationFilePath, "")
+	pflag.StringVarP(
+		&configurationFilePath,
+		"configuration",
+		"c",
+		configuration.DefaultConfigurationFilePath,
+		"",
+	)
 	pflag.StringSliceVarP(&inputDomains, "domain", "d", []string{}, "")
 	pflag.StringVarP(&inputDomainsListFilePath, "list", "l", "", "")
 	pflag.BoolVar(&listSources, "sources", false, "")
@@ -62,9 +68,16 @@ func init() {
 
 		h += "\nCONFIGURATION:\n"
 
-		defaultConfigurationFilePath := strings.ReplaceAll(configuration.DefaultConfigurationFilePath, configuration.UserDotConfigDirectoryPath, "$HOME/.config")
+		defaultConfigurationFilePath := strings.ReplaceAll(
+			configuration.DefaultConfigurationFilePath,
+			configuration.UserDotConfigDirectoryPath,
+			"$HOME/.config",
+		)
 
-		h += fmt.Sprintf(" -c, --configuration string            configuration file path (default: %v)\n", au.Underline(defaultConfigurationFilePath).Bold())
+		h += fmt.Sprintf(
+			" -c, --configuration string            configuration file path (default: %v)\n",
+			au.Underline(defaultConfigurationFilePath).Bold(),
+		)
 
 		h += "\nINPUT:\n"
 		h += " -d, --domain string[]                 target domain\n"
@@ -105,9 +118,11 @@ func init() {
 		logger.Fatal().Msg(err.Error())
 	}
 
-	logger.DefaultLogger.SetFormatter(formatter.NewConsoleFormatter(&formatter.ConsoleFormatterConfiguration{
-		Colorize: !monochrome,
-	}))
+	logger.DefaultLogger.SetFormatter(
+		formatter.NewConsoleFormatter(&formatter.ConsoleFormatterConfiguration{
+			Colorize: !monochrome,
+		}),
+	)
 
 	if verbose {
 		logger.DefaultLogger.SetMaxLogLevel(levels.LevelDebug)
@@ -132,8 +147,10 @@ func main() {
 	}
 
 	if listSources {
-		logger.Info().Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(cfg.Sources))).Bold())
-		logger.Info().Msgf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold())
+		logger.Info().
+			Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(cfg.Sources))).Bold())
+		logger.Info().
+			Msgf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold())
 		logger.Print().Msg("")
 
 		needsKey := make(map[string]interface{})

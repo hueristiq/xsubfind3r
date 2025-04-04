@@ -14,9 +14,9 @@ package wayback
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/spf13/cast"
 	hqgohttp "go.source.hueristiq.com/http"
 	hqgolimiter "go.source.hueristiq.com/limiter"
 )
@@ -60,7 +60,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 					"collapse": "urlkey",
 					"fl":       "original",
 					"pageSize": "100",
-					"page":     fmt.Sprintf("%d", page),
+					"page":     cast.ToString(page),
 				},
 			}
 

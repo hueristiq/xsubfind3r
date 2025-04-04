@@ -10,7 +10,6 @@ package leakix
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
@@ -66,7 +65,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			return
 		}
 
-		getSubdomainsReqURL := fmt.Sprintf("https://leakix.net/api/subdomains/%s", domain)
+		getSubdomainsReqURL := "https://leakix.net/api/subdomains/" + domain
 		getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
 			Headers: map[string]string{
 				header.Accept.String(): mime.JSON.String(),

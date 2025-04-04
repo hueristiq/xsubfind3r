@@ -65,7 +65,10 @@ type Finder struct {
 func (finder *Finder) Find(domain string) (results chan sources.Result) {
 	results = make(chan sources.Result)
 
-	pattern := fmt.Sprintf(`(?i)(?:((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+))?(%s)`, regexp.QuoteMeta(domain))
+	pattern := fmt.Sprintf(
+		`(?i)(?:((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+))?(%s)`,
+		regexp.QuoteMeta(domain),
+	)
 
 	finder.configuration.Extractor = regexp.MustCompile(pattern)
 

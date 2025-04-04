@@ -63,7 +63,10 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			return
 		}
 
-		getSubdomainsReqURL := fmt.Sprintf("https://dns.projectdiscovery.io/dns/%s/subdomains", domain)
+		getSubdomainsReqURL := fmt.Sprintf(
+			"https://dns.projectdiscovery.io/dns/%s/subdomains",
+			domain,
+		)
 		getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
 			Headers: map[string]string{
 				header.Authorization.String(): key,

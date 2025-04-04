@@ -70,7 +70,10 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 
 		tokens := NewTokenManager(cfg.Keys.GitHub)
 
-		searchReqURL := fmt.Sprintf("https://api.github.com/search/code?per_page=100&q=%q&sort=created&order=asc", domain)
+		searchReqURL := fmt.Sprintf(
+			"https://api.github.com/search/code?per_page=100&q=%q&sort=created&order=asc",
+			domain,
+		)
 
 		source.Enumerate(searchReqURL, tokens, cfg, results)
 	}()
@@ -120,7 +123,9 @@ func (source *Source) Enumerate(searchReqURL string, tokens *Tokens, cfg *source
 		return
 	}
 
-	ratelimitRemaining := cast.ToInt64(codeSearchRes.Header.Get(header.XRatelimitRemaining.String()))
+	ratelimitRemaining := cast.ToInt64(
+		codeSearchRes.Header.Get(header.XRatelimitRemaining.String()),
+	)
 	if isForbidden && ratelimitRemaining == 0 {
 		retryAfterSeconds := cast.ToInt64(codeSearchRes.Header.Get(header.RetryAfter.String()))
 
@@ -148,7 +153,11 @@ func (source *Source) Enumerate(searchReqURL string, tokens *Tokens, cfg *source
 	codeSearchRes.Body.Close()
 
 	for _, item := range codeSearchResData.Items {
-		getRawContentReqURL := strings.ReplaceAll(item.HTMLURL, "https://github.com/", "https://raw.githubusercontent.com/")
+		getRawContentReqURL := strings.ReplaceAll(
+			item.HTMLURL,
+			"https://github.com/",
+			"https://raw.githubusercontent.com/",
+		)
 		getRawContentReqURL = strings.ReplaceAll(getRawContentReqURL, "/blob/", "/")
 
 		var getRawContentRes *http.Response

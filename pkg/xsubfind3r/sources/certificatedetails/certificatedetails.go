@@ -11,7 +11,6 @@ package certificatedetails
 
 import (
 	"bufio"
-	"fmt"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	hqgohttp "go.source.hueristiq.com/http"
@@ -40,7 +39,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 	go func() {
 		defer close(results)
 
-		getCertificateDetailsReqURL := fmt.Sprintf("https://certificatedetails.com/%s", domain)
+		getCertificateDetailsReqURL := "https://certificatedetails.com/" + domain
 
 		getCertificateDetailsRes, err := hqgohttp.Get(getCertificateDetailsReqURL)
 		if err != nil && getCertificateDetailsRes.StatusCode != status.NotFound.Int() {

@@ -108,7 +108,9 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 					"per_page": cast.ToString(maxPerPage),
 				},
 				Headers: map[string]string{
-					header.Authorization.String(): "Basic " + base64.StdEncoding.EncodeToString([]byte(key)),
+					header.Authorization.String(): "Basic " + base64.StdEncoding.EncodeToString(
+						[]byte(key),
+					),
 				},
 			}
 
@@ -151,7 +153,12 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 				result := sources.Result{
 					Type:   sources.ResultError,
 					Source: source.Name(),
-					Error:  fmt.Errorf("%w: %s, %s", errStatic, certSearchResData.Status, certSearchResData.Error),
+					Error: fmt.Errorf(
+						"%w: %s, %s",
+						errStatic,
+						certSearchResData.Status,
+						certSearchResData.Error,
+					),
 				}
 
 				results <- result

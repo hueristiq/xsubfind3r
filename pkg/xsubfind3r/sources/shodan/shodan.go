@@ -64,7 +64,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			return
 		}
 
-		getDNSReqURL := fmt.Sprintf("https://api.shodan.io/dns/domain/%s", domain)
+		getDNSReqURL := "https://api.shodan.io/dns/domain/" + domain
 		getDNSReqCFG := &hqgohttp.RequestConfiguration{
 			Params: map[string]string{
 				"key": key,

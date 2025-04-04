@@ -79,7 +79,10 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 		var cursor string
 
 		for {
-			getSubdomainsReqURL := fmt.Sprintf("https://www.virustotal.com/api/v3/domains/%s/subdomains", domain)
+			getSubdomainsReqURL := fmt.Sprintf(
+				"https://www.virustotal.com/api/v3/domains/%s/subdomains",
+				domain,
+			)
 			getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
 				Params: map[string]string{
 					"limit": "40",
@@ -128,7 +131,12 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 				result := sources.Result{
 					Type:   sources.ResultError,
 					Source: source.Name(),
-					Error:  fmt.Errorf("%w: %s, %s", errStatic, getSubdomainsResData.Error.Code, getSubdomainsResData.Error.Message),
+					Error: fmt.Errorf(
+						"%w: %s, %s",
+						errStatic,
+						getSubdomainsResData.Error.Code,
+						getSubdomainsResData.Error.Message,
+					),
 				}
 
 				results <- result
