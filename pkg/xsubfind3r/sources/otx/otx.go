@@ -54,10 +54,7 @@ func (source *Source) Run(domain string, _ *sources.Configuration) <-chan source
 	go func() {
 		defer close(results)
 
-		getPassiveDNSReqURL := fmt.Sprintf(
-			"https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns",
-			domain,
-		)
+		getPassiveDNSReqURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", domain)
 
 		getPassiveDNSRes, err := hqgohttp.Get(getPassiveDNSReqURL)
 		if err != nil {

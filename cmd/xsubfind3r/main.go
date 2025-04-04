@@ -41,13 +41,7 @@ var (
 )
 
 func init() {
-	pflag.StringVarP(
-		&configurationFilePath,
-		"configuration",
-		"c",
-		configuration.DefaultConfigurationFilePath,
-		"",
-	)
+	pflag.StringVarP(&configurationFilePath, "configuration", "c", configuration.DefaultConfigurationFilePath, "")
 	pflag.StringSliceVarP(&inputDomains, "domain", "d", []string{}, "")
 	pflag.StringVarP(&inputDomainsListFilePath, "list", "l", "", "")
 	pflag.BoolVar(&listSources, "sources", false, "")
@@ -68,16 +62,9 @@ func init() {
 
 		h += "\nCONFIGURATION:\n"
 
-		defaultConfigurationFilePath := strings.ReplaceAll(
-			configuration.DefaultConfigurationFilePath,
-			configuration.UserDotConfigDirectoryPath,
-			"$HOME/.config",
-		)
+		defaultConfigurationFilePath := strings.ReplaceAll(configuration.DefaultConfigurationFilePath, configuration.UserDotConfigDirectoryPath, "$HOME/.config")
 
-		h += fmt.Sprintf(
-			" -c, --configuration string            configuration file path (default: %v)\n",
-			au.Underline(defaultConfigurationFilePath).Bold(),
-		)
+		h += fmt.Sprintf(" -c, --configuration string            configuration file path (default: %v)\n", au.Underline(defaultConfigurationFilePath).Bold())
 
 		h += "\nINPUT:\n"
 		h += " -d, --domain string[]                 target domain\n"
@@ -138,8 +125,6 @@ func init() {
 func main() {
 	logger.Info().Label("").Msg(configuration.BANNER(au))
 
-	var err error
-
 	var cfg *configuration.Configuration
 
 	if err := viper.Unmarshal(&cfg); err != nil {
@@ -147,10 +132,8 @@ func main() {
 	}
 
 	if listSources {
-		logger.Info().
-			Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(cfg.Sources))).Bold())
-		logger.Info().
-			Msgf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold())
+		logger.Info().Msgf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(cfg.Sources))).Bold())
+		logger.Info().Msgf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold())
 		logger.Print().Msg("")
 
 		needsKey := make(map[string]interface{})
@@ -176,9 +159,7 @@ func main() {
 	}
 
 	if inputDomainsListFilePath != "" {
-		var file *os.File
-
-		file, err = os.Open(inputDomainsListFilePath)
+		file, err := os.Open(inputDomainsListFilePath)
 		if err != nil {
 			logger.Error().Msg(err.Error())
 		}
@@ -193,7 +174,7 @@ func main() {
 			}
 		}
 
-		if err = scanner.Err(); err != nil {
+		if err := scanner.Err(); err != nil {
 			logger.Error().Msg(err.Error())
 		}
 
@@ -211,14 +192,12 @@ func main() {
 			}
 		}
 
-		if err = scanner.Err(); err != nil {
+		if err := scanner.Err(); err != nil {
 			logger.Error().Msg(err.Error())
 		}
 	}
 
-	var finder *xsubfind3r.Finder
-
-	finder, err = xsubfind3r.New(&xsubfind3r.Configuration{
+	finder, err := xsubfind3r.New(&xsubfind3r.Configuration{
 		SourcesToUSe:     sourcesToUse,
 		SourcesToExclude: sourcesToExclude,
 		Keys:             cfg.Keys,
@@ -266,7 +245,7 @@ func main() {
 
 		for result := range finder.Find(domain) {
 			for index := range outputs {
-				o := outputs[index]
+				output := outputs[index]
 
 				switch result.Type {
 				case sources.ResultError:
@@ -274,7 +253,7 @@ func main() {
 						logger.Error().Msgf("%s: %s", result.Source, result.Error)
 					}
 				case sources.ResultSubdomain:
-					if err := writer.Write(o, domain, result); err != nil {
+					if err := writer.Write(output, domain, result); err != nil {
 						logger.Error().Msg(err.Error())
 					}
 				}
