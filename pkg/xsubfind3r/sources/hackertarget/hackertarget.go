@@ -11,8 +11,8 @@ package hackertarget
 import (
 	"bufio"
 
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	hqgohttp "go.source.hueristiq.com/http"
 )
 
 // Source represents the HackerTarget data source implementation.

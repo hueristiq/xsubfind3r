@@ -13,8 +13,8 @@ import (
 	"errors"
 	"fmt"
 
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	hqgohttp "go.source.hueristiq.com/http"
 )
 
 // getDomainInfoResponse represents the structure of the JSON response returned by the BuiltWith API.

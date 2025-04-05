@@ -11,8 +11,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	hqgohttp "go.source.hueristiq.com/http"
 )
 
 // getDNSResponse represents the structure of the JSON response returned by the Shodan API.

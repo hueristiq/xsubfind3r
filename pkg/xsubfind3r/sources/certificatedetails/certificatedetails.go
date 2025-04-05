@@ -12,9 +12,9 @@ package certificatedetails
 import (
 	"bufio"
 
+	hqgohttp "github.com/hueristiq/hq-go-http"
+	"github.com/hueristiq/hq-go-http/status"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/status"
 )
 
 // Source represents the CertificateDetails data source implementation.

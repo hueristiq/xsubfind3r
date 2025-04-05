@@ -13,10 +13,10 @@ import (
 	"fmt"
 	"strings"
 
+	hqgohttp "github.com/hueristiq/hq-go-http"
+	"github.com/hueristiq/hq-go-http/header"
+	"github.com/hueristiq/hq-go-http/mime"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	hqgohttp "go.source.hueristiq.com/http"
-	"go.source.hueristiq.com/http/header"
-	"go.source.hueristiq.com/http/mime"
 )
 
 // getSubdomainsResponse represents the structure of the JSON response returned by the SecurityTrails API.

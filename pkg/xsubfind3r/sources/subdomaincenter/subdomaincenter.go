@@ -10,8 +10,8 @@ package subdomaincenter
 import (
 	"encoding/json"
 
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	hqgohttp "go.source.hueristiq.com/http"
 )
 
 // Source represents the Subdomain Center data source implementation.

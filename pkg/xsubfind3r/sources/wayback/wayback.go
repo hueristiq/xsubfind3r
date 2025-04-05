@@ -15,10 +15,10 @@ package wayback
 import (
 	"encoding/json"
 
+	hqgohttp "github.com/hueristiq/hq-go-http"
+	hqgolimiter "github.com/hueristiq/hq-go-limiter"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
-	hqgohttp "go.source.hueristiq.com/http"
-	hqgolimiter "go.source.hueristiq.com/limiter"
 )
 
 // Source represents the Wayback Machine data source implementation.
