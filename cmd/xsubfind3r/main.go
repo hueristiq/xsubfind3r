@@ -31,9 +31,9 @@ var (
 	sourcesToExclude         []string
 	sourcesToUse             []string
 	outputInJSONL            bool
-	monochrome               bool
 	outputFilePath           string
 	outputDirectoryPath      string
+	monochrome               bool
 	silent                   bool
 	verbose                  bool
 
@@ -48,9 +48,9 @@ func init() {
 	pflag.StringSliceVarP(&sourcesToExclude, "sources-to-exclude", "e", []string{}, "")
 	pflag.StringSliceVarP(&sourcesToUse, "sources-to-use", "u", []string{}, "")
 	pflag.BoolVar(&outputInJSONL, "jsonl", false, "")
-	pflag.BoolVar(&monochrome, "monochrome", false, "")
 	pflag.StringVarP(&outputFilePath, "output", "o", "", "")
 	pflag.StringVarP(&outputDirectoryPath, "output-directory", "O", "", "")
+	pflag.BoolVar(&monochrome, "monochrome", false, "")
 	pflag.BoolVarP(&silent, "silent", "s", false, "")
 	pflag.BoolVarP(&verbose, "verbose", "v", false, "")
 
@@ -79,10 +79,10 @@ func init() {
 		h += " -u, --sources-to-use string[]         comma(,) separated sources to use\n"
 
 		h += "\nOUTPUT:\n"
-		h += "     --jsonl bool                      output subdomains in JSONL format\n"
-		h += "     --monochrome bool                 stdout monochrome output\n"
+		h += "     --jsonl bool                      output subdomains in JSONL\n"
 		h += " -o, --output string                   output subdomains file path\n"
 		h += " -O, --output-directory string         output subdomains directory path\n"
+		h += "     --monochrome bool                 stdout monochrome output\n"
 		h += " -s, --silent bool                     stdout subdomains only output\n"
 		h += " -v, --verbose bool                    stdout verbose output\n"
 
@@ -197,6 +197,12 @@ func main() {
 		}
 	}
 
+	writer := output.NewWriter()
+
+	if outputInJSONL {
+		writer.SetFormatToJSONL()
+	}
+
 	finder, err := xsubfind3r.New(&xsubfind3r.Configuration{
 		SourcesToUSe:     sourcesToUse,
 		SourcesToExclude: sourcesToExclude,
@@ -206,12 +212,6 @@ func main() {
 		hqgologger.Fatal().Msg(err.Error())
 
 		return
-	}
-
-	writer := output.NewWriter()
-
-	if outputInJSONL {
-		writer.SetFormatToJSONL()
 	}
 
 	for index := range inputDomains {
@@ -243,10 +243,10 @@ func main() {
 			outputs = append(outputs, file)
 		}
 
-		for result := range finder.Find(domain) {
-			for index := range outputs {
-				output := outputs[index]
+		results := finder.Find(domain)
 
+		for result := range results {
+			for _, output := range outputs {
 				switch result.Type {
 				case sources.ResultError:
 					if verbose {

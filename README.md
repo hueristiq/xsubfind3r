@@ -170,10 +170,10 @@ SOURCES:
  -u, --sources-to-use string[]         comma(,) separated sources to use
 
 OUTPUT:
-     --jsonl bool                      output subdomains in JSONL format
-     --monochrome bool                 stdout monochrome output
+     --jsonl bool                      output subdomains in JSONL
  -o, --output string                   output subdomains file path
  -O, --output-directory string         output subdomains directory path
+     --monochrome bool                 stdout monochrome output
  -s, --silent bool                     stdout subdomains only output
  -v, --verbose bool                    stdout verbose output
 
