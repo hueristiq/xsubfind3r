@@ -111,12 +111,12 @@ func init() {
 		}),
 	)
 
-	if verbose {
-		hqgologger.DefaultLogger.SetMaxLogLevel(levels.LevelDebug)
-	}
-
 	if silent {
 		hqgologger.DefaultLogger.SetMaxLogLevel(levels.LevelSilent)
+	}
+
+	if verbose {
+		hqgologger.DefaultLogger.SetMaxLogLevel(levels.LevelDebug)
 	}
 
 	au = aurora.New(aurora.WithColors(!monochrome))
