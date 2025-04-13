@@ -1,10 +1,22 @@
+// Package xsubfind3r provides the core functionality for performing subdomain
+// discovery using multiple data sources. It integrates various sources that implement
+// the sources.Source interface, coordinates concurrent subdomain enumeration, and
+// aggregates the results.
+//
+// The package defines a Finder type, which manages enabled sources and configuration
+// settings, and provides a Find method to initiate subdomain discovery for a given domain.
+// It also defines a Configuration type for user-defined settings and API keys, and
+// initializes HTTP client configurations for reliable network requests.
 package xsubfind3r
 
 import (
+	"fmt"
+	"regexp"
 	"strings"
 	"sync"
+	"time"
 
-	hqgourl "github.com/hueristiq/hq-go-url"
+	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/anubis"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/bevigil"
@@ -15,6 +27,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/chaos"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/commoncrawl"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/crtsh"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/driftnet"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/fullhunt"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/github"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/hackertarget"
@@ -29,106 +42,101 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
 )
 
-// Finder is the main structure that manages the interaction with OSINT sources.
-// It holds the available data sources and the configuration used for searching.
+// Finder is the primary structure for performing subdomain discovery.
+// It manages data sources and configuration settings.
+//
+// Fields:
+//   - sources (map[string]sources.Source): A map of string keys to sources.Source interfaces representing the enabled enumeration sources.
+//   - configuration (*sources.Configuration): A pointer to the sources.Configuration struct containing API keys and other settings.
 type Finder struct {
-	// sources is a map of source names to their corresponding implementations.
-	// Each source implements the Source interface, which allows domain searches.
-	sources map[string]sources.Source
-	// configuration contains configuration options such as API keys
-	// and other settings needed by the data sources.
+	sources       map[string]sources.Source
 	configuration *sources.Configuration
 }
 
-// Find takes a domain name and starts the subdomain search process across all
-// the sources specified in the configuration. It returns a channel through which
-// the search results (of type Result) are streamed asynchronously.
+// Find initiates the subdomain discovery process for a specific domain.
+// It normalizes the domain name, applies source-specific logic, and streams results via a channel.
+// The method uses all enabled sources concurrently and aggregates their results.
+//
+// Parameters:
+//   - domain (string): The target domain for subdomain discovery.
+//
+// Returns:
+//   - results (chan sources.Result): A channel that streams subdomain enumeration results.
 func (finder *Finder) Find(domain string) (results chan sources.Result) {
-	// Initialize the results channel where subdomain findings are sent.
 	results = make(chan sources.Result)
 
-	// Parse the given domain using a domain parser.
-	parsed := dp.Parse(domain)
+	pattern := fmt.Sprintf(`(?i)(?:((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+))?(%s)`, regexp.QuoteMeta(domain))
 
-	// Rebuild the domain as "root.tld" format.
-	domain = parsed.Root + "." + parsed.TopLevel
+	finder.configuration.Extractor = regexp.MustCompile(pattern)
 
-	finder.configuration.Extractor = hqgourl.NewDomainExtractor(
-		hqgourl.DomainExtractorWithRootDomainPattern(parsed.Root),
-		hqgourl.DomainExtractorWithTLDPattern(parsed.TopLevel),
-	).CompileRegex()
-
-	// Launch a goroutine to perform the search concurrently across all sources.
 	go func() {
-		// Ensure the results channel is closed once all search operations complete.
 		defer close(results)
 
-		// A thread-safe map to store already-seen subdomains, avoiding duplicates.
-		seenSubdomains := &sync.Map{}
+		seen := &sync.Map{}
 
-		// WaitGroup ensures all source goroutines finish before exiting.
 		wg := &sync.WaitGroup{}
 
-		// Iterate over all the sources in the Finder.
 		for _, source := range finder.sources {
 			wg.Add(1)
 
-			// Start a new goroutine for each source to fetch subdomains concurrently.
 			go func(source sources.Source) {
-				// Decrement the WaitGroup counter when this goroutine completes.
 				defer wg.Done()
 
-				// Call the source's Run method to start the subdomain search.
-				sResults := source.Run(finder.configuration, domain)
+				sResults := source.Run(domain, finder.configuration)
 
-				// Process each result as it's received from the source.
 				for sResult := range sResults {
-					// If the result is a subdomain, process it.
 					if sResult.Type == sources.ResultSubdomain {
-						// Convert the subdomain to lowercase and strip any wildcards (e.g., "*.")
 						sResult.Value = strings.ToLower(sResult.Value)
 						sResult.Value = strings.ReplaceAll(sResult.Value, "*.", "")
 
-						// Check if the subdomain has already been seen using sync.Map.
-						_, loaded := seenSubdomains.LoadOrStore(sResult.Value, struct{}{})
+						_, loaded := seen.LoadOrStore(sResult.Value, struct{}{})
 						if loaded {
-							// If the subdomain is already in the map, skip it.
 							continue
 						}
 					}
 
-					// Send the result down the results channel.
 					results <- sResult
 				}
 			}(source)
 		}
 
-		// Wait for all goroutines to finish before exiting.
 		wg.Wait()
 	}()
 
-	// Return the channel that will stream subdomain results.
 	return
 }
 
-// Configuration holds the configuration for Finder, including
-// the sources to use, sources to exclude, and the necessary API keys.
+// Configuration represents the user-defined settings for the Finder.
+// It specifies which sources to use or exclude and includes API keys for external sources.
+//
+// Fields:
+//   - SourcesToUSe ([]string): List of source names to be used for enumeration.
+//   - SourcesToExclude ([]string): List of source names to be excluded from enumeration.
+//   - Keys (sources.Keys): API keys for authenticated sources.
 type Configuration struct {
-	// SourcesToUse is a list of source names that should be used for the search.
-	SourcesToUSe []string
-	// SourcesToExclude is a list of source names that should be excluded from the search.
+	SourcesToUSe     []string
 	SourcesToExclude []string
-	// Keys contains the API keys for each data source.
-	Keys sources.Keys
+	Keys             sources.Keys
 }
 
-// dp is a domain parser used to normalize domains into their root and top-level domain (TLD) components.
-var dp = hqgourl.NewDomainParser()
+func init() {
+	cfg := hqgohttp.DefaultSprayingClientConfiguration
 
-// New creates a new Finder instance based on the provided Configuration.
-// It initializes the Finder with the selected sources and ensures that excluded sources are not used.
+	cfg.Timeout = 1 * time.Hour
+
+	hqgohttp.DefaultClient, _ = hqgohttp.NewClient(cfg)
+}
+
+// New initializes a new Finder instance with the specified configuration.
+// It sets up the enabled sources, applies exclusions, and configures the Finder.
+//
+// Parameters:
+//   - cfg (*Configuration): The user-defined configuration for sources and API keys.
+//
+// Returns:
+//   - finder (*Finder): A pointer to the initialized Finder instance.
+//   - err (error): An error object if initialization fails, or nil on success.
 func New(cfg *Configuration) (finder *Finder, err error) {
-	// Initialize a Finder instance with an empty map of sources and the provided configuration.
 	finder = &Finder{
 		sources: map[string]sources.Source{},
 		configuration: &sources.Configuration{
@@ -136,14 +144,11 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 		},
 	}
 
-	// If no specific sources are provided, use the default list of all sources.
 	if len(cfg.SourcesToUSe) < 1 {
 		cfg.SourcesToUSe = sources.List
 	}
 
-	// Loop through the selected sources and initialize each one.
 	for _, source := range cfg.SourcesToUSe {
-		// Depending on the source name, initialize the appropriate source and add it to the map.
 		switch source {
 		case sources.ANUBIS:
 			finder.sources[source] = &anubis.Source{}
@@ -161,6 +166,8 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 			finder.sources[source] = &chaos.Source{}
 		case sources.COMMONCRAWL:
 			finder.sources[source] = &commoncrawl.Source{}
+		case sources.DRIFTNET:
+			finder.sources[source] = &driftnet.Source{}
 		case sources.CRTSH:
 			finder.sources[source] = &crtsh.Source{}
 		case sources.FULLHUNT:
@@ -183,20 +190,18 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 			finder.sources[source] = &subdomaincenter.Source{}
 		case sources.URLSCAN:
 			finder.sources[source] = &urlscan.Source{}
-		case sources.WAYBACK:
-			finder.sources[source] = &wayback.Source{}
 		case sources.VIRUSTOTAL:
 			finder.sources[source] = &virustotal.Source{}
+		case sources.WAYBACK:
+			finder.sources[source] = &wayback.Source{}
 		}
 	}
 
-	// Remove any sources that are specified in the SourcesToExclude list.
 	for index := range cfg.SourcesToExclude {
 		source := cfg.SourcesToExclude[index]
 
 		delete(finder.sources, source)
 	}
 
-	// Return the Finder instance with all the selected sources.
 	return
 }

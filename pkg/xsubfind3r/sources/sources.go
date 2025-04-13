@@ -1,52 +1,202 @@
+// Package sources provides the core interfaces, types, and constants required for integrating
+// multiple data sources into the application.
+//
+// This package defines the Source interface which every data source implementation must satisfy.
+// It standardizes the functionality for subdomain enumeration, ensuring consistent behavior across
+// various integrations. In addition, the package provides configuration types for managing API keys,
+// regular expression extractors, and other settings needed for interacting with external data sources.
+// The Result and ResultType types are used to encapsulate the outcomes of data collection operations,
+// making it easy to report successful subdomain discoveries or errors.
+//
+// Supported data sources are defined by a set of constants (e.g., ANUBIS, SHODAN, GITHUB, etc.) and a
+// List slice that can be used to iterate over or validate available integrations.
 package sources
 
-// Source is an interface that defines methods for a data source.
-// Any source that implements this interface should define a process to run
-// data collection or scanning based on a configuration and domain,
-// and provide a way to retrieve the source name.
-type Source interface {
-	// Run starts the data collection or scanning process for a specific domain.
-	// It takes in a Configuration and a domain string as input and returns a channel
-	// of Result structs, which will asynchronously emit results from the data source.
-	// The use of channels allows for concurrent processing and retrieval of data.
-	Run(cfg *Configuration, domain string) <-chan Result
-
-	// Name returns the name of the source. This can be used to identify the data source
-	// implementing the interface. Useful for logging, reporting, or debugging purposes.
-	Name() string
-}
-
-// Constants representing the names of different data sources.
-// These constants can be used to refer to various OSINT (Open-Source Intelligence)
-// sources, threat intelligence platforms, or search engines that are commonly used
-// for gathering information about domains, IP addresses, or other targets.
-const (
-	ANUBIS             = "anubis"             // Anubis is an OSINT tool for gathering domain information.
-	BEVIGIL            = "bevigil"            // Bevigil is an OSINT platform focused on vulnerabilities in mobile apps.
-	BUILTWITH          = "builtwith"          // BuiltWith is a service for analyzing website technologies.
-	CENSYS             = "censys"             // Censys is a search engine for internet-connected devices and their data.
-	CERTIFICATEDETAILS = "certificatedetails" // CertificateDetails provides SSL/TLS certificate information.
-	CERTSPOTTER        = "certspotter"        // CertSpotter monitors SSL/TLS certificates for domains.
-	CHAOS              = "chaos"              // Chaos by ProjectDiscovery is a source for subdomain enumeration.
-	COMMONCRAWL        = "commoncrawl"        // Common Crawl is an open repository of web data.
-	CRTSH              = "crtsh"              // crt.sh is a certificate transparency log search engine.
-	FULLHUNT           = "fullhunt"           // FullHunt is a platform for attack surface monitoring.
-	GITHUB             = "github"             // GitHub is a source for finding code repositories and related metadata.
-	HACKERTARGET       = "hackertarget"       // HackerTarget provides security scanning services.
-	INTELLIGENCEX      = "intelx"             // Intelligence X is a search engine for intelligence gathering.
-	LEAKIX             = "leakix"             // LeakIX is a search engine for finding leaked and exposed data.
-	OPENTHREATEXCHANGE = "otx"                // Open Threat Exchange (OTX) is a collaborative threat intelligence platform.
-	SECURITYTRAILS     = "securitytrails"     // SecurityTrails offers a comprehensive API for domain information.
-	SHODAN             = "shodan"             // Shodan is a search engine for internet-connected devices and vulnerabilities.
-	SUBDOMAINCENTER    = "subdomaincenter"    // SubdomainCenter is a tool for subdomain enumeration.
-	URLSCAN            = "urlscan"            // URLScan.io is a service for scanning websites and collecting URLs.
-	WAYBACK            = "wayback"            // Wayback Machine is an internet archive for historical website snapshots.
-	VIRUSTOTAL         = "virustotal"         // VirusTotal is a platform for scanning files and URLs for malware.
+import (
+	"crypto/rand"
+	"errors"
+	"fmt"
+	"math/big"
+	"regexp"
 )
 
-// List contains a collection of all available source names.
-// This array is useful for iterating over or referencing the supported data sources
-// in loops, validation logic, or dynamic configurations.
+// Source is the interface that every data source implementation must satisfy.
+// It standardizes the required functionality, ensuring uniform behavior across
+// different integrations. Implementers of Source must define two methods:
+//
+//   - Run: Initiates data collection for a given domain using the provided configuration,
+//     returning results asynchronously through a channel.
+//   - Name: Returns the unique identifier (name) of the data source for logging and reporting.
+type Source interface {
+	// Run initiates the data collection or scanning process for a specified domain.
+	// The method accepts a domain name and a pointer to a Configuration instance,
+	// and returns a read-only channel through which results (of type Result) are streamed.
+	//
+	// Parameters:
+	//   - domain (string): A string representing the target domain for data collection.
+	//   - cfg (*Configuration): A pointer to a Configuration struct containing API keys, regular expressions,
+	//          and any other settings needed for interacting with the data source.
+	//
+	// Returns:
+	//   - (<-chan Result): A read-only channel that asynchronously emits Result values,
+	//     allowing the caller to process subdomain data or errors as they become available.
+	Run(domain string, cfg *Configuration) <-chan Result
+
+	// Name returns the unique name of the data source.
+	//
+	// This identifier is used for distinguishing among multiple data sources,
+	// especially when logging activity or compiling results from several integrations.
+	//
+	// Returns:
+	//   - name (string): A string that uniquely identifies the data source.
+	Name() (name string)
+}
+
+// Configuration holds settings and parameters passed to each data source.
+//
+// Fields:
+//   - Keys (Keys): API credentials for different data sources.
+//   - Extractor (*regexp.Regexp): A compiled regular expression used to extract subdomains.
+type Configuration struct {
+	Keys      Keys
+	Extractor *regexp.Regexp
+}
+
+// Keys stores API keys for different data sources. Each field represents a collection of API keys
+// for a specific source, and is defined using the SourceKeys type (a slice of strings). These keys are
+// used for authentication when interacting with external APIs or services.
+type Keys struct {
+	Bevigil        SourceKeys `yaml:"bevigil"`
+	BuiltWith      SourceKeys `yaml:"builtwith"`
+	Censys         SourceKeys `yaml:"censys"`
+	Certspotter    SourceKeys `yaml:"certspotter"`
+	Chaos          SourceKeys `yaml:"chaos"`
+	Fullhunt       SourceKeys `yaml:"fullhunt"`
+	GitHub         SourceKeys `yaml:"github"`
+	Intelx         SourceKeys `yaml:"intelx"`
+	LeakIX         SourceKeys `yaml:"leakix"`
+	SecurityTrails SourceKeys `yaml:"securitytrails"`
+	Shodan         SourceKeys `yaml:"shodan"`
+	URLScan        SourceKeys `yaml:"urlscan"`
+	VirusTotal     SourceKeys `yaml:"virustotal"`
+}
+
+// SourceKeys is a slice of strings where each element represents an API key for a specific source.
+// This structure supports maintaining multiple keys for a single source, which is useful for key
+// rotation or providing fallback options if one key becomes invalid.
+type SourceKeys []string
+
+// PickRandom selects and returns a random API key from the SourceKeys slice.
+//
+// It uses a cryptographically secure RNG (rand.Reader) to prevent predictable
+// selection. This is particularly useful for evenly distributing usage
+// across multiple keys or avoiding rate limits.
+//
+// Returns:
+//   - key (string): A randomly chosen key from the slice.
+//   - err (error): An error if the slice is empty or if secure RNG fails.
+func (k SourceKeys) PickRandom() (key string, err error) {
+	length := len(k)
+
+	if length == 0 {
+		err = ErrNoKeys
+
+		return
+	}
+
+	maximum := big.NewInt(int64(length))
+
+	var indexBig *big.Int
+
+	indexBig, err = rand.Int(rand.Reader, maximum)
+	if err != nil {
+		err = fmt.Errorf("failed to generate random index: %w", err)
+
+		return
+	}
+
+	index := indexBig.Int64()
+
+	key = k[index]
+
+	return
+}
+
+// Result represents the outcome of subdomain discovery.
+// It encapsulates details about the result, including its type, the originating source,
+// the actual data (if available), and any error encountered during the operation.
+//
+// Fields:
+//   - Type (ResultType): Specifies the kind of result (e.g., subdomain or error).
+//   - Source (string): Identifies the source that produced this result (e.g., "crtsh", "shodan").
+//   - Value (string): Contains the actual subdomain retrieved from the source.
+//     This field is empty if the result is an error.
+//   - Error (error): Holds the error encountered during the operation, if any. If no error
+//     occurred, this field is nil.
+type Result struct {
+	Type   ResultType
+	Source string
+	Value  string
+	Error  error
+}
+
+// ResultType defines the category of a Result using an integer enumeration.
+// It allows for distinguishing between different types of outcomes produced by sources.
+//
+// Enumeration Values:
+//   - ResultSubdomain: Indicates a successful result containing a subdomain retrieved from the source.
+//   - ResultError: Represents a result indicating that an error occurred during the operation.
+type ResultType int
+
+// Constants representing the types of results that can be produced by a data source.
+//
+// List of Constants:
+//   - ResultSubdomain: Represents a successful result containing subdomain.
+//   - ResultError: Indicates an error encountered during the operation, with details
+//     provided in the `Error` field of the `Result`.
+const (
+	ResultSubdomain ResultType = iota
+	ResultError
+)
+
+// Supported data source constants.
+//
+// The following constants define the names of supported data sources.
+// Each constant is used as a unique identifier for its corresponding data source.
+const (
+	ANUBIS             = "anubis"
+	BEVIGIL            = "bevigil"
+	BUILTWITH          = "builtwith"
+	CENSYS             = "censys"
+	CERTIFICATEDETAILS = "certificatedetails"
+	CERTSPOTTER        = "certspotter"
+	CHAOS              = "chaos"
+	COMMONCRAWL        = "commoncrawl"
+	CRTSH              = "crtsh"
+	DRIFTNET           = "driftnet"
+	FULLHUNT           = "fullhunt"
+	GITHUB             = "github"
+	HACKERTARGET       = "hackertarget"
+	INTELLIGENCEX      = "intelx"
+	LEAKIX             = "leakix"
+	OPENTHREATEXCHANGE = "otx"
+	SECURITYTRAILS     = "securitytrails"
+	SHODAN             = "shodan"
+	SUBDOMAINCENTER    = "subdomaincenter"
+	URLSCAN            = "urlscan"
+	VIRUSTOTAL         = "virustotal"
+	WAYBACK            = "wayback"
+)
+
+// ErrNoKeys is a sentinel error returned when a SourceKeys slice contains no API keys.
+// This error is used to signal that an operation requiring an API key cannot proceed
+// because no keys are available.
+var ErrNoKeys = errors.New("no keys available for the source")
+
+// List is a collection of all supported source names.
+//
+// This slice provides a convenient way to iterate over, validate, or dynamically configure
+// the data sources available in the application.
 var List = []string{
 	ANUBIS,
 	BEVIGIL,
@@ -57,6 +207,7 @@ var List = []string{
 	CHAOS,
 	COMMONCRAWL,
 	CRTSH,
+	DRIFTNET,
 	FULLHUNT,
 	GITHUB,
 	HACKERTARGET,
@@ -67,6 +218,6 @@ var List = []string{
 	SHODAN,
 	SUBDOMAINCENTER,
 	URLSCAN,
-	WAYBACK,
 	VIRUSTOTAL,
+	WAYBACK,
 }

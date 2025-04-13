@@ -1,28 +1,56 @@
+// Package certspotter provides an implementation of the sources.Source interface
+// for interacting with the Certspotter API.
+//
+// The Certspotter API offers certificate transparency search capabilities that
+// allow for the discovery of subdomains by returning certificate issuance data.
+// This package defines a Source type that implements the Run and Name methods as
+// specified by the sources.Source interface. The Run method sends queries to the
+// Certspotter API, processes the JSON responses (including handling pagination via
+// the "after" parameter), and streams discovered subdomains or errors via a channel.
 package certspotter
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	hqgohttp "github.com/hueristiq/hq-go-http"
+	"github.com/hueristiq/hq-go-http/header"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
+// getCTLogsSearchResponse represents the structure of the JSON response returned by the Certspotter API.
+//
+// It contains the following fields:
+//   - ID: A unique identifier for the certificate record.
+//   - DNSNames: A slice of strings representing the DNS names (subdomains) associated with the certificate.
 type getCTLogsSearchResponse struct {
 	ID       string   `json:"id"`
 	DNSNames []string `json:"dns_names"`
 }
 
+// Source represents the Certspotter data source implementation.
+// It implements the sources.Source interface, providing functionality
+// for retrieving subdomains from the Certspotter API.
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration, domain string) <-chan sources.Result {
+// Run initiates the process of retrieving subdomain information from the Certspotter API for a given domain.
+//
+// Parameters:
+//   - domain (string): The target domain for which to retrieve subdomains.
+//   - cfg (*sources.Configuration): The configuration instance containing API keys,
+//     the URL validation function, and any additional settings required by the source.
+//
+// Returns:
+//   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
+//     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
+//     encountered during the operation.
+func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
-		key, err := config.Keys.Certspotter.PickRandom()
+		key, err := cfg.Keys.Certspotter.PickRandom()
 		if key == "" || err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -35,12 +63,16 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		getCTLogsSearchReqURL := fmt.Sprintf("https://api.certspotter.com/v1/issuances?domain=%s&include_subdomains=true&expand=dns_names", domain)
-		getCTLogsSearchReqHeaders := map[string]string{
-			"Authorization": "Bearer " + key,
+		getCTLogsSearchReqURL := "https://api.certspotter.com/v1/issuances"
+		getCTLogsSearchReqCFG := &hqgohttp.RequestConfiguration{
+			Params: map[string]string{
+				"domain":             domain,
+				"include_subdomains": "true",
+				"expand":             "dns_names",
+			},
 		}
 
-		getCTLogsSearchRes, err := httpclient.Get(getCTLogsSearchReqURL, "", getCTLogsSearchReqHeaders)
+		getCTLogsSearchRes, err := hqgohttp.Get(getCTLogsSearchReqURL, getCTLogsSearchReqCFG)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -49,8 +81,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			}
 
 			results <- result
-
-			httpclient.DiscardResponse(getCTLogsSearchRes)
 
 			return
 		}
@@ -96,9 +126,20 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 		id := getCTLogsSearchResData[len(getCTLogsSearchResData)-1].ID
 
 		for {
-			getCTLogsSearchReqURL := fmt.Sprintf("https://api.certspotter.com/v1/issuances?domain=%s&include_subdomains=true&expand=dns_names&after=%s", domain, id)
+			getCTLogsSearchReqURL := "https://api.certspotter.com/v1/issuances"
+			getCTLogsSearchReqCFG := &hqgohttp.RequestConfiguration{
+				Params: map[string]string{
+					"domain":             domain,
+					"include_subdomains": "true",
+					"expand":             "dns_names",
+					"after":              id,
+				},
+				Headers: map[string]string{
+					header.Authorization.String(): "Bearer " + key,
+				},
+			}
 
-			getCTLogsSearchRes, err := httpclient.Get(getCTLogsSearchReqURL, "", getCTLogsSearchReqHeaders)
+			getCTLogsSearchRes, err := hqgohttp.Get(getCTLogsSearchReqURL, getCTLogsSearchReqCFG)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
@@ -107,8 +148,6 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 				}
 
 				results <- result
-
-				httpclient.DiscardResponse(getCTLogsSearchRes)
 
 				break
 			}
@@ -158,6 +197,11 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 	return results
 }
 
-func (source *Source) Name() string {
+// Name returns the unique identifier for the data source.
+// This identifier is used for logging, debugging, and associating results with the correct data source.
+//
+// Returns:
+//   - name (string): The unique identifier for the data source.
+func (source *Source) Name() (name string) {
 	return sources.CERTSPOTTER
 }

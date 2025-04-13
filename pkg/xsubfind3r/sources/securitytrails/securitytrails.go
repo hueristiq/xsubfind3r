@@ -1,36 +1,69 @@
+// Package securitytrails provides an implementation of the sources.Source interface
+// for interacting with the SecurityTrails API.
+//
+// The SecurityTrails API offers comprehensive domain data, including subdomain information.
+// This package defines a Source type that implements the Run and Name methods as specified
+// by the sources.Source interface. The Run method sends a query to the SecurityTrails API,
+// processes the JSON response, extracts subdomains, and streams discovered subdomains or errors
+// via a channel.
 package securitytrails
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 
-	"github.com/hueristiq/hq-go-http/status"
-	"github.com/hueristiq/xsubfind3r/pkg/httpclient"
+	hqgohttp "github.com/hueristiq/hq-go-http"
+	"github.com/hueristiq/hq-go-http/header"
+	"github.com/hueristiq/hq-go-http/mime"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
+// getSubdomainsResponse represents the structure of the JSON response returned by the SecurityTrails API.
+//
+// It contains the following fields:
+//   - Endpoint: The API endpoint that processed the request.
+//   - Meta: An object containing metadata about the request, including the scroll ID for pagination
+//     and a flag indicating if the result limit was reached.
+//   - Records: A slice of record objects, each containing a hostname.
+//   - SubdomainCount: A boolean flag indicating if subdomain count data is available.
+//   - Subdomains: A slice of strings representing the discovered subdomains.
 type getSubdomainsResponse struct {
-	Meta struct {
-		ScrollID string `json:"scroll_id"`
+	Endpoint string `json:"endpoint"`
+	Meta     struct {
+		ScrollID     string `json:"scroll_id"`
+		LimitReached string `json:"limit_reached"`
 	} `json:"meta"`
 	Records []struct {
 		Hostname string `json:"hostname"`
 	} `json:"records"`
-	Subdomains []string `json:"subdomains"`
+	SubdomainCount bool     `json:"subdomain_count"`
+	Subdomains     []string `json:"subdomains"`
 }
 
+// Source represents the SecurityTrails data source implementation.
+// It implements the sources.Source interface, providing functionality
+// for retrieving subdomains from the SecurityTrails API.
 type Source struct{}
 
-func (source *Source) Run(config *sources.Configuration, domain string) <-chan sources.Result {
+// Run initiates the process of retrieving subdomain information from the SecurityTrails API for a given domain.
+//
+// Parameters:
+//   - domain (string): The target domain for which to retrieve subdomains.
+//   - cfg (*sources.Configuration): The configuration instance containing API keys,
+//     the URL validation function, and any additional settings required by the source.
+//
+// Returns:
+//   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
+//     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
+//     encountered during the operation.
+func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
-		key, err := config.Keys.SecurityTrails.PickRandom()
+		key, err := cfg.Keys.SecurityTrails.PickRandom()
 		if key == "" || err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -43,128 +76,72 @@ func (source *Source) Run(config *sources.Configuration, domain string) <-chan s
 			return
 		}
 
-		var scrollID string
-
-		getSubdomainsReqHeaders := map[string]string{
-			"Content-Type": "application/json",
-			"APIKEY":       key,
+		getSubdomainsReqURL := fmt.Sprintf("https://api.securitytrails.com/v1/domain/%s/subdomains", domain)
+		getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
+			Params: map[string]string{
+				"children_only":    "false",
+				"include_inactive": "true",
+			},
+			Headers: map[string]string{
+				header.Accept.String(): mime.JSON.String(),
+				"APIKEY":               key,
+			},
 		}
 
-		for {
-			var err error
-
-			var getSubdomainsRes *http.Response
-
-			if scrollID == "" {
-				getSubdomainsReqURL := "https://api.securitytrails.com/v1/domains/list?include_ips=false&scroll=true"
-
-				type getSubdomainsReqBody struct {
-					Query string `json:"query"`
-				}
-
-				getSubdomainsReqBodyData := getSubdomainsReqBody{
-					Query: fmt.Sprintf("apex_domain='%s'", domain),
-				}
-
-				var getSubdomainsReqBodyDataBytes []byte
-
-				getSubdomainsReqBodyDataBytes, err = json.Marshal(getSubdomainsReqBodyData)
-				if err != nil {
-					result := sources.Result{
-						Type:   sources.ResultError,
-						Source: source.Name(),
-						Error:  err,
-					}
-
-					results <- result
-
-					return
-				}
-
-				getSubdomainsReqBodyDataReader := bytes.NewReader(getSubdomainsReqBodyDataBytes)
-
-				getSubdomainsRes, err = httpclient.Post(getSubdomainsReqURL, "", getSubdomainsReqHeaders, getSubdomainsReqBodyDataReader)
-			} else {
-				getSubdomainsReqURL := fmt.Sprintf("https://api.securitytrails.com/v1/scroll/%s", scrollID)
-
-				getSubdomainsRes, err = httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
+		getSubdomainsRes, err := hqgohttp.Get(getSubdomainsReqURL, getSubdomainsReqCFG)
+		if err != nil {
+			result := sources.Result{
+				Type:   sources.ResultError,
+				Source: source.Name(),
+				Error:  err,
 			}
 
-			if err != nil && getSubdomainsRes.StatusCode == status.Forbidden {
-				getSubdomainsReqURL := fmt.Sprintf("https://api.securitytrails.com/v1/domain/%s/subdomains?children_only=false&include_inactive=true", domain)
+			results <- result
 
-				getSubdomainsRes, err = httpclient.Get(getSubdomainsReqURL, "", getSubdomainsReqHeaders)
+			return
+		}
+
+		var getSubdomainsResData getSubdomainsResponse
+
+		if err = json.NewDecoder(getSubdomainsRes.Body).Decode(&getSubdomainsResData); err != nil {
+			result := sources.Result{
+				Type:   sources.ResultError,
+				Source: source.Name(),
+				Error:  err,
 			}
 
-			if err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: source.Name(),
-					Error:  err,
-				}
-
-				results <- result
-
-				httpclient.DiscardResponse(getSubdomainsRes)
-
-				return
-			}
-
-			var getSubdomainsResData getSubdomainsResponse
-
-			if err = json.NewDecoder(getSubdomainsRes.Body).Decode(&getSubdomainsResData); err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: source.Name(),
-					Error:  err,
-				}
-
-				results <- result
-
-				getSubdomainsRes.Body.Close()
-
-				return
-			}
+			results <- result
 
 			getSubdomainsRes.Body.Close()
+		}
 
-			for _, record := range getSubdomainsResData.Records {
-				result := sources.Result{
-					Type:   sources.ResultSubdomain,
-					Source: source.Name(),
-					Value:  record.Hostname,
-				}
+		getSubdomainsRes.Body.Close()
 
-				results <- result
+		for _, subdomain := range getSubdomainsResData.Subdomains {
+			if strings.HasSuffix(subdomain, ".") {
+				subdomain += domain
+			} else {
+				subdomain = subdomain + "." + domain
 			}
 
-			for _, subdomain := range getSubdomainsResData.Subdomains {
-				if strings.HasSuffix(subdomain, ".") {
-					subdomain += domain
-				} else {
-					subdomain = subdomain + "." + domain
-				}
-
-				result := sources.Result{
-					Type:   sources.ResultSubdomain,
-					Source: source.Name(),
-					Value:  subdomain,
-				}
-
-				results <- result
+			result := sources.Result{
+				Type:   sources.ResultSubdomain,
+				Source: source.Name(),
+				Value:  subdomain,
 			}
 
-			scrollID = getSubdomainsResData.Meta.ScrollID
-
-			if scrollID == "" {
-				break
-			}
+			results <- result
 		}
 	}()
 
 	return results
 }
 
+// Name returns the unique identifier for the data source.
+// This identifier is used for logging, debugging, and associating results with the correct data source.
+//
+// Returns:
+//   - name (string): The unique identifier for the data source.
 func (source *Source) Name() string {
 	return sources.SECURITYTRAILS
 }

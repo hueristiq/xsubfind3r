@@ -1,4 +1,4 @@
-# X Subdomain Finder (`xsubfind3r`)
+# xsubfind3r
 
 ![made with go](https://img.shields.io/badge/made%20with-Go-1E90FF.svg) [![go report card](https://goreportcard.com/badge/github.com/hueristiq/xsubfind3r)](https://goreportcard.com/report/github.com/hueristiq/xsubfind3r) [![release](https://img.shields.io/github/release/hueristiq/xsubfind3r?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/releases) [![open issues](https://img.shields.io/github/issues-raw/hueristiq/xsubfind3r.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/hueristiq/xsubfind3r.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?color=1E90FF)](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-1E90FF.svg) [![contribution](https://img.shields.io/badge/contributions-welcome-1E90FF.svg)](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md)
 
@@ -6,26 +6,24 @@
 
 ## Resource
 
-* [Features](#features)
-* [Installation](#installation)
-	* [Install release binaries (Without Go Installed)](#install-release-binaries-without-go-installed)
-	* [Install source (With Go Installed)](#install-source-with-go-installed)
-		* [`go install ...`](#go-install)
-		* [`go build ...`](#go-build)
-	* [Install on Docker (With Docker Installed)](#install-on-docker-with-docker-installed)
-* [Post Installation](#post-installation)
-* [Usage](#usage)
-* [Contributing](#contributing)
-* [Licensing](#licensing)
-* [Credits](#credits)
-	* [Contributors](#contributors)
-	* [Similar Projects](#similar-projects)
+- [Features](#features)
+- [Installation](#installation)
+	- [Install release binaries (Without Go Installed)](#install-release-binaries-without-go-installed)
+	- [Install source (With Go Installed)](#install-source-with-go-installed)
+		- [`go install ...`](#go-install)
+		- [`go build ...` the development version](#go-build--the-development-version)
+	- [Install on Docker (With Docker Installed)](#install-on-docker-with-docker-installed)
+- [Post Installation](#post-installation)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [Licensing](#licensing)
 
 ## Features
 
-* Fetches subdomains from multiple online passive sources to provide extensive results
-* Supports `stdin` and `stdout` for easy integration in automated workflows
-* Cross-Platform (Windows, Linux, and macOS)
+- Fetches subdomains from multiple online passive sources to provide extensive results
+- Supports `stdin` and `stdout` for easy integration in automated workflows
+- Supports multiple output formats (JSONL, file, stdout)
+- Cross-Platform (Windows, Linux, and macOS)
 
 ## Installation
 
@@ -33,13 +31,13 @@
 
 Visit the [releases page](https://github.com/hueristiq/xsubfind3r/releases) and find the appropriate archive for your operating system and architecture. Download the archive from your browser or copy its URL and retrieve it with `wget` or `curl`:
 
-* ...with `wget`:
+- ...with `wget`:
 
 	```bash
 	wget https://github.com/hueristiq/xsubfind3r/releases/download/v<version>/xsubfind3r-<version>-linux-amd64.tar.gz
 	```
 
-* ...or, with `curl`:
+- ...or, with `curl`:
 
 	```bash
 	curl -OL https://github.com/hueristiq/xsubfind3r/releases/download/v<version>/xsubfind3r-<version>-linux-amd64.tar.gz
@@ -80,22 +78,22 @@ Before you install from source, you need to make sure that Go is installed on yo
 go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 ```
 
-#### `go build ...`
+#### `go build ...` the development version
 
-* Clone the repository
+- Clone the repository
 
 	```bash
 	git clone https://github.com/hueristiq/xsubfind3r.git 
 	```
 
-* Build the utility
+- Build the utility
 
 	```bash
 	cd xsubfind3r/cmd/xsubfind3r && \
 	go build .
 	```
 
-* Move the `xsubfind3r` binary to somewhere in your `PATH`. For example, on GNU/Linux and OS X systems:
+- Move the `xsubfind3r` binary to somewhere in your `PATH`. For example, on GNU/Linux and OS X systems:
 
 	```bash
 	sudo mv xsubfind3r /usr/local/bin/
@@ -111,13 +109,13 @@ go install -v github.com/hueristiq/xsubfind3r/cmd/xsubfind3r@latest
 
 If you have Docker installed, you can use `xsubfind3r` using it's image:
 
-* Pull the docker image using:
+- Pull the docker image using:
 
     ```bash
     docker pull hueristiq/xsubfind3r:latest
     ```
 
-* Run `xsubfind3r` using the image:
+- Run `xsubfind3r` using the image:
 
     ```bash
     docker run --rm hueristiq/xsubfind3r:latest -h
@@ -145,65 +143,50 @@ xsubfind3r -h
 Here's what the help message looks like:
 
 ```text
+
                 _      __ _           _ _____
 __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 \ \/ / __| | | | '_ \| |_| | '_ \ / _` | |_ \| '__|
  >  <\__ \ |_| | |_) |  _| | | | | (_| |___) | |
 /_/\_\___/\__,_|_.__/|_| |_|_| |_|\__,_|____/|_|
-                                             v0.9.1
+                                             v1.0.0
 
 USAGE:
  xsubfind3r [OPTIONS]
 
 CONFIGURATION:
- -c, --configuration string            configuration file (default: $HOME/.config/xsubfind3r/config.yaml)
+ -c, --configuration string           (default: $HOME/.config/xsubfind3r/config.yaml)
 
 INPUT:
- -d, --domain string[]                 target domain
- -l, --list string                     target domains list file path
+ -d, --domain string[]                target domain
+ -l, --list string                    target domains file path
 
-TIP: For multiple input domains use comma(,) separated value with `-d`,
-     specify multiple `-d`, load from file with `-l` or load from stdin.
+ For multiple domains, use comma(,) separated value with `--domain`,
+ specify multiple `--domains`, load from file with `--list` or load from stdin.
 
 SOURCES:
-     --sources bool                    list supported sources
- -u, --sources-to-use string[]         comma(,) separated sources to use
- -e, --sources-to-exclude string[]     comma(,) separated sources to exclude
+     --sources bool                   list supported sources
+ -u, --sources-to-use string[]        comma(,) separated sources to use
+ -e, --sources-to-exclude string[]    comma(,) separated sources to exclude
 
 OUTPUT:
-     --monochrome bool                 display no color output
- -o, --output string                   output subdomains file path
- -O, --output-directory string         output subdomains directory path
- -s, --silent bool                     display output subdomains only
- -v, --verbose bool                    display verbose output
+     --jsonl bool                     output in JSONL(ines)
+ -o, --output string                  output write file path
+ -O, --output-directory string        output write directory path
+ -m, --monochrome bool                stdout in monochrome
+ -s, --silent bool                    stdout in silent mode
+ -v, --verbose bool                   stdout in verbose mode
+
 ```
-
-For example, to discover subdomains for `example.com`:
-
-```bash
-xsubfind3r -d example.com
-```
-
-You can also use multiple domains by separating them with commas or providing a list from a file.
 
 ## Contributing
 
-We welcome contributions! Feel free to submit [Pull Requests](https://github.com/hueristiq/xsubfind3r/pulls) or report [Issues](https://github.com/hueristiq/xsubfind3r/issues). For more details, check out the [contribution guidelines](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md).
+Contributions are welcome and encouraged! Feel free to submit [Pull Requests](https://github.com/hueristiq/xsubfind3r/pulls) or report [Issues](https://github.com/hueristiq/xsubfind3r/issues). For more details, check out the [contribution guidelines](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md).
+
+A big thank you to all the [contributors](https://github.com/hueristiq/xsubfind3r/graphs/contributors) for your ongoing support!
+
+![contributors](https://contrib.rocks/image?repo=hueristiq/xsubfind3r&max=500)
 
 ## Licensing
 
-This utility is licensed under the [MIT license](https://opensource.org/license/mit). You are free to use, modify, and distribute it, as long as you follow the terms of the license. You can find the full license text in the repository - [Full MIT license text](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE).
-
-## Credits
-
-### Contributors
-
-A huge thanks to all the contributors who have helped make `xsubfind3r` what it is today!
-
-[![contributors](https://contrib.rocks/image?repo=hueristiq/xsubfind3r&max=500)](https://github.com/hueristiq/xsubfind3r/graphs/contributors)
-
-### Similar Projects
-
-If you're interested in more utilities like this, check out:
-
-[assetfinder](https://github.com/tomnomnom/assetfinder) ◇ [amass](https://github.com/owasp-amass/amass) ◇ [subfinder](https://github.com/projectdiscovery/subfinder)
+This package is licensed under the [MIT license](https://opensource.org/license/mit). You are free to use, modify, and distribute it, as long as you follow the terms of the license. You can find the full license text in the repository - [Full MIT license text](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE).
