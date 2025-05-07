@@ -8,7 +8,7 @@ require (
 	github.com/hueristiq/hq-go-limiter v0.0.0-20250405145905-55741461cdfe
 	github.com/hueristiq/hq-go-logger v0.0.0-20250405145000-8b9c281d946c
 	github.com/logrusorgru/aurora/v4 v4.0.0
-	github.com/spf13/cast v1.7.1
+	github.com/spf13/cast v1.8.0
 	github.com/spf13/pflag v1.0.6
 	github.com/spf13/viper v1.20.1
 	gopkg.in/yaml.v3 v3.0.1
