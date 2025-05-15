@@ -146,8 +146,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 		searchReqBodyReader := bytes.NewBuffer(searchReqBodyBytes)
 
 		searchReqCFG := &hqgohttp.RequestConfiguration{
-			Headers: map[string]string{
-				header.ContentType.String(): mime.JSON.String(),
+			Headers: []hqgohttp.Header{
+				hqgohttp.NewHeader(header.ContentType.String(), mime.JSON.String(), hqgohttp.HeaderModeSet),
 			},
 		}
 

@@ -82,9 +82,9 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 				"children_only":    "false",
 				"include_inactive": "true",
 			},
-			Headers: map[string]string{
-				header.Accept.String(): mime.JSON.String(),
-				"APIKEY":               key,
+			Headers: []hqgohttp.Header{
+				hqgohttp.NewHeader(header.Accept.String(), mime.JSON.String(), hqgohttp.HeaderModeSet),
+				hqgohttp.NewHeader("APIKEY", key, hqgohttp.HeaderModeSet),
 			},
 		}
 

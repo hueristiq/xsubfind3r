@@ -134,8 +134,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 					"expand":             "dns_names",
 					"after":              id,
 				},
-				Headers: map[string]string{
-					header.Authorization.String(): "Bearer " + key,
+				Headers: []hqgohttp.Header{
+					hqgohttp.NewHeader(header.Authorization.String(), "Bearer "+key, hqgohttp.HeaderModeSet),
 				},
 			}
 

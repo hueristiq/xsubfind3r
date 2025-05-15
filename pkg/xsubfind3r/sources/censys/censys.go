@@ -107,10 +107,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 					"q":        domain,
 					"per_page": cast.ToString(maxPerPage),
 				},
-				Headers: map[string]string{
-					header.Authorization.String(): "Basic " + base64.StdEncoding.EncodeToString(
-						[]byte(key),
-					),
+				Headers: []hqgohttp.Header{
+					hqgohttp.NewHeader(header.Authorization.String(), "Basic "+base64.StdEncoding.EncodeToString([]byte(key)), hqgohttp.HeaderModeSet),
 				},
 			}
 

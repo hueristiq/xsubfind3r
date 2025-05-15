@@ -67,9 +67,9 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 
 		getSubdomainsReqURL := "https://leakix.net/api/subdomains/" + domain
 		getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
-			Headers: map[string]string{
-				header.Accept.String(): mime.JSON.String(),
-				"api-key":              key,
+			Headers: []hqgohttp.Header{
+				hqgohttp.NewHeader(header.Accept.String(), mime.JSON.String(), hqgohttp.HeaderModeSet),
+				hqgohttp.NewHeader("api-key", key, hqgohttp.HeaderModeSet),
 			},
 		}
 

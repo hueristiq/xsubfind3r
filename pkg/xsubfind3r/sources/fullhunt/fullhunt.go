@@ -67,8 +67,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			domain,
 		)
 		getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
-			Headers: map[string]string{
-				"X-API-KEY": key,
+			Headers: []hqgohttp.Header{
+				hqgohttp.NewHeader("X-API-KEY", key, hqgohttp.HeaderModeSet),
 			},
 		}
 

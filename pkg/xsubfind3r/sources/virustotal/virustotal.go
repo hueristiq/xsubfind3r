@@ -84,8 +84,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 				Params: map[string]string{
 					"limit": "40",
 				},
-				Headers: map[string]string{
-					"x-apikey": key,
+				Headers: []hqgohttp.Header{
+					hqgohttp.NewHeader("x-apikey", key, hqgohttp.HeaderModeSet),
 				},
 			}
 

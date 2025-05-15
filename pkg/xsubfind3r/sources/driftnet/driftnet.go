@@ -138,8 +138,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 
 		getResultsReqURL := "https://api.driftnet.io/v1/multi/summary"
 		getResultsReqCFG := &hqgohttp.RequestConfiguration{
-			Headers: map[string]string{
-				header.Authorization.String(): "Bearer anon",
+			Headers: []hqgohttp.Header{
+				hqgohttp.NewHeader(header.Authorization.String(), "Bearer anon", hqgohttp.HeaderModeSet),
 			},
 			Params: map[string]string{
 				"summary_limit": "10",

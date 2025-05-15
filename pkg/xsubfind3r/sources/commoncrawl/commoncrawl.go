@@ -146,8 +146,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 
 		for _, CCIndexAPI := range searchIndexes {
 			getPaginationReqCFG := &hqgohttp.RequestConfiguration{
-				Headers: map[string]string{
-					header.Host.String(): "index.commoncrawl.org",
+				Headers: []hqgohttp.Header{
+					hqgohttp.NewHeader(header.Host.String(), "index.commoncrawl.org", hqgohttp.HeaderModeSet),
 				},
 				Params: map[string]string{
 					"url":          "*." + domain + "/*",
@@ -194,8 +194,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 
 			for page := range getPaginationResData.Pages {
 				getURLsReqCFG := &hqgohttp.RequestConfiguration{
-					Headers: map[string]string{
-						header.Host.String(): "index.commoncrawl.org",
+					Headers: []hqgohttp.Header{
+						hqgohttp.NewHeader(header.Host.String(), "index.commoncrawl.org", hqgohttp.HeaderModeSet),
 					},
 					Params: map[string]string{
 						"url":    "*." + domain + "/*",

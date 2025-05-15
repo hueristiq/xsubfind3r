@@ -68,8 +68,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			domain,
 		)
 		getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
-			Headers: map[string]string{
-				header.Authorization.String(): key,
+			Headers: []hqgohttp.Header{
+				hqgohttp.NewHeader(header.Authorization.String(), key, hqgohttp.HeaderModeSet),
 			},
 		}
 

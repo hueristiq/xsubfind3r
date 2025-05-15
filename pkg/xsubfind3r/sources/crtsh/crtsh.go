@@ -56,8 +56,8 @@ func (source *Source) Run(domain string, _ *sources.Configuration) <-chan source
 				"q":      "%." + domain,
 				"output": "json",
 			},
-			Headers: map[string]string{
-				header.ContentType.String(): mime.JSON.String(),
+			Headers: []hqgohttp.Header{
+				hqgohttp.NewHeader(header.ContentType.String(), mime.JSON.String(), hqgohttp.HeaderModeSet),
 			},
 		}
 
