@@ -1,11 +1,12 @@
 SHELL = /bin/sh
 
 # --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# --- Git Hooks Install ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# --- Setup ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-.PHONY: lefthook-install
-lefthook-install:
+.PHONY: install-lefthook
+
+install-lefthook:
 	(command -v lefthook || go install github.com/evilmartians/lefthook@latest) && lefthook install
 
 # --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -68,11 +69,11 @@ help:
 	@echo ""
 	@echo "Available commands:"
 	@echo ""
-	@echo " Setup Commands:"
+	@echo " Setup:"
 	@echo ""
-	@echo "  lefthook-install ......... Install Git hooks."
+	@echo "  install-lefthook ......... Install lefthook (Git hooks manager)."
 	@echo ""
-	@echo " Go Commands:"
+	@echo " Go (Golang):"
 	@echo ""
 	@echo "  go-mod-clean ............. Clean Go module cache."
 	@echo "  go-mod-tidy .............. Tidy Go modules."
@@ -83,11 +84,11 @@ help:
 	@echo "  go-build ................. Build Go program."
 	@echo "  go-install ............... Install Go program."
 	@echo ""
-	@echo " Docker Commands:"
+	@echo " Docker:"
 	@echo ""
 	@echo "  docker-build ............. Build Docker image."
 	@echo ""
-	@echo " Help Commands:"
+	@echo " Help:"
 	@echo ""
 	@echo "  help ..................... Display this help information."
 	@echo ""
