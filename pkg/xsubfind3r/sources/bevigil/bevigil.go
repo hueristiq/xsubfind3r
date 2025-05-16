@@ -63,7 +63,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 		getSubdomainsReqURL := fmt.Sprintf("https://osint.bevigil.com/api/%s/subdomains/", domain)
 		getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
 			Headers: []hqgohttp.Header{
-				hqgohttp.NewHeader("X-Access-Token", key, hqgohttp.HeaderModeSet),
+				hqgohttp.NewSetHeader("X-Access-Token", key),
 			},
 		}
 

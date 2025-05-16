@@ -12,7 +12,7 @@ import (
 	"fmt"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
-	"github.com/hueristiq/hq-go-http/header"
+	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -69,7 +69,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 		)
 		getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
 			Headers: []hqgohttp.Header{
-				hqgohttp.NewHeader(header.Authorization.String(), key, hqgohttp.HeaderModeSet),
+				hqgohttp.NewSetHeader(hqgohttpheader.Authorization.String(), key),
 			},
 		}
 

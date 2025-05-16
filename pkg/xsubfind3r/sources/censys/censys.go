@@ -15,7 +15,7 @@ import (
 	"fmt"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
-	"github.com/hueristiq/hq-go-http/header"
+	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
 )
@@ -108,7 +108,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 					"per_page": cast.ToString(maxPerPage),
 				},
 				Headers: []hqgohttp.Header{
-					hqgohttp.NewHeader(header.Authorization.String(), "Basic "+base64.StdEncoding.EncodeToString([]byte(key)), hqgohttp.HeaderModeSet),
+					hqgohttp.NewSetHeader(hqgohttpheader.Authorization.String(), "Basic "+base64.StdEncoding.EncodeToString([]byte(key))),
 				},
 			}
 

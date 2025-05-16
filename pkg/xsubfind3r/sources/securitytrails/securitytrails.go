@@ -14,8 +14,8 @@ import (
 	"strings"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
-	"github.com/hueristiq/hq-go-http/header"
-	"github.com/hueristiq/hq-go-http/mime"
+	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
+	hqgohttpmime "github.com/hueristiq/hq-go-http/mime"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -83,8 +83,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 				"include_inactive": "true",
 			},
 			Headers: []hqgohttp.Header{
-				hqgohttp.NewHeader(header.Accept.String(), mime.JSON.String(), hqgohttp.HeaderModeSet),
-				hqgohttp.NewHeader("APIKEY", key, hqgohttp.HeaderModeSet),
+				hqgohttp.NewSetHeader(hqgohttpheader.Accept.String(), hqgohttpmime.JSON.String()),
+				hqgohttp.NewSetHeader("APIKEY", key),
 			},
 		}
 

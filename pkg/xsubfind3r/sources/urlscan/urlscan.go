@@ -13,9 +13,9 @@ import (
 	"strings"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
-	"github.com/hueristiq/hq-go-http/header"
-	"github.com/hueristiq/hq-go-http/mime"
-	"github.com/hueristiq/hq-go-http/status"
+	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
+	hqgohttpmime "github.com/hueristiq/hq-go-http/mime"
+	hqgohttpstatus "github.com/hueristiq/hq-go-http/status"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
 )
@@ -90,8 +90,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 					"size": "10000",
 				},
 				Headers: []hqgohttp.Header{
-					hqgohttp.NewHeader(header.Accept.String(), mime.JSON.String(), hqgohttp.HeaderModeSet),
-					hqgohttp.NewHeader("API-Key", key, hqgohttp.HeaderModeSet),
+					hqgohttp.NewSetHeader(hqgohttpheader.Accept.String(), hqgohttpmime.JSON.String()),
+					hqgohttp.NewSetHeader("API-Key", key),
 				},
 			}
 
@@ -130,7 +130,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 
 			searchRes.Body.Close()
 
-			if searchResData.Status == status.TooManyRequests.Int() {
+			if searchResData.Status == hqgohttpstatus.TooManyRequests.Int() {
 				break
 			}
 

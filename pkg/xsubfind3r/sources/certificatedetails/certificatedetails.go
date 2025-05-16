@@ -13,7 +13,7 @@ import (
 	"bufio"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
-	"github.com/hueristiq/hq-go-http/status"
+	hqgohttpstatus "github.com/hueristiq/hq-go-http/status"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -42,7 +42,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 		getCertificateDetailsReqURL := "https://certificatedetails.com/" + domain
 
 		getCertificateDetailsRes, err := hqgohttp.Get(getCertificateDetailsReqURL)
-		if err != nil && getCertificateDetailsRes.StatusCode != status.NotFound.Int() {
+		if err != nil && getCertificateDetailsRes.StatusCode != hqgohttpstatus.NotFound.Int() {
 			result := sources.Result{
 				Type:   sources.ResultError,
 				Source: source.Name(),
