@@ -17,6 +17,7 @@ import (
 	"time"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
+	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/anubis"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/bevigil"
@@ -106,6 +107,10 @@ func (finder *Finder) Find(domain string) (results chan sources.Result) {
 	return
 }
 
+type ClientConfiguration struct {
+	UserAgent string
+}
+
 // Configuration represents the user-defined settings for the Finder.
 // It specifies which sources to use or exclude and includes API keys for external sources.
 //
@@ -114,17 +119,10 @@ func (finder *Finder) Find(domain string) (results chan sources.Result) {
 //   - SourcesToExclude ([]string): List of source names to be excluded from enumeration.
 //   - Keys (sources.Keys): API keys for authenticated sources.
 type Configuration struct {
+	Client           *ClientConfiguration
 	SourcesToUSe     []string
 	SourcesToExclude []string
 	Keys             sources.Keys
-}
-
-func init() {
-	cfg := hqgohttp.DefaultSprayingClientConfiguration
-
-	cfg.Timeout = 1 * time.Hour
-
-	hqgohttp.DefaultClient, _ = hqgohttp.NewClient(cfg)
 }
 
 // New initializes a new Finder instance with the specified configuration.
@@ -142,6 +140,20 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 		configuration: &sources.Configuration{
 			Keys: cfg.Keys,
 		},
+	}
+
+	cc := hqgohttp.DefaultSprayingClientConfiguration
+
+	cc.Headers = []hqgohttp.Header{}
+	cc.Timeout = 1 * time.Hour
+
+	if cfg.Client != nil && cfg.Client.UserAgent != "" {
+		cc.Headers = append(cc.Headers, hqgohttp.NewSetHeader(hqgohttpheader.UserAgent.String(), cfg.Client.UserAgent))
+	}
+
+	hqgohttp.DefaultClient, err = hqgohttp.NewClient(cc)
+	if err != nil {
+		return
 	}
 
 	if len(cfg.SourcesToUSe) < 1 {

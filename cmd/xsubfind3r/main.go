@@ -204,6 +204,9 @@ func main() {
 	}
 
 	finder, err := xsubfind3r.New(&xsubfind3r.Configuration{
+		Client: &xsubfind3r.ClientConfiguration{
+			UserAgent: fmt.Sprintf("%s %s (https://github.com/hueristiq/%s.git)", configuration.NAME, configuration.VERSION, configuration.NAME),
+		},
 		SourcesToUSe:     sourcesToUse,
 		SourcesToExclude: sourcesToExclude,
 		Keys:             cfg.Keys,
