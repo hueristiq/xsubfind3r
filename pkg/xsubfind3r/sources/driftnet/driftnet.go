@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
-	"github.com/hueristiq/hq-go-http/header"
+	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -138,8 +138,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 
 		getResultsReqURL := "https://api.driftnet.io/v1/multi/summary"
 		getResultsReqCFG := &hqgohttp.RequestConfiguration{
-			Headers: map[string]string{
-				header.Authorization.String(): "Bearer anon",
+			Headers: []hqgohttp.Header{
+				hqgohttp.NewSetHeader(hqgohttpheader.Authorization.String(), "Bearer anon"),
 			},
 			Params: map[string]string{
 				"summary_limit": "10",

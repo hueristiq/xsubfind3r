@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
-	"github.com/hueristiq/hq-go-http/header"
+	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -134,8 +134,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 					"expand":             "dns_names",
 					"after":              id,
 				},
-				Headers: map[string]string{
-					header.Authorization.String(): "Bearer " + key,
+				Headers: []hqgohttp.Header{
+					hqgohttp.NewSetHeader(hqgohttpheader.Authorization.String(), "Bearer "+key),
 				},
 			}
 

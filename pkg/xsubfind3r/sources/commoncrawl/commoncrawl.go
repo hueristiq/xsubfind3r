@@ -19,7 +19,7 @@ import (
 	"time"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
-	"github.com/hueristiq/hq-go-http/header"
+	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
 )
@@ -146,8 +146,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 
 		for _, CCIndexAPI := range searchIndexes {
 			getPaginationReqCFG := &hqgohttp.RequestConfiguration{
-				Headers: map[string]string{
-					header.Host.String(): "index.commoncrawl.org",
+				Headers: []hqgohttp.Header{
+					hqgohttp.NewSetHeader(hqgohttpheader.Host.String(), "index.commoncrawl.org"),
 				},
 				Params: map[string]string{
 					"url":          "*." + domain + "/*",
@@ -194,8 +194,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 
 			for page := range getPaginationResData.Pages {
 				getURLsReqCFG := &hqgohttp.RequestConfiguration{
-					Headers: map[string]string{
-						header.Host.String(): "index.commoncrawl.org",
+					Headers: []hqgohttp.Header{
+						hqgohttp.NewSetHeader(hqgohttpheader.Host.String(), "index.commoncrawl.org"),
 					},
 					Params: map[string]string{
 						"url":    "*." + domain + "/*",
