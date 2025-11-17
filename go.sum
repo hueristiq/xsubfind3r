@@ -16,8 +16,6 @@ github.com/hueristiq/hq-go-http v0.0.0-20251117031730-ab203c7ac13b h1:TBi9PZJf6P
 github.com/hueristiq/hq-go-http v0.0.0-20251117031730-ab203c7ac13b/go.mod h1://VaZC6vxefjNzLk9s7SQepme0VjA0qxQYwkC/juVSo=
 github.com/hueristiq/hq-go-limiter v0.0.0-20250515162639-b2464255e416 h1:V0iqAw8F0mDEJKjZ2UiA7BZKyKyk/Rk/4PmOPxS2HfU=
 github.com/hueristiq/hq-go-limiter v0.0.0-20250515162639-b2464255e416/go.mod h1:HA3++ya99KM7q5ySZ8J+Ns7wTjYDjsHXaXhsMGU62VQ=
-github.com/hueristiq/hq-go-logger v0.0.0-20251117032237-bd29edaf4cf1 h1:A2In2NwbFSjnmGgOA9Ic14r4pR3/wh2KcBygF4qZxzw=
-github.com/hueristiq/hq-go-logger v0.0.0-20251117032237-bd29edaf4cf1/go.mod h1:fvC0hhnSOi+cQq3oMeuiT6hStbculKp1CiET+f9dxaY=
 github.com/hueristiq/hq-go-logger v0.0.0-20251117052147-9f8200693f59 h1:SVC23g5xzyKu+Ll3Ct9ancvDE5YSMbWIjEuJQ0ziPdU=
 github.com/hueristiq/hq-go-logger v0.0.0-20251117052147-9f8200693f59/go.mod h1:fvC0hhnSOi+cQq3oMeuiT6hStbculKp1CiET+f9dxaY=
 github.com/hueristiq/hq-go-retrier v0.0.0-20251117025327-cc4f0c41a7ed h1:g7p01SfCPnD45jkvcIRM/KAczzTd5fJymeZDCOSofXM=
