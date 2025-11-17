@@ -55,7 +55,7 @@ func init() {
 	pflag.BoolVarP(&verbose, "verbose", "v", false, "")
 
 	pflag.Usage = func() {
-		hqgologger.Info(configuration.BANNER(au), hqgologger.WithLabel(""))
+		hqgologger.Info(configuration.BANNER(au), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 
 		h := "USAGE:\n"
 		h += fmt.Sprintf(" %s [OPTIONS]\n", configuration.NAME)
@@ -82,12 +82,12 @@ func init() {
 		h += "     --jsonl bool                     output in JSONL(ines)\n"
 		h += " -o, --output string                  output write file path\n"
 		h += " -O, --output-directory string        output write directory path\n"
-		h += " -m, --monochrome bool                stdout in monochrome\n"
-		h += " -s, --silent bool                    stdout in silent mode\n"
-		h += " -v, --verbose bool                   stdout in verbose mode\n"
+		h += " -m, --monochrome bool                disable colored console output\n"
+		h += " -s, --silent bool                    disable logging output, only results\n"
+		h += " -v, --verbose bool                   enable detailed debug logging output\n"
 
-		hqgologger.Info(h, hqgologger.WithLabel(""))
-		hqgologger.Print("")
+		hqgologger.Info(h, hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+		hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 	}
 
 	pflag.Parse()
@@ -125,7 +125,7 @@ func init() {
 }
 
 func main() {
-	hqgologger.Info(configuration.BANNER(au), hqgologger.WithLabel(""))
+	hqgologger.Info(configuration.BANNER(au), hqgologger.WithoutLabel())
 
 	var cfg *configuration.Configuration
 
@@ -134,9 +134,9 @@ func main() {
 	}
 
 	if listSupportedSources {
-		hqgologger.Info(fmt.Sprintf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(cfg.Sources))).Bold()))
-		hqgologger.Info(fmt.Sprintf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold()))
-		hqgologger.Print("")
+		hqgologger.Info(fmt.Sprintf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(cfg.Sources))).Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+		hqgologger.Info(fmt.Sprintf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+		hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 
 		needsKey := make(map[string]interface{})
 		keysElem := reflect.ValueOf(&cfg.Keys).Elem()
@@ -149,13 +149,13 @@ func main() {
 			source := cfg.Sources[index]
 
 			if _, ok := needsKey[source]; ok {
-				hqgologger.Print("> " + source + " *")
+				hqgologger.Print("> "+source+" *", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 			} else {
-				hqgologger.Print("> " + source)
+				hqgologger.Print("> "+source, hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 			}
 		}
 
-		hqgologger.Print("")
+		hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 
 		os.Exit(0)
 	}
@@ -222,8 +222,8 @@ func main() {
 	for index := range domains {
 		domain := domains[index]
 
-		hqgologger.Info(fmt.Sprintf("Finding subdomains for %v...", au.Underline(domain).Bold()))
-		hqgologger.Print("")
+		hqgologger.Info(fmt.Sprintf("Finding subdomains for %v...", au.Underline(domain).Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+		hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 
 		outputs := []io.Writer{
 			os.Stdout,
@@ -235,7 +235,7 @@ func main() {
 		case outputFilePath != "":
 			file, err = writer.CreateFile(outputFilePath)
 			if err != nil {
-				hqgologger.Fatal("failed craeting output file!", hqgologger.WithError(err), hqgologger.WithString("file", outputFilePath))
+				hqgologger.Fatal("failed creating output file!", hqgologger.WithError(err), hqgologger.WithString("file", outputFilePath))
 			}
 
 			outputs = append(outputs, file)
@@ -244,7 +244,7 @@ func main() {
 
 			file, err = writer.CreateFile(outputFilePath)
 			if err != nil {
-				hqgologger.Fatal("failed craeting output file!", hqgologger.WithError(err), hqgologger.WithString("file", outputFilePath))
+				hqgologger.Fatal("failed creating output file!", hqgologger.WithError(err), hqgologger.WithString("file", outputFilePath))
 			}
 
 			outputs = append(outputs, file)
@@ -269,6 +269,6 @@ func main() {
 
 		file.Close()
 
-		hqgologger.Print("")
+		hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 	}
 }

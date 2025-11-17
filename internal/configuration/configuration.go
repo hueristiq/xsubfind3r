@@ -49,7 +49,7 @@ func (cfg *Configuration) Write(path string) (err error) {
 
 const (
 	NAME    = "xsubfind3r"
-	VERSION = "1.1.0"
+	VERSION = "1.2.0"
 )
 
 var (
@@ -73,7 +73,7 @@ __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 
 		userDotConfig, err = os.UserConfigDir()
 		if err != nil {
-			hqgologger.Fatal("failed getting `$HOME/.config/`", hqgologger.WithError(err))
+			hqgologger.Fatal("failed to get `$HOME/.config/`", hqgologger.WithError(err))
 		}
 
 		return
