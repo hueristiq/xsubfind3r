@@ -45,7 +45,12 @@ type codeSearchResponse struct {
 // Source represents the GitHub data source implementation.
 // It implements the sources.Source interface, providing functionality
 // for retrieving subdomains by querying GitHub code search results.
-type Source struct{}
+//
+// Fields:
+//   - tokens (*Tokens): A token manager containing GitHub API tokens to handle rate limiting.
+type Source struct {
+	tokens *Tokens
+}
 
 // Run initiates the process of retrieving subdomain information from GitHub for a given domain.
 //
@@ -58,7 +63,7 @@ type Source struct{}
 //   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
 //     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
 //     encountered during the operation.
-func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
+func (s *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -68,14 +73,14 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			return
 		}
 
-		tokens := NewTokenManager(cfg.Keys.GitHub)
+		s.tokens = NewTokenManager(cfg.Keys.GitHub)
 
 		searchReqURL := fmt.Sprintf(
 			"https://api.github.com/search/code?per_page=100&q=%q&sort=created&order=asc",
 			domain,
 		)
 
-		source.Enumerate(searchReqURL, tokens, cfg, results)
+		s.Enumerate(searchReqURL, cfg, results)
 	}()
 
 	return results
@@ -86,17 +91,16 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 //
 // Parameters:
 //   - searchReqURL (string): The URL for the GitHub code search API request.
-//   - tokens (*Tokens): A token manager containing GitHub API tokens to handle rate limiting.
 //   - cfg (*sources.Configuration): The configuration settings used for authentication and regex extraction.
 //   - results (chan sources.Result): A channel to stream discovered subdomains or errors.
-func (source *Source) Enumerate(searchReqURL string, tokens *Tokens, cfg *sources.Configuration, results chan sources.Result) {
-	token := tokens.Get()
+func (s *Source) Enumerate(searchReqURL string, cfg *sources.Configuration, results chan sources.Result) {
+	token := s.tokens.Get()
 
 	if token.RetryAfter > 0 {
-		if len(tokens.pool) == 1 {
+		if len(s.tokens.pool) == 1 {
 			time.Sleep(time.Duration(token.RetryAfter) * time.Second)
 		} else {
-			token = tokens.Get()
+			token = s.tokens.Get()
 		}
 	}
 
@@ -114,7 +118,7 @@ func (source *Source) Enumerate(searchReqURL string, tokens *Tokens, cfg *source
 	if err != nil && !isForbidden {
 		result := sources.Result{
 			Type:   sources.ResultError,
-			Source: source.Name(),
+			Source: s.Name(),
 			Error:  err,
 		}
 
@@ -126,12 +130,13 @@ func (source *Source) Enumerate(searchReqURL string, tokens *Tokens, cfg *source
 	ratelimitRemaining := cast.ToInt64(
 		codeSearchRes.Header.Get(hqgohttpheader.XRatelimitRemaining.String()),
 	)
+
 	if isForbidden && ratelimitRemaining == 0 {
 		retryAfterSeconds := cast.ToInt64(codeSearchRes.Header.Get(hqgohttpheader.RetryAfter.String()))
 
-		tokens.setCurrentTokenExceeded(retryAfterSeconds)
+		s.tokens.setCurrentTokenExceeded(retryAfterSeconds)
 
-		source.Enumerate(searchReqURL, tokens, cfg, results)
+		s.Enumerate(searchReqURL, cfg, results)
 	}
 
 	var codeSearchResData codeSearchResponse
@@ -139,7 +144,7 @@ func (source *Source) Enumerate(searchReqURL string, tokens *Tokens, cfg *source
 	if err = json.NewDecoder(codeSearchRes.Body).Decode(&codeSearchResData); err != nil {
 		result := sources.Result{
 			Type:   sources.ResultError,
-			Source: source.Name(),
+			Source: s.Name(),
 			Error:  err,
 		}
 
@@ -166,7 +171,7 @@ func (source *Source) Enumerate(searchReqURL string, tokens *Tokens, cfg *source
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
-				Source: source.Name(),
+				Source: s.Name(),
 				Error:  err,
 			}
 
@@ -192,7 +197,7 @@ func (source *Source) Enumerate(searchReqURL string, tokens *Tokens, cfg *source
 			for _, subdomain := range subdomains {
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
-					Source: source.Name(),
+					Source: s.Name(),
 					Value:  subdomain,
 				}
 
@@ -203,7 +208,7 @@ func (source *Source) Enumerate(searchReqURL string, tokens *Tokens, cfg *source
 		if err = scanner.Err(); err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
-				Source: source.Name(),
+				Source: s.Name(),
 				Error:  err,
 			}
 
@@ -222,7 +227,7 @@ func (source *Source) Enumerate(searchReqURL string, tokens *Tokens, cfg *source
 			for _, subdomain := range subdomains {
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
-					Source: source.Name(),
+					Source: s.Name(),
 					Value:  subdomain,
 				}
 
@@ -239,7 +244,7 @@ func (source *Source) Enumerate(searchReqURL string, tokens *Tokens, cfg *source
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
-					Source: source.Name(),
+					Source: s.Name(),
 					Error:  err,
 				}
 
@@ -248,7 +253,7 @@ func (source *Source) Enumerate(searchReqURL string, tokens *Tokens, cfg *source
 				return
 			}
 
-			source.Enumerate(nextURL, tokens, cfg, results)
+			s.Enumerate(nextURL, cfg, results)
 		}
 	}
 }
@@ -260,4 +265,66 @@ func (source *Source) Enumerate(searchReqURL string, tokens *Tokens, cfg *source
 //   - name (string): The unique identifier for the data source.
 func (source *Source) Name() string {
 	return sources.GITHUB
+}
+
+type Token struct {
+	Hash         string
+	RetryAfter   int64
+	ExceededTime time.Time
+}
+
+type Tokens struct {
+	current int
+	pool    []Token
+}
+
+func NewTokenManager(keys []string) *Tokens {
+	pool := []Token{}
+
+	for _, key := range keys {
+		t := Token{Hash: key, ExceededTime: time.Time{}, RetryAfter: 0}
+
+		pool = append(pool, t)
+	}
+
+	return &Tokens{
+		current: 0,
+		pool:    pool,
+	}
+}
+
+func (r *Tokens) setCurrentTokenExceeded(retryAfter int64) {
+	if r.current >= len(r.pool) {
+		r.current %= len(r.pool)
+	}
+
+	if r.pool[r.current].RetryAfter == 0 {
+		r.pool[r.current].ExceededTime = time.Now()
+		r.pool[r.current].RetryAfter = retryAfter
+	}
+}
+
+func (r *Tokens) Get() *Token {
+	resetExceededTokens(r)
+
+	if r.current >= len(r.pool) {
+		r.current %= len(r.pool)
+	}
+
+	result := &r.pool[r.current]
+
+	r.current++
+
+	return result
+}
+
+func resetExceededTokens(r *Tokens) {
+	for i, token := range r.pool {
+		if token.RetryAfter > 0 {
+			if int64(time.Since(token.ExceededTime)/time.Second) > token.RetryAfter {
+				r.pool[i].ExceededTime = time.Time{}
+				r.pool[i].RetryAfter = 0
+			}
+		}
+	}
 }
