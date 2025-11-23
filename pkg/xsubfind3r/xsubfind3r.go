@@ -64,6 +64,7 @@ func (finder *Finder) Find(domain string) (results chan sources.Result) {
 					if sResult.Type == sources.ResultSubdomain {
 						sResult.Value = strings.ToLower(sResult.Value)
 						sResult.Value = strings.ReplaceAll(sResult.Value, "*.", "")
+						sResult.Value = strings.TrimPrefix(sResult.Value, ".")
 
 						_, loaded := seen.LoadOrStore(sResult.Value, struct{}{})
 						if loaded {
