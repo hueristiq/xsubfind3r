@@ -90,9 +90,46 @@ type ClientConfiguration struct {
 
 type Configuration struct {
 	Client           *ClientConfiguration
-	SourcesToUSe     []string
+	SourcesToUse     []string
 	SourcesToExclude []string
 	Keys             map[string]sources.Keys
+}
+
+var (
+	Sources = [...]sources.Source{
+		anubis.New(),
+		bevigil.New(),
+		builtwith.New(),
+		censys.New(),
+		certificatedetails.New(),
+		certspotter.New(),
+		chaos.New(),
+		commoncrawl.New(),
+		driftnet.New(),
+		crtsh.New(),
+		fullhunt.New(),
+		github.New(),
+		hackertarget.New(),
+		intelx.New(),
+		leakix.New(),
+		leakradar.New(),
+		otx.New(),
+		securitytrails.New(),
+		shodan.New(),
+		subdomaincenter.New(),
+		urlscan.New(),
+		virustotal.New(),
+		wayback.New(),
+	}
+	NameToSourceMap = make(map[string]sources.Source, len(Sources))
+)
+
+func init() {
+	for i := range Sources {
+		source := Sources[i]
+
+		NameToSourceMap[source.Name()] = source
+	}
 }
 
 func New(cfg *Configuration) (finder *Finder, err error) {
@@ -116,71 +153,29 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 		return
 	}
 
-	if len(cfg.SourcesToUSe) < 1 {
-		cfg.SourcesToUSe = sources.List
+	if len(cfg.SourcesToUse) < 1 {
+		cfg.SourcesToUse = sources.List
 	}
 
-	for index := range cfg.SourcesToUSe {
-		source := cfg.SourcesToUSe[index]
+	for i := range cfg.SourcesToUse {
+		source := cfg.SourcesToUse[i]
 
-		switch source {
-		case sources.ANUBIS:
-			finder.sources[source] = anubis.New()
-		case sources.BEVIGIL:
-			finder.sources[source] = bevigil.New()
-		case sources.BUILTWITH:
-			finder.sources[source] = builtwith.New()
-		case sources.CENSYS:
-			finder.sources[source] = censys.New()
-		case sources.CERTIFICATEDETAILS:
-			finder.sources[source] = certificatedetails.New()
-		case sources.CERTSPOTTER:
-			finder.sources[source] = certspotter.New()
-		case sources.CHAOS:
-			finder.sources[source] = chaos.New()
-		case sources.COMMONCRAWL:
-			finder.sources[source] = commoncrawl.New()
-		case sources.DRIFTNET:
-			finder.sources[source] = driftnet.New()
-		case sources.CRTSH:
-			finder.sources[source] = crtsh.New()
-		case sources.FULLHUNT:
-			finder.sources[source] = fullhunt.New()
-		case sources.GITHUB:
-			finder.sources[source] = github.New()
-		case sources.HACKERTARGET:
-			finder.sources[source] = hackertarget.New()
-		case sources.INTELLIGENCEX:
-			finder.sources[source] = intelx.New()
-		case sources.LEAKIX:
-			finder.sources[source] = leakix.New()
-		case sources.LEAKRADAR:
-			finder.sources[source] = leakradar.New()
-		case sources.OPENTHREATEXCHANGE:
-			finder.sources[source] = otx.New()
-		case sources.SECURITYTRAILS:
-			finder.sources[source] = securitytrails.New()
-		case sources.SHODAN:
-			finder.sources[source] = shodan.New()
-		case sources.SUBDOMAINCENTER:
-			finder.sources[source] = subdomaincenter.New()
-		case sources.URLSCAN:
-			finder.sources[source] = urlscan.New()
-		case sources.VIRUSTOTAL:
-			finder.sources[source] = virustotal.New()
-		case sources.WAYBACK:
-			finder.sources[source] = wayback.New()
+		s, k := NameToSourceMap[source]
+		if !k {
+			continue
 		}
+
+		finder.sources[source] = s
 	}
 
-	for index := range cfg.SourcesToExclude {
-		source := cfg.SourcesToExclude[index]
+	for i := range cfg.SourcesToExclude {
+		source := cfg.SourcesToExclude[i]
 
 		delete(finder.sources, source)
 	}
 
-	for index := range finder.sources {
-		source := finder.sources[index]
+	for i := range finder.sources {
+		source := finder.sources[i]
 
 		if keys, ok := cfg.Keys[source.Name()]; ok {
 			source.UseKeys(keys...)

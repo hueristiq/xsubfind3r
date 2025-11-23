@@ -74,6 +74,12 @@ func (s *Source) Run(_ *sources.Configuration, domain string) <-chan sources.Res
 	return results
 }
 
+func (s *Source) NeedsKeys() (needs bool) {
+	needs = false
+
+	return
+}
+
 func (s *Source) UseKeys(keys ...string) {
 }
 
