@@ -1,39 +1,26 @@
-// Package certificatedetails provides an implementation of the sources.Source interface
-// for interacting with the CertificateDetails website.
-//
-// The CertificateDetails service provides certificate transparency data for a given domain,
-// which can be used to discover subdomains. This package defines a Source type that implements
-// the Run and Name methods as specified by the sources.Source interface. The Run method sends
-// a query to the CertificateDetails website, processes the response line-by-line, extracts
-// subdomains using a regular expression provided in the configuration, and streams discovered
-// subdomains or errors via a channel.
 package certificatedetails
 
 import (
 	"bufio"
+	"fmt"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
 	hqgohttpstatus "github.com/hueristiq/hq-go-http/status"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
-// Source represents the CertificateDetails data source implementation.
-// It implements the sources.Source interface, providing functionality
-// for retrieving subdomains from the CertificateDetails website.
 type Source struct{}
 
-// Run initiates the process of retrieving subdomain information from the CertificateDetails website for a given domain.
-//
-// Parameters:
-//   - domain (string): The target domain for which to retrieve subdomains.
-//   - cfg (*sources.Configuration): The configuration instance containing API keys,
-//     the URL validation function, and any additional settings required by the source.
-//
-// Returns:
-//   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
-//     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
-//     encountered during the operation.
-func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
+func (s *Source) Name() (name string) {
+	name = sources.CERTIFICATEDETAILS
+
+	return
+}
+
+func (s *Source) UseKeys(keys ...string) {
+}
+
+func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -45,8 +32,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 		if err != nil && getCertificateDetailsRes.StatusCode != hqgohttpstatus.NotFound.Int() {
 			result := sources.Result{
 				Type:   sources.ResultError,
-				Source: source.Name(),
-				Error:  err,
+				Source: s.Name(),
+				Error:  fmt.Errorf("request failed: %w", err),
 			}
 
 			results <- result
@@ -68,7 +55,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			for _, subdomain := range match {
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
-					Source: source.Name(),
+					Source: s.Name(),
 					Value:  subdomain,
 				}
 
@@ -79,8 +66,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 		if err = scanner.Err(); err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
-				Source: source.Name(),
-				Error:  err,
+				Source: s.Name(),
+				Error:  fmt.Errorf("failed to read response body: %w", err),
 			}
 
 			results <- result
@@ -96,11 +83,10 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 	return results
 }
 
-// Name returns the unique identifier for the data source.
-// This identifier is used for logging, debugging, and associating results with the correct data source.
-//
-// Returns:
-//   - name (string): The unique identifier for the data source.
-func (source *Source) Name() (name string) {
-	return sources.CERTIFICATEDETAILS
+var _ sources.Source = (*Source)(nil)
+
+func New() (source sources.Source) {
+	source = &Source{}
+
+	return
 }

@@ -1,19 +1,8 @@
-// Package wayback provides an implementation of the sources.Source interface
-// for interacting with the Wayback Machine (Internet Archive) API.
-//
-// The Wayback Machine API (CDX Server API) offers access to historical snapshots
-// of URLs, which can be used to discover subdomains by extracting URL information
-// from archived pages. This package defines a Source type that implements the Run
-// and Name methods as specified by the sources.Source interface. The Run method sends
-// paginated queries to the Wayback Machine API, processes the JSON response, extracts
-// subdomains using a provided regular expression, and streams discovered subdomains or
-// errors via a channel.
-//
-// Additionally, a rate limiter is configured to control the number of requests per minute.
 package wayback
 
 import (
 	"encoding/json"
+	"fmt"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
 	hqgolimiter "github.com/hueristiq/hq-go-limiter"
@@ -21,29 +10,18 @@ import (
 	"github.com/spf13/cast"
 )
 
-// Source represents the Wayback Machine data source implementation.
-// It implements the sources.Source interface, providing functionality
-// for retrieving subdomains from the Wayback Machine API.
 type Source struct{}
 
-// limiter is a rate limiter configured to allow up to 40 requests per minute.
-// This is used to throttle requests to the Wayback Machine API.
-var limiter = hqgolimiter.New(&hqgolimiter.Configuration{
-	RequestsPerMinute: 40,
-})
+func (s *Source) Name() (name string) {
+	name = sources.WAYBACK
 
-// Run initiates the process of retrieving subdomain information from the Wayback Machine API for a given domain.
-//
-// Parameters:
-//   - domain (string): The target domain for which to retrieve subdomains.
-//   - cfg (*sources.Configuration): The configuration instance containing API keys,
-//     the URL validation function, and any additional settings required by the source.
-//
-// Returns:
-//   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
-//     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
-//     encountered during the operation.
-func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
+	return
+}
+
+func (s *Source) UseKeys(keys ...string) {
+}
+
+func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -68,8 +46,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
-					Source: source.Name(),
-					Error:  err,
+					Source: s.Name(),
+					Error:  fmt.Errorf("request failed: %w", err),
 				}
 
 				results <- result
@@ -82,8 +60,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			if err = json.NewDecoder(getURLsRes.Body).Decode(&getURLsResData); err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
-					Source: source.Name(),
-					Error:  err,
+					Source: s.Name(),
+					Error:  fmt.Errorf("failed to parse JSON response: %w", err),
 				}
 
 				results <- result
@@ -108,7 +86,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 				for _, subdomain := range match {
 					result := sources.Result{
 						Type:   sources.ResultSubdomain,
-						Source: source.Name(),
+						Source: s.Name(),
 						Value:  subdomain,
 					}
 
@@ -121,11 +99,14 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 	return results
 }
 
-// Name returns the unique identifier for the data source.
-// This identifier is used for logging, debugging, and associating results with the correct data source.
-//
-// Returns:
-//   - name (string): The unique identifier for the data source.
-func (source *Source) Name() (name string) {
-	return sources.WAYBACK
+var limiter = hqgolimiter.New(&hqgolimiter.Configuration{
+	RequestsPerMinute: 40,
+})
+
+var _ sources.Source = (*Source)(nil)
+
+func New() (source sources.Source) {
+	source = &Source{}
+
+	return
 }

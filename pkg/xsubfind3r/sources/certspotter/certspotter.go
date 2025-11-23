@@ -1,16 +1,8 @@
-// Package certspotter provides an implementation of the sources.Source interface
-// for interacting with the Certspotter API.
-//
-// The Certspotter API offers certificate transparency search capabilities that
-// allow for the discovery of subdomains by returning certificate issuance data.
-// This package defines a Source type that implements the Run and Name methods as
-// specified by the sources.Source interface. The Run method sends queries to the
-// Certspotter API, processes the JSON responses (including handling pagination via
-// the "after" parameter), and streams discovered subdomains or errors via a channel.
 package certspotter
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
@@ -18,44 +10,37 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
-// getCTLogsSearchResponse represents the structure of the JSON response returned by the Certspotter API.
-//
-// It contains the following fields:
-//   - ID: A unique identifier for the certificate record.
-//   - DNSNames: A slice of strings representing the DNS names (subdomains) associated with the certificate.
 type getCTLogsSearchResponse struct {
 	ID       string   `json:"id"`
 	DNSNames []string `json:"dns_names"`
 }
 
-// Source represents the Certspotter data source implementation.
-// It implements the sources.Source interface, providing functionality
-// for retrieving subdomains from the Certspotter API.
-type Source struct{}
+type Source struct {
+	keys sources.Keys
+}
 
-// Run initiates the process of retrieving subdomain information from the Certspotter API for a given domain.
-//
-// Parameters:
-//   - domain (string): The target domain for which to retrieve subdomains.
-//   - cfg (*sources.Configuration): The configuration instance containing API keys,
-//     the URL validation function, and any additional settings required by the source.
-//
-// Returns:
-//   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
-//     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
-//     encountered during the operation.
-func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
+func (s *Source) Name() (name string) {
+	name = sources.CERTSPOTTER
+
+	return
+}
+
+func (s *Source) UseKeys(keys ...string) {
+	s.keys = append(s.keys, keys...)
+}
+
+func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
-		key, err := cfg.Keys.Certspotter.PickRandom()
+		key, err := s.keys.PickRandom()
 		if key == "" || err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
-				Source: source.Name(),
-				Error:  err,
+				Source: s.Name(),
+				Error:  fmt.Errorf("failed to select key: %w", err),
 			}
 
 			results <- result
@@ -76,8 +61,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
-				Source: source.Name(),
-				Error:  err,
+				Source: s.Name(),
+				Error:  fmt.Errorf("request failed: %w", err),
 			}
 
 			results <- result
@@ -90,8 +75,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 		if err = json.NewDecoder(getCTLogsSearchRes.Body).Decode(&getCTLogsSearchResData); err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
-				Source: source.Name(),
-				Error:  err,
+				Source: s.Name(),
+				Error:  fmt.Errorf("failed to parse JSON response: %w", err),
 			}
 
 			results <- result
@@ -115,7 +100,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
-					Source: source.Name(),
+					Source: s.Name(),
 					Value:  subdomain,
 				}
 
@@ -143,8 +128,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
-					Source: source.Name(),
-					Error:  err,
+					Source: s.Name(),
+					Error:  fmt.Errorf("request failed: %w", err),
 				}
 
 				results <- result
@@ -157,8 +142,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			if err = json.NewDecoder(getCTLogsSearchRes.Body).Decode(&getCTLogsSearchResData); err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
-					Source: source.Name(),
-					Error:  err,
+					Source: s.Name(),
+					Error:  fmt.Errorf("failed to parse JSON response: %w", err),
 				}
 
 				results <- result
@@ -182,7 +167,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 
 					result := sources.Result{
 						Type:   sources.ResultSubdomain,
-						Source: source.Name(),
+						Source: s.Name(),
 						Value:  subdomain,
 					}
 
@@ -197,11 +182,12 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 	return results
 }
 
-// Name returns the unique identifier for the data source.
-// This identifier is used for logging, debugging, and associating results with the correct data source.
-//
-// Returns:
-//   - name (string): The unique identifier for the data source.
-func (source *Source) Name() (name string) {
-	return sources.CERTSPOTTER
+var _ sources.Source = (*Source)(nil)
+
+func New() (source sources.Source) {
+	source = &Source{
+		keys: make(sources.Keys, 0),
+	}
+
+	return
 }

@@ -1,12 +1,3 @@
-// Package xsubfind3r provides the core functionality for performing subdomain
-// discovery using multiple data sources. It integrates various sources that implement
-// the sources.Source interface, coordinates concurrent subdomain enumeration, and
-// aggregates the results.
-//
-// The package defines a Finder type, which manages enabled sources and configuration
-// settings, and provides a Find method to initiate subdomain discovery for a given domain.
-// It also defines a Configuration type for user-defined settings and API keys, and
-// initializes HTTP client configurations for reliable network requests.
 package xsubfind3r
 
 import (
@@ -43,32 +34,16 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
 )
 
-// Finder is the primary structure for performing subdomain discovery.
-// It manages data sources and configuration settings.
-//
-// Fields:
-//   - sources (map[string]sources.Source): A map of string keys to sources.Source interfaces representing the enabled enumeration sources.
-//   - configuration (*sources.Configuration): A pointer to the sources.Configuration struct containing API keys and other settings.
 type Finder struct {
-	sources       map[string]sources.Source
-	configuration *sources.Configuration
+	sources map[string]sources.Source
 }
 
-// Find initiates the subdomain discovery process for a specific domain.
-// It normalizes the domain name, applies source-specific logic, and streams results via a channel.
-// The method uses all enabled sources concurrently and aggregates their results.
-//
-// Parameters:
-//   - domain (string): The target domain for subdomain discovery.
-//
-// Returns:
-//   - results (chan sources.Result): A channel that streams subdomain enumeration results.
 func (finder *Finder) Find(domain string) (results chan sources.Result) {
 	results = make(chan sources.Result)
 
-	pattern := fmt.Sprintf(`(?i)(?:((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+))?(%s)`, regexp.QuoteMeta(domain))
-
-	finder.configuration.Extractor = regexp.MustCompile(pattern)
+	configuration := &sources.Configuration{
+		Extractor: regexp.MustCompile(fmt.Sprintf(`(?i)(?:((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+))?(%s)`, regexp.QuoteMeta(domain))),
+	}
 
 	go func() {
 		defer close(results)
@@ -83,7 +58,7 @@ func (finder *Finder) Find(domain string) (results chan sources.Result) {
 			go func(source sources.Source) {
 				defer wg.Done()
 
-				sResults := source.Run(domain, finder.configuration)
+				sResults := source.Run(configuration, domain)
 
 				for sResult := range sResults {
 					if sResult.Type == sources.ResultSubdomain {
@@ -111,35 +86,16 @@ type ClientConfiguration struct {
 	UserAgent string
 }
 
-// Configuration represents the user-defined settings for the Finder.
-// It specifies which sources to use or exclude and includes API keys for external sources.
-//
-// Fields:
-//   - SourcesToUSe ([]string): List of source names to be used for enumeration.
-//   - SourcesToExclude ([]string): List of source names to be excluded from enumeration.
-//   - Keys (sources.Keys): API keys for authenticated sources.
 type Configuration struct {
 	Client           *ClientConfiguration
 	SourcesToUSe     []string
 	SourcesToExclude []string
-	Keys             sources.Keys
+	Keys             map[string]sources.Keys
 }
 
-// New initializes a new Finder instance with the specified configuration.
-// It sets up the enabled sources, applies exclusions, and configures the Finder.
-//
-// Parameters:
-//   - cfg (*Configuration): The user-defined configuration for sources and API keys.
-//
-// Returns:
-//   - finder (*Finder): A pointer to the initialized Finder instance.
-//   - err (error): An error object if initialization fails, or nil on success.
 func New(cfg *Configuration) (finder *Finder, err error) {
 	finder = &Finder{
-		sources: map[string]sources.Source{},
-		configuration: &sources.Configuration{
-			Keys: cfg.Keys,
-		},
+		sources: make(map[string]sources.Source),
 	}
 
 	cc := hqgohttp.DefaultSprayingClientConfiguration
@@ -153,6 +109,8 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 
 	hqgohttp.DefaultClient, err = hqgohttp.NewClient(cc)
 	if err != nil {
+		err = fmt.Errorf("failed to initialize HTTP client: %w", err)
+
 		return
 	}
 
@@ -160,52 +118,54 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 		cfg.SourcesToUSe = sources.List
 	}
 
-	for _, source := range cfg.SourcesToUSe {
+	for index := range cfg.SourcesToUSe {
+		source := cfg.SourcesToUSe[index]
+
 		switch source {
 		case sources.ANUBIS:
-			finder.sources[source] = &anubis.Source{}
+			finder.sources[source] = anubis.New()
 		case sources.BEVIGIL:
-			finder.sources[source] = &bevigil.Source{}
+			finder.sources[source] = bevigil.New()
 		case sources.BUILTWITH:
-			finder.sources[source] = &builtwith.Source{}
+			finder.sources[source] = builtwith.New()
 		case sources.CENSYS:
-			finder.sources[source] = &censys.Source{}
+			finder.sources[source] = censys.New()
 		case sources.CERTIFICATEDETAILS:
-			finder.sources[source] = &certificatedetails.Source{}
+			finder.sources[source] = certificatedetails.New()
 		case sources.CERTSPOTTER:
-			finder.sources[source] = &certspotter.Source{}
+			finder.sources[source] = certspotter.New()
 		case sources.CHAOS:
-			finder.sources[source] = &chaos.Source{}
+			finder.sources[source] = chaos.New()
 		case sources.COMMONCRAWL:
-			finder.sources[source] = &commoncrawl.Source{}
+			finder.sources[source] = commoncrawl.New()
 		case sources.DRIFTNET:
-			finder.sources[source] = &driftnet.Source{}
+			finder.sources[source] = driftnet.New()
 		case sources.CRTSH:
-			finder.sources[source] = &crtsh.Source{}
+			finder.sources[source] = crtsh.New()
 		case sources.FULLHUNT:
-			finder.sources[source] = &fullhunt.Source{}
+			finder.sources[source] = fullhunt.New()
 		case sources.GITHUB:
-			finder.sources[source] = &github.Source{}
+			finder.sources[source] = github.New()
 		case sources.HACKERTARGET:
-			finder.sources[source] = &hackertarget.Source{}
+			finder.sources[source] = hackertarget.New()
 		case sources.INTELLIGENCEX:
-			finder.sources[source] = &intelx.Source{}
+			finder.sources[source] = intelx.New()
 		case sources.LEAKIX:
-			finder.sources[source] = &leakix.Source{}
+			finder.sources[source] = leakix.New()
 		case sources.OPENTHREATEXCHANGE:
-			finder.sources[source] = &otx.Source{}
+			finder.sources[source] = otx.New()
 		case sources.SECURITYTRAILS:
-			finder.sources[source] = &securitytrails.Source{}
+			finder.sources[source] = securitytrails.New()
 		case sources.SHODAN:
-			finder.sources[source] = &shodan.Source{}
+			finder.sources[source] = shodan.New()
 		case sources.SUBDOMAINCENTER:
-			finder.sources[source] = &subdomaincenter.Source{}
+			finder.sources[source] = subdomaincenter.New()
 		case sources.URLSCAN:
-			finder.sources[source] = &urlscan.Source{}
+			finder.sources[source] = urlscan.New()
 		case sources.VIRUSTOTAL:
-			finder.sources[source] = &virustotal.Source{}
+			finder.sources[source] = virustotal.New()
 		case sources.WAYBACK:
-			finder.sources[source] = &wayback.Source{}
+			finder.sources[source] = wayback.New()
 		}
 	}
 
@@ -213,6 +173,14 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 		source := cfg.SourcesToExclude[index]
 
 		delete(finder.sources, source)
+	}
+
+	for index := range finder.sources {
+		source := finder.sources[index]
+
+		if keys, ok := cfg.Keys[source.Name()]; ok {
+			source.UseKeys(keys...)
+		}
 	}
 
 	return

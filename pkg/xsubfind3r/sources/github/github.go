@@ -1,12 +1,3 @@
-// Package github provides an implementation of the sources.Source interface
-// for interacting with the GitHub API.
-//
-// The GitHub API can be used to search for code related to a given domain, where
-// subdomain information may be present in the code or in text matches.
-// This package defines a Source type that implements the Run, Enumerate, and Name methods
-// as specified by the sources.Source interface. The Run method initiates a code search query,
-// and the Enumerate method handles processing of the search results, including pagination,
-// rate limiting, and extraction of subdomains from both raw file content and text matches.
 package github
 
 import (
@@ -16,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
@@ -26,11 +18,6 @@ import (
 	"github.com/spf13/cast"
 )
 
-// codeSearchResponse represents the structure of the JSON response returned by the GitHub code search API.
-//
-// It contains the total count of matching records and a slice of items where each item
-// represents a code search result. Each item includes the repository file name, the HTML URL for the file,
-// and any text matches found in the file.
 type codeSearchResponse struct {
 	TotalCount int `json:"total_count"`
 	Items      []struct {
@@ -42,43 +29,34 @@ type codeSearchResponse struct {
 	} `json:"items"`
 }
 
-// Source represents the GitHub data source implementation.
-// It implements the sources.Source interface, providing functionality
-// for retrieving subdomains by querying GitHub code search results.
-//
-// Fields:
-//   - tokens (*Tokens): A token manager containing GitHub API tokens to handle rate limiting.
 type Source struct {
-	tokens *Tokens
+	keys        sources.Keys
+	keysManager *KeysManager
 }
 
-// Run initiates the process of retrieving subdomain information from GitHub for a given domain.
-//
-// Parameters:
-//   - domain (string): The target domain for which to retrieve subdomains.
-//   - cfg (*sources.Configuration): The configuration instance containing API keys,
-//     the URL validation function, and any additional settings required by the source.
-//
-// Returns:
-//   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
-//     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
-//     encountered during the operation.
-func (s *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
+func (s *Source) Name() (name string) {
+	name = sources.GITHUB
+
+	return
+}
+
+func (s *Source) UseKeys(keys ...string) {
+	s.keys = append(s.keys, keys...)
+}
+
+func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
-		if len(cfg.Keys.GitHub) == 0 {
+		if len(s.keys) == 0 {
 			return
 		}
 
-		s.tokens = NewTokenManager(cfg.Keys.GitHub)
+		s.keysManager = NewKeyManager(s.keys)
 
-		searchReqURL := fmt.Sprintf(
-			"https://api.github.com/search/code?per_page=100&q=%q&sort=created&order=asc",
-			domain,
-		)
+		searchReqURL := fmt.Sprintf("https://api.github.com/search/code?per_page=100&q=%q&sort=created&order=asc", domain)
 
 		s.Enumerate(searchReqURL, cfg, results)
 	}()
@@ -86,28 +64,21 @@ func (s *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.R
 	return results
 }
 
-// Enumerate processes GitHub code search results by sending HTTP GET requests to the provided search URL,
-// handling pagination via the Link header, and extracting subdomains from raw file content and text matches.
-//
-// Parameters:
-//   - searchReqURL (string): The URL for the GitHub code search API request.
-//   - cfg (*sources.Configuration): The configuration settings used for authentication and regex extraction.
-//   - results (chan sources.Result): A channel to stream discovered subdomains or errors.
 func (s *Source) Enumerate(searchReqURL string, cfg *sources.Configuration, results chan sources.Result) {
-	token := s.tokens.Get()
+	token := s.keysManager.GetCurrentKey()
 
 	if token.RetryAfter > 0 {
-		if len(s.tokens.pool) == 1 {
+		if len(s.keysManager.pool) == 1 {
 			time.Sleep(time.Duration(token.RetryAfter) * time.Second)
 		} else {
-			token = s.tokens.Get()
+			token = s.keysManager.GetCurrentKey()
 		}
 	}
 
 	codeSearchResCFG := &hqgohttp.RequestConfiguration{
 		Headers: []hqgohttp.Header{
 			hqgohttp.NewSetHeader(hqgohttpheader.Accept.String(), "application/vnd.github.v3.text-match+json"),
-			hqgohttp.NewSetHeader(hqgohttpheader.Authorization.String(), "token "+token.Hash),
+			hqgohttp.NewSetHeader(hqgohttpheader.Authorization.String(), "token "+token.Value),
 		},
 	}
 
@@ -134,7 +105,7 @@ func (s *Source) Enumerate(searchReqURL string, cfg *sources.Configuration, resu
 	if isForbidden && ratelimitRemaining == 0 {
 		retryAfterSeconds := cast.ToInt64(codeSearchRes.Header.Get(hqgohttpheader.RetryAfter.String()))
 
-		s.tokens.setCurrentTokenExceeded(retryAfterSeconds)
+		s.keysManager.SetCurrentKeyExceeded(retryAfterSeconds)
 
 		s.Enumerate(searchReqURL, cfg, results)
 	}
@@ -258,73 +229,78 @@ func (s *Source) Enumerate(searchReqURL string, cfg *sources.Configuration, resu
 	}
 }
 
-// Name returns the unique identifier for the data source.
-// This identifier is used for logging, debugging, and associating results with the correct data source.
-//
-// Returns:
-//   - name (string): The unique identifier for the data source.
-func (source *Source) Name() string {
-	return sources.GITHUB
-}
-
-type Token struct {
-	Hash         string
-	RetryAfter   int64
+type ManagedKey struct {
 	ExceededTime time.Time
+	RetryAfter   int64
+	Value        string
 }
 
-type Tokens struct {
+type KeysManager struct {
+	mu      sync.Mutex
 	current int
-	pool    []Token
+	pool    []ManagedKey
 }
 
-func NewTokenManager(keys []string) *Tokens {
-	pool := []Token{}
+func NewKeyManager(keys []string) (manager *KeysManager) {
+	pool := make([]ManagedKey, len(keys))
 
-	for _, key := range keys {
-		t := Token{Hash: key, ExceededTime: time.Time{}, RetryAfter: 0}
-
-		pool = append(pool, t)
+	for i, key := range keys {
+		pool[i] = ManagedKey{Value: key}
 	}
 
-	return &Tokens{
-		current: 0,
-		pool:    pool,
+	manager = &KeysManager{
+		pool: pool,
 	}
+
+	return
 }
 
-func (r *Tokens) setCurrentTokenExceeded(retryAfter int64) {
-	if r.current >= len(r.pool) {
-		r.current %= len(r.pool)
-	}
+func (m *KeysManager) GetCurrentKey() (key *ManagedKey) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-	if r.pool[r.current].RetryAfter == 0 {
-		r.pool[r.current].ExceededTime = time.Now()
-		r.pool[r.current].RetryAfter = retryAfter
-	}
-}
+	for i := range m.pool {
+		key := &m.pool[i]
 
-func (r *Tokens) Get() *Token {
-	resetExceededTokens(r)
-
-	if r.current >= len(r.pool) {
-		r.current %= len(r.pool)
-	}
-
-	result := &r.pool[r.current]
-
-	r.current++
-
-	return result
-}
-
-func resetExceededTokens(r *Tokens) {
-	for i, token := range r.pool {
-		if token.RetryAfter > 0 {
-			if int64(time.Since(token.ExceededTime)/time.Second) > token.RetryAfter {
-				r.pool[i].ExceededTime = time.Time{}
-				r.pool[i].RetryAfter = 0
-			}
+		if key.RetryAfter > 0 && time.Since(key.ExceededTime) > time.Duration(key.RetryAfter)*time.Second {
+			key.ExceededTime = time.Time{}
+			key.RetryAfter = 0
 		}
 	}
+
+	if m.current >= len(m.pool) {
+		m.current %= len(m.pool)
+	}
+
+	key = &m.pool[m.current]
+
+	m.current++
+
+	return
+}
+
+func (m *KeysManager) SetCurrentKeyExceeded(retryAfter int64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.current >= len(m.pool) {
+		m.current %= len(m.pool)
+	}
+
+	key := &m.pool[m.current]
+
+	if key.RetryAfter == 0 {
+		key.ExceededTime = time.Now()
+		key.RetryAfter = retryAfter
+	}
+}
+
+var _ sources.Source = (*Source)(nil)
+
+func New() (source sources.Source) {
+	source = &Source{
+		keys: make(sources.Keys, 0),
+	}
+
+	return
 }

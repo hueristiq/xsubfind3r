@@ -1,17 +1,8 @@
-// Package censys provides an implementation of the sources.Source interface
-// for interacting with the Censys API.
-//
-// The Censys API offers certificate transparency search capabilities for a given domain,
-// returning certificate data that includes discovered subdomains. This package defines a
-// Source type that implements the Run and Name methods as specified by the sources.Source
-// interface. The Run method sends queries to the Censys API, processes the JSON response
-// (including handling pagination via a cursor), and streams discovered subdomains or errors via a channel.
 package censys
 
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
@@ -20,20 +11,6 @@ import (
 	"github.com/spf13/cast"
 )
 
-// certSearchResponse represents the structure of the JSON response returned by the Censys API.
-//
-// It contains the following fields:
-//   - Code: An integer code returned by the API.
-//   - Status: A string indicating the status of the API response.
-//   - Error: A string containing error details if the API encountered an issue.
-//   - Result: An object that contains:
-//   - Query: The search query used.
-//   - Total: The total number of matching records.
-//   - DurationMS: The time taken by the search (in milliseconds).
-//   - Hits: A slice of objects where each object represents a certificate hit.
-//     Each hit includes parsed certificate details (such as validity period, subject DN, and issuer DN)
-//     and a slice of Names representing discovered subdomains.
-//   - Links: An object containing pagination links (Next and Prev).
 type certSearchResponse struct {
 	Code   int    `json:"code"`
 	Status string `json:"status"`
@@ -61,34 +38,32 @@ type certSearchResponse struct {
 	} `json:"result"`
 }
 
-// Source represents the Censys data source implementation.
-// It implements the sources.Source interface, providing functionality
-// for retrieving subdomains from the Censys API.
-type Source struct{}
+type Source struct {
+	keys sources.Keys
+}
 
-// Run initiates the process of retrieving subdomain information from the Censys API for a given domain.
-//
-// Parameters:
-//   - domain (string): The target domain for which to retrieve subdomains.
-//   - cfg (*sources.Configuration): The configuration instance containing API keys,
-//     the URL validation function, and any additional settings required by the source.
-//
-// Returns:
-//   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
-//     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
-//     encountered during the operation.
-func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
+func (s *Source) Name() (name string) {
+	name = sources.CENSYS
+
+	return
+}
+
+func (s *Source) UseKeys(keys ...string) {
+	s.keys = append(s.keys, keys...)
+}
+
+func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
-		key, err := cfg.Keys.Censys.PickRandom()
+		key, err := s.keys.PickRandom()
 		if key == "" || err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
-				Source: source.Name(),
-				Error:  err,
+				Source: s.Name(),
+				Error:  fmt.Errorf("failed to select key: %w", err),
 			}
 
 			results <- result
@@ -120,8 +95,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
-					Source: source.Name(),
-					Error:  err,
+					Source: s.Name(),
+					Error:  fmt.Errorf("request failed: %w", err),
 				}
 
 				results <- result
@@ -134,8 +109,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			if err = json.NewDecoder(certSearchRes.Body).Decode(&certSearchResData); err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
-					Source: source.Name(),
-					Error:  err,
+					Source: s.Name(),
+					Error:  fmt.Errorf("failed to parse JSON response: %w", err),
 				}
 
 				results <- result
@@ -150,13 +125,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			if certSearchResData.Error != "" {
 				result := sources.Result{
 					Type:   sources.ResultError,
-					Source: source.Name(),
-					Error: fmt.Errorf(
-						"%w: %s, %s",
-						errStatic,
-						certSearchResData.Status,
-						certSearchResData.Error,
-					),
+					Source: s.Name(),
+					Error:  fmt.Errorf("domain error: %s, %s", certSearchResData.Status, certSearchResData.Error),
 				}
 
 				results <- result
@@ -168,7 +138,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 				for _, name := range hit.Names {
 					result := sources.Result{
 						Type:   sources.ResultSubdomain,
-						Source: source.Name(),
+						Source: s.Name(),
 						Value:  name,
 					}
 
@@ -189,20 +159,17 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 	return results
 }
 
-// Name returns the unique identifier for the data source.
-// This identifier is used for logging, debugging, and associating results with the correct data source.
-//
-// Returns:
-//   - name (string): The unique identifier for the data source.
-func (source *Source) Name() (name string) {
-	return sources.CENSYS
-}
-
 const (
 	maxCensysPages = 10
 	maxPerPage     = 100
 )
 
-// errStatic is a sentinel error used to prepend error messages when the Censys API response
-// contains error details.
-var errStatic = errors.New("something went wrong")
+var _ sources.Source = (*Source)(nil)
+
+func New() (source sources.Source) {
+	source = &Source{
+		keys: make(sources.Keys, 0),
+	}
+
+	return
+}

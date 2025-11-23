@@ -1,28 +1,13 @@
-// Package builtwith provides an implementation of the sources.Source interface
-// for interacting with the BuiltWith API.
-//
-// The BuiltWith API offers detailed information on the technologies used by a domain,
-// including subdomain discovery. This package defines a Source type that implements the
-// Run and Name methods as specified by the sources.Source interface. The Run method sends
-// a query to the BuiltWith API, processes the JSON response, and streams discovered subdomains
-// or errors via a channel.
 package builtwith
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
-// getDomainInfoResponse represents the structure of the JSON response returned by the BuiltWith API.
-//
-// It contains two primary components:
-//   - Results: A slice of result objects, each of which includes technology paths with domain,
-//     URL, and subdomain information.
-//   - Errors:  A slice of error objects, each containing details about an error encountered during the API request.
 type getDomainInfoResponse struct {
 	Results []struct {
 		Result struct {
@@ -39,34 +24,32 @@ type getDomainInfoResponse struct {
 	} `json:"Errors"`
 }
 
-// Source represents the BuiltWith data source implementation.
-// It implements the sources.Source interface, providing functionality
-// for retrieving subdomains from the BuiltWith API.
-type Source struct{}
+type Source struct {
+	keys sources.Keys
+}
 
-// Run initiates the process of retrieving subdomain information from the BuiltWith API for a given domain.
-//
-// Parameters:
-//   - domain (string): The target domain for which to retrieve subdomains.
-//   - cfg (*sources.Configuration): The configuration instance containing API keys,
-//     the URL validation function, and any additional settings required by the source.
-//
-// Returns:
-//   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
-//     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
-//     encountered during the operation.
-func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sources.Result {
+func (s *Source) Name() (name string) {
+	name = sources.BUILTWITH
+
+	return
+}
+
+func (s *Source) UseKeys(keys ...string) {
+	s.keys = append(s.keys, keys...)
+}
+
+func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
-		key, err := cfg.Keys.BuiltWith.PickRandom()
+		key, err := s.keys.PickRandom()
 		if key == "" || err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
-				Source: source.Name(),
-				Error:  err,
+				Source: s.Name(),
+				Error:  fmt.Errorf("failed to select key: %w", err),
 			}
 
 			results <- result
@@ -92,8 +75,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
-				Source: source.Name(),
-				Error:  err,
+				Source: s.Name(),
+				Error:  fmt.Errorf("request failed: %w", err),
 			}
 
 			results <- result
@@ -106,8 +89,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 		if err = json.NewDecoder(getDomainInfoRes.Body).Decode(&getDomainInfoResData); err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
-				Source: source.Name(),
-				Error:  err,
+				Source: s.Name(),
+				Error:  fmt.Errorf("failed to parse JSON response: %w", err),
 			}
 
 			results <- result
@@ -123,8 +106,8 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			for _, entry := range getDomainInfoResData.Errors {
 				result := sources.Result{
 					Type:   sources.ResultError,
-					Source: source.Name(),
-					Error:  fmt.Errorf("%w: %s", errStatic, entry.Message),
+					Source: s.Name(),
+					Error:  fmt.Errorf("domain error: %s", entry.Message),
 				}
 
 				results <- result
@@ -137,7 +120,7 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 			for _, path := range item.Result.Paths {
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
-					Source: source.Name(),
+					Source: s.Name(),
 					Value:  path.SubDomain + "." + path.Domain,
 				}
 
@@ -149,15 +132,12 @@ func (source *Source) Run(domain string, cfg *sources.Configuration) <-chan sour
 	return results
 }
 
-// Name returns the unique identifier for the data source.
-// This identifier is used for logging, debugging, and associating results with the correct data source.
-//
-// Returns:
-//   - name (string): The unique identifier for the data source.
-func (source *Source) Name() (name string) {
-	return sources.BUILTWITH
-}
+var _ sources.Source = (*Source)(nil)
 
-// errStatic is a sentinel error used to prepend error messages when the BuiltWith API response
-// contains error messages.
-var errStatic = errors.New("something went wrong")
+func New() (source sources.Source) {
+	source = &Source{
+		keys: make(sources.Keys, 0),
+	}
+
+	return
+}

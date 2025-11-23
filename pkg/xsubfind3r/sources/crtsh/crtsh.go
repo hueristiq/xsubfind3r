@@ -1,15 +1,8 @@
-// Package crtsh provides an implementation of the sources.Source interface
-// for interacting with the CRT.SH API.
-//
-// The CRT.SH API is a certificate transparency log search engine that provides
-// domain name data, including discovered subdomains, by querying its public interface.
-// This package defines a Source type that implements the Run and Name methods as specified
-// by the sources.Source interface. The Run method sends a query to the CRT.SH API,
-// processes the JSON response, and streams discovered subdomains or errors via a channel.
 package crtsh
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	hqgohttp "github.com/hueristiq/hq-go-http"
@@ -18,33 +11,23 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
-// getNameValuesResponse represents the structure of the JSON response returned by the CRT.SH API.
-//
-// It is defined as a slice of anonymous structs, where each struct contains:
-//   - ID: An integer representing a unique identifier for the record.
-//   - NameValue: A string that includes one or more subdomains separated by newline characters.
 type getNameValuesResponse []struct {
 	ID        int    `json:"id"`
 	NameValue string `json:"name_value"`
 }
 
-// Source represents the CRT.SH data source implementation.
-// It implements the sources.Source interface, providing functionality
-// for retrieving subdomains from the CRT.SH API.
 type Source struct{}
 
-// Run initiates the process of retrieving subdomain information from the CRT.SH API for a given domain.
-//
-// Parameters:
-//   - domain (string): The target domain for which to retrieve subdomains.
-//   - _ (*sources.Configuration): The configuration instance containing API keys,
-//     the URL validation function, and any additional settings required by the source.
-//
-// Returns:
-//   - (<-chan sources.Result): A channel that asynchronously emits sources.Result values.
-//     Each result is either a discovered subdomain (ResultSubdomain) or an error (ResultError)
-//     encountered during the operation.
-func (source *Source) Run(domain string, _ *sources.Configuration) <-chan sources.Result {
+func (s *Source) Name() (name string) {
+	name = sources.CRTSH
+
+	return
+}
+
+func (s *Source) UseKeys(keys ...string) {
+}
+
+func (s *Source) Run(_ *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -65,8 +48,8 @@ func (source *Source) Run(domain string, _ *sources.Configuration) <-chan source
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
-				Source: source.Name(),
-				Error:  err,
+				Source: s.Name(),
+				Error:  fmt.Errorf("request failed: %w", err),
 			}
 
 			results <- result
@@ -79,8 +62,8 @@ func (source *Source) Run(domain string, _ *sources.Configuration) <-chan source
 		if err = json.NewDecoder(getNameValuesRes.Body).Decode(&getNameValuesResData); err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
-				Source: source.Name(),
-				Error:  err,
+				Source: s.Name(),
+				Error:  fmt.Errorf("failed to parse JSON response: %w", err),
 			}
 
 			results <- result
@@ -102,7 +85,7 @@ func (source *Source) Run(domain string, _ *sources.Configuration) <-chan source
 
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
-					Source: source.Name(),
+					Source: s.Name(),
 					Value:  subdomain,
 				}
 
@@ -114,11 +97,10 @@ func (source *Source) Run(domain string, _ *sources.Configuration) <-chan source
 	return results
 }
 
-// Name returns the unique identifier for the data source.
-// This identifier is used for logging, debugging, and associating results with the correct data source.
-//
-// Returns:
-//   - name (string): The unique identifier for the data source.
-func (source *Source) Name() (name string) {
-	return sources.CRTSH
+var _ sources.Source = (*Source)(nil)
+
+func New() (source sources.Source) {
+	source = &Source{}
+
+	return
 }
