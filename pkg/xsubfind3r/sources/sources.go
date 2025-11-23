@@ -77,6 +77,7 @@ const (
 	HACKERTARGET       = "hackertarget"
 	INTELLIGENCEX      = "intelx"
 	LEAKIX             = "leakix"
+	LEAKRADAR          = "leakradar"
 	OPENTHREATEXCHANGE = "otx"
 	SECURITYTRAILS     = "securitytrails"
 	SHODAN             = "shodan"
@@ -102,6 +103,7 @@ var List = []string{
 	HACKERTARGET,
 	INTELLIGENCEX,
 	LEAKIX,
+	LEAKRADAR,
 	OPENTHREATEXCHANGE,
 	SECURITYTRAILS,
 	SHODAN,

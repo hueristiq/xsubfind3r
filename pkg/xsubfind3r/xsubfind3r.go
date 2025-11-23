@@ -25,6 +25,7 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/hackertarget"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/intelx"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/leakix"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/leakradar"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/otx"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/securitytrails"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/shodan"
@@ -153,6 +154,8 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 			finder.sources[source] = intelx.New()
 		case sources.LEAKIX:
 			finder.sources[source] = leakix.New()
+		case sources.LEAKRADAR:
+			finder.sources[source] = leakradar.New()
 		case sources.OPENTHREATEXCHANGE:
 			finder.sources[source] = otx.New()
 		case sources.SECURITYTRAILS:
