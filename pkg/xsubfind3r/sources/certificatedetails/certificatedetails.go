@@ -17,9 +17,6 @@ func (s *Source) Name() (name string) {
 	return
 }
 
-func (s *Source) UseKeys(keys ...string) {
-}
-
 func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
@@ -81,6 +78,9 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 	}()
 
 	return results
+}
+
+func (s *Source) UseKeys(keys ...string) {
 }
 
 var _ sources.Source = (*Source)(nil)

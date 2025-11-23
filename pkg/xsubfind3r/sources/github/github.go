@@ -40,10 +40,6 @@ func (s *Source) Name() (name string) {
 	return
 }
 
-func (s *Source) UseKeys(keys ...string) {
-	s.keys = append(s.keys, keys...)
-}
-
 func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
@@ -90,7 +86,7 @@ func (s *Source) Enumerate(searchReqURL string, cfg *sources.Configuration, resu
 		result := sources.Result{
 			Type:   sources.ResultError,
 			Source: s.Name(),
-			Error:  err,
+			Error:  fmt.Errorf("request failed: %w", err),
 		}
 
 		results <- result
@@ -116,7 +112,7 @@ func (s *Source) Enumerate(searchReqURL string, cfg *sources.Configuration, resu
 		result := sources.Result{
 			Type:   sources.ResultError,
 			Source: s.Name(),
-			Error:  err,
+			Error:  fmt.Errorf("failed to parse JSON response: %w", err),
 		}
 
 		results <- result
@@ -129,11 +125,7 @@ func (s *Source) Enumerate(searchReqURL string, cfg *sources.Configuration, resu
 	codeSearchRes.Body.Close()
 
 	for _, item := range codeSearchResData.Items {
-		getRawContentReqURL := strings.ReplaceAll(
-			item.HTMLURL,
-			"https://github.com/",
-			"https://raw.githubusercontent.com/",
-		)
+		getRawContentReqURL := strings.ReplaceAll(item.HTMLURL, "https://github.com/", "https://raw.githubusercontent.com/")
 		getRawContentReqURL = strings.ReplaceAll(getRawContentReqURL, "/blob/", "/")
 
 		var getRawContentRes *http.Response
@@ -143,7 +135,7 @@ func (s *Source) Enumerate(searchReqURL string, cfg *sources.Configuration, resu
 			result := sources.Result{
 				Type:   sources.ResultError,
 				Source: s.Name(),
-				Error:  err,
+				Error:  fmt.Errorf("request failed: %w", err),
 			}
 
 			results <- result
@@ -180,7 +172,7 @@ func (s *Source) Enumerate(searchReqURL string, cfg *sources.Configuration, resu
 			result := sources.Result{
 				Type:   sources.ResultError,
 				Source: s.Name(),
-				Error:  err,
+				Error:  fmt.Errorf("failed to read response body: %w", err),
 			}
 
 			results <- result
@@ -227,6 +219,10 @@ func (s *Source) Enumerate(searchReqURL string, cfg *sources.Configuration, resu
 			s.Enumerate(nextURL, cfg, results)
 		}
 	}
+}
+
+func (s *Source) UseKeys(keys ...string) {
+	s.keys = append(s.keys, keys...)
 }
 
 type ManagedKey struct {

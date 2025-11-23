@@ -10,8 +10,8 @@ import (
 
 type Source interface {
 	Name() (name string)
-	UseKeys(keys ...string)
 	Run(cfg *Configuration, domain string) <-chan Result
+	UseKeys(keys ...string)
 }
 
 type Configuration struct {

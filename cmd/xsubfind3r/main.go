@@ -235,7 +235,7 @@ func main() {
 		case outputFilePath != "":
 			file, err = writer.CreateFile(outputFilePath)
 			if err != nil {
-				hqgologger.Fatal("failed creating output file!", hqgologger.WithError(err), hqgologger.WithString("file", outputFilePath))
+				hqgologger.Fatal("failed creating output file!", hqgologger.WithString("file", outputFilePath), hqgologger.WithError(err))
 			}
 
 			outputs = append(outputs, file)
@@ -244,7 +244,7 @@ func main() {
 
 			file, err = writer.CreateFile(domainOutputFilePath)
 			if err != nil {
-				hqgologger.Fatal("failed creating output file!", hqgologger.WithError(err), hqgologger.WithString("file", domainOutputFilePath))
+				hqgologger.Fatal("failed creating output file!", hqgologger.WithString("file", domainOutputFilePath), hqgologger.WithError(err))
 			}
 
 			outputs = append(outputs, file)
