@@ -257,11 +257,11 @@ func main() {
 				switch result.Type {
 				case sources.ResultError:
 					if verbose {
-						hqgologger.Error("failed to find subdomains!", hqgologger.WithString("source", result.Source), hqgologger.WithError(result.Error))
+						hqgologger.Error("failed to find results!", hqgologger.WithString("source", result.Source), hqgologger.WithError(result.Error))
 					}
 				case sources.ResultSubdomain:
 					if err := writer.Write(output, domain, result); err != nil {
-						hqgologger.Error("failed to write subdomains!", hqgologger.WithString("source", result.Source), hqgologger.WithError(err))
+						hqgologger.Error("failed to write result!", hqgologger.WithString("source", result.Source), hqgologger.WithError(err))
 					}
 				}
 			}
