@@ -1,11 +1,11 @@
 package otx
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -25,7 +25,7 @@ func (s *Source) Name() (name string) {
 	return
 }
 
-func (s *Source) Run(_ *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -33,7 +33,9 @@ func (s *Source) Run(_ *sources.Configuration, domain string) <-chan sources.Res
 
 		getPassiveDNSReqURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", domain)
 
-		getPassiveDNSRes, err := hqgohttp.Get(getPassiveDNSReqURL)
+		getPassiveDNSRes, err := cfg.Client.NewRequest().
+			URL(getPassiveDNSReqURL).
+			Do(ctx)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

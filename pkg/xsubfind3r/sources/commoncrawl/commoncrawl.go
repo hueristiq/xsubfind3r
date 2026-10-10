@@ -2,14 +2,14 @@ package commoncrawl
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
-	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
+	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
 )
@@ -42,7 +42,7 @@ func (s *Source) Name() (name string) {
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -50,7 +50,9 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 
 		getIndexesReqURL := "https://index.commoncrawl.org/collinfo.json"
 
-		getIndexesRes, err := hqgohttp.Get(getIndexesReqURL)
+		getIndexesRes, err := cfg.Client.NewRequest().
+			URL(getIndexesReqURL).
+			Do(ctx)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -104,19 +106,14 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 		}
 
 		for _, CCIndexAPI := range searchIndexes {
-			getPaginationReqCFG := &hqgohttp.RequestConfiguration{
-				Headers: []hqgohttp.Header{
-					hqgohttp.NewSetHeader(hqgohttpheader.Host.String(), "index.commoncrawl.org"),
-				},
-				Params: map[string]string{
-					"url":          "*." + domain + "/*",
-					"output":       "json",
-					"fl":           "url",
-					"showNumPages": "true",
-				},
-			}
-
-			getPaginationRes, err := hqgohttp.Get(CCIndexAPI, getPaginationReqCFG)
+			getPaginationRes, err := cfg.Client.NewRequest().
+				URL(CCIndexAPI).
+				Param("url", "*."+domain+"/*").
+				Param("output", "json").
+				Param("fl", "url").
+				Param("showNumPages", "true").
+				SetHeader(hqgohttpheader.Host.String(), "index.commoncrawl.org").
+				Do(ctx)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
@@ -152,19 +149,14 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 			}
 
 			for page := range getPaginationResData.Pages {
-				getURLsReqCFG := &hqgohttp.RequestConfiguration{
-					Headers: []hqgohttp.Header{
-						hqgohttp.NewSetHeader(hqgohttpheader.Host.String(), "index.commoncrawl.org"),
-					},
-					Params: map[string]string{
-						"url":    "*." + domain + "/*",
-						"output": "json",
-						"fl":     "url",
-						"page":   cast.ToString(page),
-					},
-				}
-
-				getURLsRes, err := hqgohttp.Get(CCIndexAPI, getURLsReqCFG)
+				getURLsRes, err := cfg.Client.NewRequest().
+					URL(CCIndexAPI).
+					Param("url", "*."+domain+"/*").
+					Param("output", "json").
+					Param("fl", "url").
+					Param("page", cast.ToString(page)).
+					SetHeader(hqgohttpheader.Host.String(), "index.commoncrawl.org").
+					Do(ctx)
 				if err != nil {
 					result := sources.Result{
 						Type:   sources.ResultError,

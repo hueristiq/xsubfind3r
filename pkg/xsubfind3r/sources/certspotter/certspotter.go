@@ -1,12 +1,12 @@
 package certspotter
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
-	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
+	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -25,7 +25,7 @@ func (s *Source) Name() (name string) {
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -45,15 +45,13 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 		}
 
 		getCTLogsSearchReqURL := "https://api.certspotter.com/v1/issuances"
-		getCTLogsSearchReqCFG := &hqgohttp.RequestConfiguration{
-			Params: map[string]string{
-				"domain":             domain,
-				"include_subdomains": "true",
-				"expand":             "dns_names",
-			},
-		}
 
-		getCTLogsSearchRes, err := hqgohttp.Get(getCTLogsSearchReqURL, getCTLogsSearchReqCFG)
+		getCTLogsSearchRes, err := cfg.Client.NewRequest().
+			URL(getCTLogsSearchReqURL).
+			Param("domain", domain).
+			Param("include_subdomains", "true").
+			Param("expand", "dns_names").
+			Do(ctx)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -108,19 +106,15 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 
 		for {
 			getCTLogsSearchReqURL := "https://api.certspotter.com/v1/issuances"
-			getCTLogsSearchReqCFG := &hqgohttp.RequestConfiguration{
-				Params: map[string]string{
-					"domain":             domain,
-					"include_subdomains": "true",
-					"expand":             "dns_names",
-					"after":              id,
-				},
-				Headers: []hqgohttp.Header{
-					hqgohttp.NewSetHeader(hqgohttpheader.Authorization.String(), "Bearer "+key),
-				},
-			}
 
-			getCTLogsSearchRes, err := hqgohttp.Get(getCTLogsSearchReqURL, getCTLogsSearchReqCFG)
+			getCTLogsSearchRes, err := cfg.Client.NewRequest().
+				URL(getCTLogsSearchReqURL).
+				Param("domain", domain).
+				Param("include_subdomains", "true").
+				Param("expand", "dns_names").
+				Param("after", id).
+				SetHeader(hqgohttpheader.Authorization.String(), "Bearer "+key).
+				Do(ctx)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,

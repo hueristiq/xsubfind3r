@@ -1,11 +1,11 @@
 package wayback
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
-	hqgolimiter "github.com/hueristiq/hq-go-limiter"
+	hqgolimiter "github.com/hueristiq/hq-lib-limiter-go"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
 )
@@ -18,28 +18,36 @@ func (s *Source) Name() (name string) {
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
 		for page := uint(0); ; page++ {
-			limiter.Wait()
-
 			getURLsReqURL := "https://web.archive.org/cdx/search/cdx"
-			getURLsReqCFG := &hqgohttp.RequestConfiguration{
-				Params: map[string]string{
-					"url":      "*." + domain + "/*",
-					"output":   "json",
-					"collapse": "urlkey",
-					"fl":       "original",
-					"pageSize": "100",
-					"page":     cast.ToString(page),
-				},
+
+			if err := limiter.Wait(ctx); err != nil {
+				result := sources.Result{
+					Type:   sources.ResultError,
+					Source: s.Name(),
+					Error:  fmt.Errorf("failed to wait on rate limiter: %w", err),
+				}
+
+				results <- result
+
+				break
 			}
 
-			getURLsRes, err := hqgohttp.Get(getURLsReqURL, getURLsReqCFG)
+			getURLsRes, err := cfg.Client.NewRequest().
+				URL(getURLsReqURL).
+				Param("url", "*."+domain+"/*").
+				Param("output", "json").
+				Param("collapse", "urlkey").
+				Param("fl", "original").
+				Param("pageSize", "100").
+				Param("page", cast.ToString(page)).
+				Do(ctx)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
@@ -105,9 +113,9 @@ func (s *Source) NeedsKeys() (needs bool) {
 func (s *Source) UseKeys(keys ...string) {
 }
 
-var limiter = hqgolimiter.New(&hqgolimiter.Configuration{
-	RequestsPerMinute: 40,
-})
+var limiter = hqgolimiter.New(
+	hqgolimiter.WithRequestsPerMinute(40),
+)
 
 var _ sources.Source = (*Source)(nil)
 

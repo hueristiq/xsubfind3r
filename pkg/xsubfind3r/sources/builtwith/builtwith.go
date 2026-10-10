@@ -1,10 +1,10 @@
 package builtwith
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -34,7 +34,7 @@ func (s *Source) Name() (name string) {
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -54,20 +54,18 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 		}
 
 		getDomainInfoReqURL := "https://api.builtwith.com/v21/api.json"
-		getDomainInfoReqCFG := &hqgohttp.RequestConfiguration{
-			Params: map[string]string{
-				"KEY":      key,
-				"HIDETEXT": "yes",
-				"HIDEDL":   "yes",
-				"NOLIVE":   "yes",
-				"NOMETA":   "yes",
-				"NOPII":    "yes",
-				"NOATTR":   "yes",
-				"LOOKUP":   domain,
-			},
-		}
 
-		getDomainInfoRes, err := hqgohttp.Get(getDomainInfoReqURL, getDomainInfoReqCFG)
+		getDomainInfoRes, err := cfg.Client.NewRequest().
+			URL(getDomainInfoReqURL).
+			Param("KEY", key).
+			Param("HIDETEXT", "yes").
+			Param("HIDEDL", "yes").
+			Param("NOLIVE", "yes").
+			Param("NOMETA", "yes").
+			Param("NOPII", "yes").
+			Param("NOATTR", "yes").
+			Param("LOOKUP", domain).
+			Do(ctx)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

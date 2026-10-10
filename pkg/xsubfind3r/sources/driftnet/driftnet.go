@@ -1,12 +1,12 @@
 package driftnet
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
-	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
+	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -54,8 +54,8 @@ type Observations struct {
 	PortTCP      PortData        `json:"port-tcp"`
 	PortUDP      struct{}        `json:"port-udp"`
 	ServerBanner ServerBanner    `json:"server-banner"`
-	SubjectCert  SubjectCert     `json:"subject;cert"` //nolint: staticcheck
-	TitleHTML    TitleHTML       `json:"title;html"`   //nolint: staticcheck
+	SubjectCert  SubjectCert     `json:"subject;cert"`
+	TitleHTML    TitleHTML       `json:"title;html"`
 }
 
 type ObservationData struct {
@@ -109,27 +109,23 @@ func (s *Source) Name() (name string) {
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
 		getResultsReqURL := "https://api.driftnet.io/v1/multi/summary"
-		getResultsReqCFG := &hqgohttp.RequestConfiguration{
-			Headers: []hqgohttp.Header{
-				hqgohttp.NewSetHeader(hqgohttpheader.Authorization.String(), "Bearer anon"),
-			},
-			Params: map[string]string{
-				"summary_limit": "10",
-				"timeout":       "30",
-				"from":          "2024-12-01",
-				"to":            "2024-12-11",
-				"field":         "host:" + domain,
-			},
-		}
 
-		getResultsRes, err := hqgohttp.Get(getResultsReqURL, getResultsReqCFG)
+		getResultsRes, err := cfg.Client.NewRequest().
+			URL(getResultsReqURL).
+			Param("summary_limit", "10").
+			Param("timeout", "30").
+			Param("from", "2024-12-01").
+			Param("to", "2024-12-11").
+			Param("field", "host:"+domain).
+			SetHeader(hqgohttpheader.Authorization.String(), "Bearer anon").
+			Do(ctx)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

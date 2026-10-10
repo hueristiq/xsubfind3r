@@ -1,13 +1,13 @@
 package leakix
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
-	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
-	hqgohttpmime "github.com/hueristiq/hq-go-http/mime"
+	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
+	hqgohttpmime "github.com/hueristiq/hq-lib-http-go/mime"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -27,7 +27,7 @@ func (s *Source) Name() (name string) {
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -47,14 +47,12 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 		}
 
 		getSubdomainsReqURL := "https://leakix.net/api/subdomains/" + domain
-		getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
-			Headers: []hqgohttp.Header{
-				hqgohttp.NewSetHeader(hqgohttpheader.Accept.String(), hqgohttpmime.JSON.String()),
-				hqgohttp.NewSetHeader("api-key", key),
-			},
-		}
 
-		getSubdomainsRes, err := hqgohttp.Get(getSubdomainsReqURL, getSubdomainsReqCFG)
+		getSubdomainsRes, err := cfg.Client.NewRequest().
+			URL(getSubdomainsReqURL).
+			SetHeader(hqgohttpheader.Accept.String(), hqgohttpmime.JSON.String()).
+			SetHeader("api-key", key).
+			Do(ctx)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,

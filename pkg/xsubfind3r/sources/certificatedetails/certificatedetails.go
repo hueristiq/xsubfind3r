@@ -2,10 +2,10 @@ package certificatedetails
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
-	hqgohttpstatus "github.com/hueristiq/hq-go-http/status"
+	hqgohttpstatus "github.com/hueristiq/hq-lib-http-go/status"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -17,7 +17,7 @@ func (s *Source) Name() (name string) {
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -25,7 +25,9 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 
 		getCertificateDetailsReqURL := "https://certificatedetails.com/" + domain
 
-		getCertificateDetailsRes, err := hqgohttp.Get(getCertificateDetailsReqURL)
+		getCertificateDetailsRes, err := cfg.Client.NewRequest().
+			URL(getCertificateDetailsReqURL).
+			Do(ctx)
 		if err != nil && getCertificateDetailsRes.StatusCode != hqgohttpstatus.NotFound.Int() {
 			result := sources.Result{
 				Type:   sources.ResultError,
