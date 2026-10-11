@@ -21,7 +21,7 @@ type getSubdomainsResponse struct {
 	Records []struct {
 		Hostname string `json:"hostname"`
 	} `json:"records"`
-	SubdomainCount bool     `json:"subdomain_count"`
+	SubdomainCount int      `json:"subdomain_count"`
 	Subdomains     []string `json:"subdomains"`
 }
 
@@ -87,6 +87,8 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			results <- result
 
 			sources.CloseBody(getSubdomainsRes.Body)
+
+			return
 		}
 
 		sources.CloseBody(getSubdomainsRes.Body)

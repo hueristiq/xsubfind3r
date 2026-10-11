@@ -29,7 +29,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		getCertificateDetailsRes, err := cfg.Client.NewRequest().
 			URL(getCertificateDetailsReqURL).
 			Do(ctx)
-		if err != nil && getCertificateDetailsRes.StatusCode != hqgohttpstatus.NotFound.Int() {
+		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
 				Source: s.Name(),
@@ -37,6 +37,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			}
 
 			results <- result
+
+			return
+		}
+
+		if getCertificateDetailsRes.StatusCode == hqgohttpstatus.NotFound.Int() {
+			sources.CloseBody(getCertificateDetailsRes.Body)
 
 			return
 		}
