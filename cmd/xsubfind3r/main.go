@@ -43,7 +43,7 @@ var (
 )
 
 func init() {
-	pflag.StringVarP(&configurationFilePath, "configuration", "c", configuration.DefaultConfigurationFilePath, "")
+	pflag.StringVarP(&configurationFilePath, "configuration", "c", configuration.DefaultConfigurationFilePath(), "")
 	pflag.StringSliceVarP(&domains, "domain", "d", []string{}, "")
 	pflag.StringVarP(&domainsFilePath, "list", "l", "", "")
 	pflag.BoolVar(&listSupportedSources, "sources", false, "")
@@ -57,14 +57,18 @@ func init() {
 	pflag.BoolVarP(&verbose, "verbose", "v", false, "")
 
 	pflag.Usage = func() {
-		hqgologger.Info(configuration.BANNER(au), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+		hqgologger.Info(configuration.Banner(au), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 
 		h := "USAGE:\n"
-		h += fmt.Sprintf(" %s [OPTIONS]\n", configuration.NAME)
+		h += fmt.Sprintf(" %s [OPTIONS]\n", configuration.Name)
 
 		h += "\nCONFIGURATION:\n"
 
-		defaultConfigurationFilePath := strings.ReplaceAll(configuration.DefaultConfigurationFilePath, configuration.UserDotConfigDirectoryPath, "$HOME/.config")
+		defaultConfigurationFilePath := configuration.DefaultConfigurationFilePath()
+
+		if userConfigDirectoryPath, err := configuration.UserConfigDirectoryPath(); err == nil {
+			defaultConfigurationFilePath = strings.ReplaceAll(defaultConfigurationFilePath, userConfigDirectoryPath, "$HOME/.config")
+		}
 
 		h += fmt.Sprintf(" -c, --configuration string           (default: %v)\n", au.Underline(defaultConfigurationFilePath).Bold())
 
@@ -102,7 +106,7 @@ func init() {
 
 	viper.AutomaticEnv()
 
-	viper.SetEnvPrefix(strings.ToUpper(configuration.NAME))
+	viper.SetEnvPrefix(strings.ToUpper(configuration.Name))
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
@@ -131,7 +135,7 @@ func init() {
 }
 
 func main() {
-	hqgologger.Info(configuration.BANNER(au), hqgologger.WithoutLabel())
+	hqgologger.Info(configuration.Banner(au), hqgologger.WithoutLabel())
 
 	var cfg *configuration.Configuration
 
@@ -211,7 +215,7 @@ func main() {
 
 	finder, err := xsubfind3r.New(&xsubfind3r.Configuration{
 		Client: &xsubfind3r.ClientConfiguration{
-			UserAgent: fmt.Sprintf("%s %s (https://github.com/hueristiq/%s.git)", configuration.NAME, configuration.VERSION, configuration.NAME),
+			UserAgent: fmt.Sprintf("%s %s (https://github.com/hueristiq/%s.git)", configuration.Name, configuration.Version, configuration.Name),
 		},
 		SourcesToUse:     sourcesToUse,
 		SourcesToExclude: sourcesToExclude,
