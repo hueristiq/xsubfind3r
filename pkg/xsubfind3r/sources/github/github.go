@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -18,6 +19,9 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
+// searchAPIURL is the GitHub code-search API endpoint.
+const searchAPIURL = "https://api.github.com/search/code"
+
 type codeSearchResponse struct {
 	TotalCount int `json:"total_count"`
 	Items      []struct {
@@ -29,9 +33,9 @@ type codeSearchResponse struct {
 	} `json:"items"`
 }
 
+// Source enumerates subdomains through the GitHub code-search API.
 type Source struct {
-	keys        sources.Keys
-	keysManager *KeysManager
+	keys sources.Keys
 }
 
 func (s *Source) Name() (name string) {
@@ -50,25 +54,35 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		s.keysManager = NewKeyManager(s.keys)
+		params := url.Values{}
+		params.Set("per_page", "100")
+		params.Set("q", fmt.Sprintf("%q", domain))
+		params.Set("sort", "created")
+		params.Set("order", "asc")
 
-		searchReqURL := fmt.Sprintf("https://api.github.com/search/code?per_page=100&q=%q&sort=created&order=asc", domain)
+		searchReqURL := searchAPIURL + "?" + params.Encode()
 
-		s.Enumerate(ctx, searchReqURL, cfg, results)
+		s.Enumerate(ctx, searchReqURL, cfg, results, NewKeyManager(s.keys))
 	}()
 
 	return results
 }
 
-func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *sources.Configuration, results chan sources.Result) {
-	token := s.keysManager.GetCurrentKey()
+func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *sources.Configuration, results chan sources.Result, keysManager *KeysManager) {
+	token := keysManager.GetCurrentKey()
 
 	if token.RetryAfter > 0 {
-		if len(s.keysManager.pool) == 1 {
-			time.Sleep(time.Duration(token.RetryAfter) * time.Second)
-		} else {
-			token = s.keysManager.GetCurrentKey()
+		remaining := time.Duration(token.RetryAfter)*time.Second - time.Since(token.ExceededTime)
+
+		if remaining > 0 {
+			if !waitSleep(ctx, remaining) {
+				return
+			}
 		}
+
+		s.Enumerate(ctx, searchReqURL, cfg, results, keysManager)
+
+		return
 	}
 
 	codeSearchRes, err := cfg.Client.NewRequest().
@@ -98,11 +112,29 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 	if isForbidden && ratelimitRemaining == 0 {
 		retryAfterSeconds := cast.ToInt64(codeSearchRes.Header.Get(hqgohttpheader.RetryAfter.String()))
 
-		s.keysManager.SetCurrentKeyExceeded(retryAfterSeconds)
+		if retryAfterSeconds <= 0 {
+			retryAfterSeconds = rateLimitResetRemaining(codeSearchRes.Header.Get("X-Ratelimit-Reset"))
+		}
+
+		if retryAfterSeconds <= 0 {
+			sources.CloseBody(codeSearchRes.Body)
+
+			result := sources.Result{
+				Type:   sources.ResultError,
+				Source: s.Name(),
+				Error:  errors.New("rate limit reached with no recovery hint; try again later"),
+			}
+
+			results <- result
+
+			return
+		}
+
+		keysManager.SetCurrentKeyExceeded(retryAfterSeconds)
 
 		sources.CloseBody(codeSearchRes.Body)
 
-		s.Enumerate(ctx, searchReqURL, cfg, results)
+		s.Enumerate(ctx, searchReqURL, cfg, results, keysManager)
 
 		return
 	}
@@ -154,13 +186,12 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 
 		for scanner.Scan() {
 			line := scanner.Text()
+
 			if line == "" {
 				continue
 			}
 
-			subdomains := cfg.Extract(line)
-
-			for _, subdomain := range subdomains {
+			for _, subdomain := range cfg.Extract(line) {
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
 					Source: s.Name(),
@@ -188,9 +219,7 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 		sources.CloseBody(getRawContentRes.Body)
 
 		for _, match := range item.TextMatches {
-			subdomains := cfg.Extract(match.Fragment)
-
-			for _, subdomain := range subdomains {
+			for _, subdomain := range cfg.Extract(match.Fragment) {
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
 					Source: s.Name(),
@@ -205,22 +234,24 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 	links := hqgohttpheaderutils.Parse(codeSearchRes.Header.Get(hqgohttpheader.Link.String()))
 
 	for _, link := range links {
-		if link.Rel == "next" {
-			nextURL, err := url.QueryUnescape(link.URL)
-			if err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  err,
-				}
+		if link.Rel != "next" {
+			continue
+		}
 
-				results <- result
-
-				return
+		nextURL, err := url.QueryUnescape(link.URL)
+		if err != nil {
+			result := sources.Result{
+				Type:   sources.ResultError,
+				Source: s.Name(),
+				Error:  err,
 			}
 
-			s.Enumerate(ctx, nextURL, cfg, results)
+			results <- result
+
+			return
 		}
+
+		s.Enumerate(ctx, nextURL, cfg, results, keysManager)
 	}
 }
 
@@ -234,18 +265,23 @@ func (s *Source) UseKeys(keys ...string) {
 	s.keys = append(s.keys, keys...)
 }
 
+// ManagedKey is a single API key tracked by the [KeysManager].
 type ManagedKey struct {
 	ExceededTime time.Time
 	RetryAfter   int64
 	Value        string
 }
 
+// KeysManager rotates GitHub API keys in round-robin order, tracking which
+// keys are rate-limited until when.
 type KeysManager struct {
 	mu      sync.Mutex
 	current int
+	last    int
 	pool    []ManagedKey
 }
 
+// NewKeyManager returns a manager rotating through keys.
 func NewKeyManager(keys []string) (manager *KeysManager) {
 	pool := make([]ManagedKey, len(keys))
 
@@ -260,6 +296,8 @@ func NewKeyManager(keys []string) (manager *KeysManager) {
 	return
 }
 
+// GetCurrentKey returns the next key in the rotation, resetting any keys
+// whose rate-limit cooldown has elapsed.
 func (m *KeysManager) GetCurrentKey() (key *ManagedKey) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -277,6 +315,8 @@ func (m *KeysManager) GetCurrentKey() (key *ManagedKey) {
 		m.current %= len(m.pool)
 	}
 
+	m.last = m.current
+
 	key = &m.pool[m.current]
 
 	m.current++
@@ -284,19 +324,44 @@ func (m *KeysManager) GetCurrentKey() (key *ManagedKey) {
 	return
 }
 
+// SetCurrentKeyExceeded marks the key most recently handed out by
+// [GetCurrentKey] as rate-limited for retryAfter seconds.
 func (m *KeysManager) SetCurrentKeyExceeded(retryAfter int64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if m.current >= len(m.pool) {
-		m.current %= len(m.pool)
-	}
-
-	key := &m.pool[m.current]
+	key := &m.pool[m.last]
 
 	if key.RetryAfter == 0 {
 		key.ExceededTime = time.Now()
 		key.RetryAfter = retryAfter
+	}
+}
+
+// rateLimitResetRemaining parses an X-RateLimit-Reset header value into the
+// seconds remaining until the rate-limit window resets, or 0 when the value
+// carries no future timestamp.
+func rateLimitResetRemaining(raw string) (remaining int64) {
+	reset := cast.ToInt64(raw)
+
+	if reset > 0 {
+		remaining = reset - time.Now().Unix()
+	}
+
+	return
+}
+
+// waitSleep sleeps for d unless ctx ends first; it reports whether the
+// sleep completed.
+func waitSleep(ctx context.Context, d time.Duration) (completed bool) {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
 	}
 }
 
