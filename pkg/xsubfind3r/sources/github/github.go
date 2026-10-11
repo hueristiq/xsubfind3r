@@ -92,7 +92,7 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 	}
 
 	ratelimitRemaining := cast.ToInt64(
-		codeSearchRes.Header.Get(hqgohttpheader.XRatelimitRemaining.String()),
+		codeSearchRes.Header.Get(hqgohttpheader.XRateLimitRemaining.String()),
 	)
 
 	if isForbidden && ratelimitRemaining == 0 {
