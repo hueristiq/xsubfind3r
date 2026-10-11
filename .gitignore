@@ -3,3 +3,6 @@
 
 # Binaries
 bin
+
+# GoReleaser
+dist
