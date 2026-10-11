@@ -176,6 +176,7 @@ OUTPUT:
  -m, --monochrome bool                disable colored console output
  -s, --silent bool                    disable logging output, only results
  -v, --verbose bool                   enable detailed debug logging output
+     --version bool                   display the version and exit
 
 ```
 
