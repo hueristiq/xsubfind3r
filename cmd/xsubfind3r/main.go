@@ -144,17 +144,22 @@ func main() {
 	}
 
 	if listSupportedSources {
-		hqgologger.Info(fmt.Sprintf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(xsubfind3r.Sources))).Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+		factories := xsubfind3r.SourceFactories()
+
+		hqgologger.Info(fmt.Sprintf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(factories))).Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 		hqgologger.Info(fmt.Sprintf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 		hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 
-		for i := range xsubfind3r.Sources {
-			source := xsubfind3r.Sources[i]
+		for _, name := range sources.List {
+			factory, ok := factories[name]
+			if !ok {
+				continue
+			}
 
-			if source.NeedsKeys() {
-				hqgologger.Print("> "+source.Name()+" *", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+			if factory().NeedsKeys() {
+				hqgologger.Print("> "+name+" *", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 			} else {
-				hqgologger.Print("> "+source.Name(), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+				hqgologger.Print("> "+name, hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 			}
 		}
 

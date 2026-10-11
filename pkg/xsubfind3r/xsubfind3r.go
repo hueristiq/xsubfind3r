@@ -1,3 +1,6 @@
+// Package xsubfind3r enumerates subdomains of a domain by fanning it out
+// to ~40 passive OSINT sources concurrently, with API-key configuration,
+// dedup, and streaming results.
 package xsubfind3r
 
 import (
@@ -52,11 +55,22 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/zoomeye"
 )
 
+// Finder enumerates subdomains through the sources it was built with.
 type Finder struct {
 	sources map[string]sources.Source
 	client  *hqgohttp.Client
 }
 
+// Find enumerates subdomains of domain, streaming results on the returned
+// channel until it is closed.
+//
+// Parameters:
+//   - ctx (context.Context): the context governing every source request.
+//   - domain (string): the domain to enumerate.
+//
+// Returns:
+//   - results (chan sources.Result): the result stream; subdomain values
+//     are lowercased, wildcard-prefix-stripped, and deduplicated.
 func (finder *Finder) Find(ctx context.Context, domain string) (results chan sources.Result) {
 	results = make(chan sources.Result)
 
@@ -104,10 +118,13 @@ func (finder *Finder) Find(ctx context.Context, domain string) (results chan sou
 	return
 }
 
+// ClientConfiguration configures the HTTP client the finder uses.
 type ClientConfiguration struct {
 	UserAgent string
 }
 
+// Configuration configures a finder: the client knobs, the source
+// selection, and the API keys handed to keyed sources.
 type Configuration struct {
 	Client           *ClientConfiguration
 	SourcesToUse     []string
@@ -115,60 +132,77 @@ type Configuration struct {
 	Keys             map[string]sources.Keys
 }
 
-var (
-	Sources = [...]sources.Source{
-		anubis.New(),
-		arquivo.New(),
-		bevigil.New(),
-		builtwith.New(),
-		c99.New(),
-		censys.New(),
-		certificatedetails.New(),
-		certspotter.New(),
-		chaos.New(),
-		commoncrawl.New(),
-		crtsh.New(),
-		dnsdb.New(),
-		dnsdumpster.New(),
-		driftnet.New(),
-		fofa.New(),
-		fullhunt.New(),
-		ghostarchive.New(),
-		github.New(),
-		gitlab.New(),
-		hackertarget.New(),
-		hudsonrock.New(),
-		intelx.New(),
-		leakix.New(),
-		leakradar.New(),
-		merklemap.New(),
-		netlas.New(),
-		onyphe.New(),
-		otx.New(),
-		quake.New(),
-		rapiddns.New(),
-		riddler.New(),
-		securitytrails.New(),
-		shodan.New(),
-		subdomaincenter.New(),
-		threatminer.New(),
-		urlscan.New(),
-		virustotal.New(),
-		wayback.New(),
-		whoisxmlapi.New(),
-		zoomeye.New(),
-	}
-	NameToSourceMap = make(map[string]sources.Source, len(Sources))
-)
+// SourceFactory constructs a fresh source instance.
+type SourceFactory func() sources.Source
 
-func init() {
-	for i := range Sources {
-		source := Sources[i]
-
-		NameToSourceMap[source.Name()] = source
-	}
+// sourceFactories maps source names to their constructors. Finders always
+// build their sources from these factories, never from shared singletons.
+var sourceFactories = map[string]SourceFactory{
+	sources.ANUBIS:             anubis.New,
+	sources.ARQUIVO:            arquivo.New,
+	sources.BEVIGIL:            bevigil.New,
+	sources.BUILTWITH:          builtwith.New,
+	sources.C99:                c99.New,
+	sources.CENSYS:             censys.New,
+	sources.CERTIFICATEDETAILS: certificatedetails.New,
+	sources.CERTSPOTTER:        certspotter.New,
+	sources.CHAOS:              chaos.New,
+	sources.COMMONCRAWL:        commoncrawl.New,
+	sources.CRTSH:              crtsh.New,
+	sources.DNSDB:              dnsdb.New,
+	sources.DNSDUMPSTER:        dnsdumpster.New,
+	sources.DRIFTNET:           driftnet.New,
+	sources.FOFA:               fofa.New,
+	sources.FULLHUNT:           fullhunt.New,
+	sources.GHOSTARCHIVE:       ghostarchive.New,
+	sources.GITHUB:             github.New,
+	sources.GITLAB:             gitlab.New,
+	sources.HACKERTARGET:       hackertarget.New,
+	sources.HUDSONROCK:         hudsonrock.New,
+	sources.INTELLIGENCEX:      intelx.New,
+	sources.LEAKIX:             leakix.New,
+	sources.LEAKRADAR:          leakradar.New,
+	sources.MERKLEMAP:          merklemap.New,
+	sources.NETLAS:             netlas.New,
+	sources.ONYPHE:             onyphe.New,
+	sources.OPENTHREATEXCHANGE: otx.New,
+	sources.QUAKE:              quake.New,
+	sources.RAPIDDNS:           rapiddns.New,
+	sources.RIDDLER:            riddler.New,
+	sources.SECURITYTRAILS:     securitytrails.New,
+	sources.SHODAN:             shodan.New,
+	sources.SUBDOMAINCENTER:    subdomaincenter.New,
+	sources.THREATMINER:        threatminer.New,
+	sources.URLSCAN:            urlscan.New,
+	sources.VIRUSTOTAL:         virustotal.New,
+	sources.WAYBACK:            wayback.New,
+	sources.WHOISXMLAPI:        whoisxmlapi.New,
+	sources.ZOOMEYE:            zoomeye.New,
 }
 
+// SourceFactories returns a copy of the source registry, mapping source
+// names to their constructors.
+func SourceFactories() (factories map[string]SourceFactory) {
+	factories = make(map[string]SourceFactory, len(sourceFactories))
+
+	for name, factory := range sourceFactories {
+		factories[name] = factory
+	}
+
+	return
+}
+
+// New builds a finder with fresh source instances for the configured source
+// selection; every call is independent, so finders never share keys or
+// mutable source state.
+//
+// Parameters:
+//   - cfg (*Configuration): the finder configuration; never mutated.
+//
+// Returns:
+//   - finder (*Finder): the built finder.
+//   - err (error): non-nil when the HTTP client cannot be created or an
+//     unknown source name is requested.
 func New(cfg *Configuration) (finder *Finder, err error) {
 	finder = &Finder{
 		sources: make(map[string]sources.Source),
@@ -194,30 +228,28 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 		return
 	}
 
-	if len(cfg.SourcesToUse) < 1 {
-		cfg.SourcesToUse = sources.List
+	sourcesToUse := cfg.SourcesToUse
+
+	if len(sourcesToUse) < 1 {
+		sourcesToUse = sources.List
 	}
 
-	for i := range cfg.SourcesToUse {
-		source := cfg.SourcesToUse[i]
+	for _, name := range sourcesToUse {
+		factory, ok := sourceFactories[name]
+		if !ok {
+			err = fmt.Errorf("unknown source %q", name)
 
-		s, k := NameToSourceMap[source]
-		if !k {
-			continue
+			return
 		}
 
-		finder.sources[source] = s
+		finder.sources[name] = factory()
 	}
 
-	for i := range cfg.SourcesToExclude {
-		source := cfg.SourcesToExclude[i]
-
-		delete(finder.sources, source)
+	for _, name := range cfg.SourcesToExclude {
+		delete(finder.sources, name)
 	}
 
-	for i := range finder.sources {
-		source := finder.sources[i]
-
+	for _, source := range finder.sources {
 		if keys, ok := cfg.Keys[source.Name()]; ok {
 			source.UseKeys(keys...)
 		}
