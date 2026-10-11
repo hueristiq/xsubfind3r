@@ -25,6 +25,10 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	go func() {
 		defer close(results)
 
+		limiter := hqgolimiter.New(
+			hqgolimiter.WithRequestsPerMinute(40),
+		)
+
 		for page := uint(0); ; page++ {
 			getURLsReqURL := "https://web.archive.org/cdx/search/cdx"
 
@@ -113,10 +117,6 @@ func (s *Source) NeedsKeys() (needs bool) {
 
 func (s *Source) UseKeys(keys ...string) {
 }
-
-var limiter = hqgolimiter.New(
-	hqgolimiter.WithRequestsPerMinute(40),
-)
 
 var _ sources.Source = (*Source)(nil)
 

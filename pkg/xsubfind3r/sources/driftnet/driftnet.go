@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
 
@@ -118,12 +119,18 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getResultsReqURL := "https://api.driftnet.io/v1/multi/summary"
 
+		// The public endpoint accepts the documented anonymous bearer
+		// token; a rolling 30-day window keeps the query current instead
+		// of pinned to a fixed period.
+		to := time.Now().UTC()
+		from := to.AddDate(0, 0, -30)
+
 		getResultsRes, err := cfg.Client.NewRequest().
 			URL(getResultsReqURL).
 			Param("summary_limit", "10").
 			Param("timeout", "30").
-			Param("from", "2024-12-01").
-			Param("to", "2024-12-11").
+			Param("from", from.Format("2006-01-02")).
+			Param("to", to.Format("2006-01-02")).
 			Param("field", "host:"+domain).
 			SetHeader(hqgohttpheader.Authorization.String(), "Bearer anon").
 			Do(ctx)

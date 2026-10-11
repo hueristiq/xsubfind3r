@@ -11,6 +11,9 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
+// maxPages caps the certspotter pagination.
+const maxPages = 100
+
 type getCTLogsSearchResponse struct {
 	ID       string   `json:"id"`
 	DNSNames []string `json:"dns_names"`
@@ -32,90 +35,28 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	go func() {
 		defer close(results)
 
-		key, err := s.keys.PickRandom()
-		if key == "" || err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to select key: %w", err),
-			}
+		key, _ := s.keys.PickRandom()
 
-			results <- result
+		after := ""
 
-			return
-		}
-
-		getCTLogsSearchReqURL := "https://api.certspotter.com/v1/issuances"
-
-		getCTLogsSearchRes, err := cfg.Client.NewRequest().
-			URL(getCTLogsSearchReqURL).
-			Param("domain", domain).
-			Param("include_subdomains", "true").
-			Param("expand", "dns_names").
-			Do(ctx)
-		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("request failed: %w", err),
-			}
-
-			results <- result
-
-			return
-		}
-
-		var getCTLogsSearchResData []getCTLogsSearchResponse
-
-		if err = json.NewDecoder(getCTLogsSearchRes.Body).Decode(&getCTLogsSearchResData); err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-			}
-
-			results <- result
-
-			sources.CloseBody(getCTLogsSearchRes.Body)
-
-			return
-		}
-
-		sources.CloseBody(getCTLogsSearchRes.Body)
-
-		if len(getCTLogsSearchResData) == 0 {
-			return
-		}
-
-		for _, cert := range getCTLogsSearchResData {
-			for _, subdomain := range cert.DNSNames {
-				if subdomain != domain && !strings.HasSuffix(subdomain, "."+domain) {
-					continue
-				}
-
-				result := sources.Result{
-					Type:   sources.ResultSubdomain,
-					Source: s.Name(),
-					Value:  subdomain,
-				}
-
-				results <- result
-			}
-		}
-
-		id := getCTLogsSearchResData[len(getCTLogsSearchResData)-1].ID
-
-		for {
+		for range maxPages {
 			getCTLogsSearchReqURL := "https://api.certspotter.com/v1/issuances"
 
-			getCTLogsSearchRes, err := cfg.Client.NewRequest().
+			req := cfg.Client.NewRequest().
 				URL(getCTLogsSearchReqURL).
 				Param("domain", domain).
 				Param("include_subdomains", "true").
-				Param("expand", "dns_names").
-				Param("after", id).
-				SetHeader(hqgohttpheader.Authorization.String(), "Bearer "+key).
-				Do(ctx)
+				Param("expand", "dns_names")
+
+			if key != "" {
+				req = req.SetHeader(hqgohttpheader.Authorization.String(), "Bearer "+key)
+			}
+
+			if after != "" {
+				req = req.Param("after", after)
+			}
+
+			getCTLogsSearchRes, err := req.Do(ctx)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
@@ -166,7 +107,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				}
 			}
 
-			id = getCTLogsSearchResData[len(getCTLogsSearchResData)-1].ID
+			after = getCTLogsSearchResData[len(getCTLogsSearchResData)-1].ID
 		}
 	}()
 
@@ -174,7 +115,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 }
 
 func (s *Source) NeedsKeys() (needs bool) {
-	needs = true
+	needs = false
 
 	return
 }

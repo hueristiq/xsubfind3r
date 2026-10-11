@@ -95,10 +95,10 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		searchIndexes := make(map[string]string)
 
 		for _, year := range years {
-			for _, CCIndex := range getIndexesResData {
-				if strings.Contains(CCIndex.ID, year) {
+			for _, ccIndex := range getIndexesResData {
+				if strings.Contains(ccIndex.ID, year) {
 					if _, ok := searchIndexes[year]; !ok {
-						searchIndexes[year] = CCIndex.CDXAPI
+						searchIndexes[year] = ccIndex.CDXAPI
 
 						break
 					}
@@ -106,9 +106,9 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			}
 		}
 
-		for _, CCIndexAPI := range searchIndexes {
+		for _, ccIndexAPI := range searchIndexes {
 			getPaginationRes, err := cfg.Client.NewRequest().
-				URL(CCIndexAPI).
+				URL(ccIndexAPI).
 				Param("url", "*."+domain+"/*").
 				Param("output", "json").
 				Param("fl", "url").
@@ -151,7 +151,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			for page := range getPaginationResData.Pages {
 				getURLsRes, err := cfg.Client.NewRequest().
-					URL(CCIndexAPI).
+					URL(ccIndexAPI).
 					Param("url", "*."+domain+"/*").
 					Param("output", "json").
 					Param("fl", "url").

@@ -73,11 +73,13 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		params := url.Values{}
 		params.Add("limit", "0")
-		params.Add("swclient", "subfinder")
+		// The API requires a client identifier; identify honestly.
+		params.Add("swclient", "xsubfind3r")
 
 		var emitted uint64
 
 		for {
+			before := emitted
 			getSubdomainsReqURL := fmt.Sprintf("%s/lookup/rrset/name/*.%s?%s", baseReqURL, domain, params.Encode())
 
 			getSubdomainsRes, err := cfg.Client.NewRequest().
@@ -159,7 +161,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			sources.CloseBody(getSubdomainsRes.Body)
 
 			if condition == "limited" {
-				if offsetMax != 0 && emitted <= offsetMax {
+				if emitted > before && offsetMax != 0 && emitted <= offsetMax {
 					params.Set("offset", strconv.FormatUint(emitted, 10))
 
 					continue

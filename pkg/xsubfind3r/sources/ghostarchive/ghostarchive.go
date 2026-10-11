@@ -37,6 +37,10 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			term = "." + domain
 		}
 
+		limiter := hqgolimiter.New(
+			hqgolimiter.WithRequestsPerMinute(30),
+		)
+
 		for page := uint(0); ; page++ {
 			if err := limiter.Wait(ctx); err != nil {
 				result := sources.Result{
@@ -151,10 +155,6 @@ func (s *Source) NeedsKeys() (needs bool) {
 
 func (s *Source) UseKeys(keys ...string) {
 }
-
-var limiter = hqgolimiter.New(
-	hqgolimiter.WithRequestsPerMinute(30),
-)
 
 var _ sources.Source = (*Source)(nil)
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -13,6 +14,14 @@ import (
 	hqgohttpmime "github.com/hueristiq/hq-lib-http-go/mime"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+)
+
+const (
+	// pollInterval is the wait between result polls while a search is
+	// still running on the API side.
+	pollInterval = 2 * time.Second
+	// maxPollAttempts caps the result polls before giving up.
+	maxPollAttempts = 30
 )
 
 type searchRequestBody struct {
@@ -69,6 +78,14 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		parts := strings.Split(key, ":")
 		if len(parts) != 2 {
+			result := sources.Result{
+				Type:   sources.ResultError,
+				Source: s.Name(),
+				Error:  errors.New("malformed intelx key: expected the \"host:key\" format"),
+			}
+
+			results <- result
+
 			return
 		}
 
@@ -76,6 +93,14 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		intelXKey := parts[1]
 
 		if intelXKey == "" || intelXHost == "" {
+			result := sources.Result{
+				Type:   sources.ResultError,
+				Source: s.Name(),
+				Error:  errors.New("malformed intelx key: expected the \"host:key\" format"),
+			}
+
+			results <- result
+
 			return
 		}
 
@@ -143,8 +168,23 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getResultsReqURL := fmt.Sprintf("https://%s/phonebook/search/result", intelXHost)
 		status := 0
+		polls := 0
 
 		for status == 0 || status == 3 {
+			polls++
+
+			if polls > maxPollAttempts {
+				result := sources.Result{
+					Type:   sources.ResultError,
+					Source: s.Name(),
+					Error:  fmt.Errorf("search timed out after %d polls", maxPollAttempts),
+				}
+
+				results <- result
+
+				return
+			}
+
 			getResultsRes, err := cfg.Client.NewRequest().
 				URL(getResultsReqURL).
 				Param("k", intelXKey).
@@ -191,6 +231,14 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				}
 
 				results <- result
+			}
+
+			if status == 0 || status == 3 {
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(pollInterval):
+				}
 			}
 		}
 	}()

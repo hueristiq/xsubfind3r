@@ -95,7 +95,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			sources.CloseBody(searchRes.Body)
 
 			for _, item := range items {
-				getRawContentReqURL := fmt.Sprintf("https://gitlab.com/api/v4/projects/%d/repository/files/%s/raw?ref=%s", item.ProjectID, url.QueryEscape(item.Path), item.Ref)
+				getRawContentReqURL := fmt.Sprintf(
+					"https://gitlab.com/api/v4/projects/%d/repository/files/%s/raw?%s",
+					item.ProjectID,
+					url.PathEscape(item.Path),
+					url.Values{"ref": {item.Ref}}.Encode(),
+				)
 
 				getRawContentRes, err := cfg.Client.NewRequest().
 					URL(getRawContentReqURL).

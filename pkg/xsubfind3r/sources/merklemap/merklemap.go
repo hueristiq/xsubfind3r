@@ -58,7 +58,6 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				Param("page", cast.ToString(page)).
 				SetHeader("Accept", "application/json").
 				SetHeader("Authorization", "Bearer "+key).
-				SetHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36").
 				Do(ctx)
 			if err != nil {
 				result := sources.Result{

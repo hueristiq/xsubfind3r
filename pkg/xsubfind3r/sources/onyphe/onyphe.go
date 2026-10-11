@@ -64,8 +64,33 @@ func (r *result) UnmarshalJSON(data []byte) (err error) {
 		}
 	}
 
-	_ = json.Unmarshal(raw.Forward, &r.Forward)
-	_ = json.Unmarshal(raw.Reverse, &r.Reverse)
+	if r.Forward, err = decodeStringOrNumber(raw.Forward); err != nil {
+		return
+	}
+
+	if r.Reverse, err = decodeStringOrNumber(raw.Reverse); err != nil {
+		return
+	}
+
+	return
+}
+
+func decodeStringOrNumber(raw json.RawMessage) (value string, err error) {
+	if len(raw) == 0 {
+		return
+	}
+
+	if err = json.Unmarshal(raw, &value); err != nil {
+		var number json.Number
+
+		if err = json.Unmarshal(raw, &number); err != nil {
+			err = fmt.Errorf("failed to decode string or number: %w", err)
+
+			return
+		}
+
+		value = number.String()
+	}
 
 	return
 }

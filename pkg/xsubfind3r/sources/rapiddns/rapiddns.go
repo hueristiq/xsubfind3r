@@ -87,15 +87,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			}
 
 			if maxPages == 1 {
-				matches := pagePattern.FindAllStringSubmatch(src, -1)
-
-				if len(matches) > 0 {
-					lastMatch := matches[len(matches)-1]
-
-					if len(lastMatch) > 1 {
-						maxPages, _ = strconv.Atoi(lastMatch[1])
-					}
-				}
+				maxPages = paginationCount(src)
 			}
 
 			if page >= maxPages {
@@ -107,6 +99,30 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	}()
 
 	return results
+}
+
+// paginationCount returns the last page number advertised in src, or 1
+// when the page cannot be determined.
+func paginationCount(src string) (maxPages int) {
+	maxPages = 1
+
+	matches := pagePattern.FindAllStringSubmatch(src, -1)
+
+	if len(matches) == 0 {
+		return
+	}
+
+	lastMatch := matches[len(matches)-1]
+
+	if len(lastMatch) < 2 {
+		return
+	}
+
+	if parsed, err := strconv.Atoi(lastMatch[1]); err == nil {
+		maxPages = parsed
+	}
+
+	return
 }
 
 func (s *Source) NeedsKeys() (needs bool) {

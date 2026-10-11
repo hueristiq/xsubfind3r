@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -90,6 +91,30 @@ func isHostnameChar(c byte) (is bool) {
 	case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '-', c == '.':
 		is = true
 	}
+
+	return
+}
+
+// SanitizeError returns err with every occurrence of the given secrets —
+// and their query-escaped forms — replaced by "REDACTED", so API keys
+// interpolated into request URLs do not leak into error output.
+func SanitizeError(err error, secrets ...string) (sanitized error) {
+	if err == nil {
+		return nil
+	}
+
+	text := err.Error()
+
+	for _, secret := range secrets {
+		if secret == "" {
+			continue
+		}
+
+		text = strings.ReplaceAll(text, secret, "REDACTED")
+		text = strings.ReplaceAll(text, url.QueryEscape(secret), "REDACTED")
+	}
+
+	sanitized = errors.New(text)
 
 	return
 }
