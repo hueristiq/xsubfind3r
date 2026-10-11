@@ -158,7 +158,7 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 				continue
 			}
 
-			subdomains := cfg.Extractor.FindAllString(line, -1)
+			subdomains := cfg.Extract(line)
 
 			for _, subdomain := range subdomains {
 				result := sources.Result{
@@ -188,7 +188,7 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 		sources.CloseBody(getRawContentRes.Body)
 
 		for _, match := range item.TextMatches {
-			subdomains := cfg.Extractor.FindAllString(match.Fragment, -1)
+			subdomains := cfg.Extract(match.Fragment)
 
 			for _, subdomain := range subdomains {
 				result := sources.Result{

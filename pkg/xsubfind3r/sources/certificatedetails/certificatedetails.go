@@ -50,7 +50,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				continue
 			}
 
-			match := cfg.Extractor.FindAllString(line, -1)
+			match := cfg.Extract(line)
 
 			for _, subdomain := range match {
 				result := sources.Result{

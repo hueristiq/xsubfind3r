@@ -161,7 +161,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			for _, record := range getSubdomainsResData.Results {
 				for _, target := range append(record.Subdomains, record.Hostname, record.Forward, record.Reverse) {
-					subdomains := cfg.Extractor.FindAllString(target, -1)
+					subdomains := cfg.Extract(target)
 
 					for _, subdomain := range subdomains {
 						result := sources.Result{

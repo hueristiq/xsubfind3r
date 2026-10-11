@@ -93,7 +93,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			for _, item := range getURLsResData.Items {
 				URL := item.URL
 
-				matches := cfg.Extractor.FindAllString(URL, -1)
+				matches := cfg.Extract(URL)
 
 				for _, subdomain := range matches {
 					result := sources.Result{

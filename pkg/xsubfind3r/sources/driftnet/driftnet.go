@@ -175,15 +175,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		for _, value := range getResultsResData.Observations.SubjectCert.Values {
 			for entry := range value {
-				subdomains := cfg.Extractor.FindAllString(entry, -1)
-
-				for i := range subdomains {
-					subdomain := subdomains[i]
-
-					if subdomain != domain && !strings.HasSuffix(subdomain, "."+domain) {
-						continue
-					}
-
+				for _, subdomain := range cfg.Extract(entry) {
 					result := sources.Result{
 						Type:   sources.ResultSubdomain,
 						Source: s.Name(),

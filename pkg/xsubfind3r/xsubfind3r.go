@@ -3,7 +3,6 @@ package xsubfind3r
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -63,7 +62,8 @@ func (finder *Finder) Find(ctx context.Context, domain string) (results chan sou
 
 	configuration := &sources.Configuration{
 		Client:    finder.client,
-		Extractor: regexp.MustCompile(fmt.Sprintf(`(?i)(?:((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+))?(%s)`, regexp.QuoteMeta(domain))),
+		Domain:    domain,
+		Extractor: sources.CompileExtractor(domain),
 	}
 
 	go func() {
@@ -84,7 +84,7 @@ func (finder *Finder) Find(ctx context.Context, domain string) (results chan sou
 				for sResult := range sResults {
 					if sResult.Type == sources.ResultSubdomain {
 						sResult.Value = strings.ToLower(sResult.Value)
-						sResult.Value = strings.ReplaceAll(sResult.Value, "*.", "")
+						sResult.Value = strings.TrimPrefix(sResult.Value, "*.")
 						sResult.Value = strings.TrimPrefix(sResult.Value, ".")
 
 						_, loaded := seen.LoadOrStore(sResult.Value, struct{}{})
