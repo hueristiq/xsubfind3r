@@ -122,14 +122,17 @@ type resultForJSONL struct {
 }
 
 const (
-	formatJSONL format = "JSON"
+	formatJSONL format = "JSONL"
 	formatTXT   format = "TXT"
 )
 
+// ErrNoFilePathSpecified is returned when creating a file for an empty
+// path.
 var ErrNoFilePathSpecified = errors.New("no file path specified")
 
-func NewWriter() (writter *Writer) {
-	writter = &Writer{
+// NewWriter returns a Writer writing plain text.
+func NewWriter() (writer *Writer) {
+	writer = &Writer{
 		format: formatTXT,
 	}
 

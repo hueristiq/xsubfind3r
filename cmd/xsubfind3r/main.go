@@ -177,11 +177,7 @@ func main() {
 		scanner := bufio.NewScanner(file)
 
 		for scanner.Scan() {
-			domain := scanner.Text()
-
-			if domain != "" {
-				domains = append(domains, domain)
-			}
+			domains = append(domains, scanner.Text())
 		}
 
 		if err := scanner.Err(); err != nil {
@@ -197,16 +193,34 @@ func main() {
 		scanner := bufio.NewScanner(os.Stdin)
 
 		for scanner.Scan() {
-			domain := scanner.Text()
-
-			if domain != "" {
-				domains = append(domains, domain)
-			}
+			domains = append(domains, scanner.Text())
 		}
 
 		if err := scanner.Err(); err != nil {
 			hqgologger.Fatal("failed reading stdin!", hqgologger.WithError(err))
 		}
+	}
+
+	validatedDomains := make([]string, 0, len(domains))
+
+	for _, domain := range domains {
+		domain = strings.TrimSpace(domain)
+
+		if domain == "" {
+			continue
+		}
+
+		if err := input.ValidateDomain(domain); err != nil {
+			hqgologger.Fatal("invalid domain!", hqgologger.WithString("domain", domain), hqgologger.WithError(err))
+		}
+
+		validatedDomains = append(validatedDomains, domain)
+	}
+
+	domains = validatedDomains
+
+	if len(domains) == 0 {
+		hqgologger.Fatal("no domains provided! specify at least one with --domain, --list or stdin.")
 	}
 
 	writer := output.NewWriter()
@@ -217,6 +231,10 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
+
+	if len(sourcesToUse) == 0 {
+		sourcesToUse = cfg.Sources
+	}
 
 	finder, err := xsubfind3r.New(&xsubfind3r.Configuration{
 		Client: &xsubfind3r.ClientConfiguration{
@@ -232,9 +250,7 @@ func main() {
 		return
 	}
 
-	for index := range domains {
-		domain := domains[index]
-
+	for _, domain := range domains {
 		hqgologger.Info(fmt.Sprintf("Finding subdomains for %v...", au.Underline(domain).Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 		hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 

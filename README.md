@@ -123,7 +123,7 @@ If you have Docker installed, you can use `xsubfind3r` using it's image:
 
 ## Post Installation
 
-`xsubfind3r` will work right after [installation](#installation). However, some sources require API keys to work. These keys can be added to a configuration file at `$HOME/.config/xsubfind3r/config.yaml`, created upon first run, or set as environment variables.
+`xsubfind3r` will work right after [installation](#installation). However, some sources require API keys to work. These keys can be added to a configuration file at `$HOME/.config/xsubfind3r/config.yaml`, created upon first run, or set as environment variables. The configuration file's `sources:` list selects the sources used by default; it applies when neither `-u` nor `-e` is given.
 
 Example of environment variables for API keys:
 
@@ -173,9 +173,9 @@ OUTPUT:
      --jsonl bool                     output in JSONL(ines)
  -o, --output string                  output write file path
  -O, --output-directory string        output write directory path
- -m, --monochrome bool                stdout in monochrome
- -s, --silent bool                    stdout in silent mode
- -v, --verbose bool                   stdout in verbose mode
+ -m, --monochrome bool                disable colored console output
+ -s, --silent bool                    disable logging output, only results
+ -v, --verbose bool                   enable detailed debug logging output
 
 ```
 
