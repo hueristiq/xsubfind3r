@@ -62,12 +62,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			getSubdomainsRes.Body.Close()
+			sources.CloseBody(getSubdomainsRes.Body)
 
 			return
 		}
 
-		getSubdomainsRes.Body.Close()
+		sources.CloseBody(getSubdomainsRes.Body)
 
 		for _, record := range append(getSubdomainsResData.Data.EmployeesUrls, getSubdomainsResData.Data.ClientsUrls...) {
 			subdomains := cfg.Extractor.FindAllString(record.URL, -1)

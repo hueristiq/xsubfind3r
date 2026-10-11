@@ -7,8 +7,9 @@ import (
 	"fmt"
 
 	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
+
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type certSearchResponse struct {
@@ -107,12 +108,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				certSearchRes.Body.Close()
+				sources.CloseBody(certSearchRes.Body)
 
 				return
 			}
 
-			certSearchRes.Body.Close()
+			sources.CloseBody(certSearchRes.Body)
 
 			if certSearchResData.Error != "" {
 				result := sources.Result{

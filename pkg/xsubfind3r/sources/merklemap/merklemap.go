@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
+
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type getSubdomainsResponse struct {
@@ -82,12 +83,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				getSubdomainsRes.Body.Close()
+				sources.CloseBody(getSubdomainsRes.Body)
 
 				return
 			}
 
-			getSubdomainsRes.Body.Close()
+			sources.CloseBody(getSubdomainsRes.Body)
 
 			if page == 0 {
 				total = getSubdomainsResData.Count

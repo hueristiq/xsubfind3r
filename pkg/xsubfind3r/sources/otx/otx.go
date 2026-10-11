@@ -59,12 +59,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			getPassiveDNSRes.Body.Close()
+			sources.CloseBody(getPassiveDNSRes.Body)
 
 			return
 		}
 
-		getPassiveDNSRes.Body.Close()
+		sources.CloseBody(getPassiveDNSRes.Body)
 
 		if getPassiveDNSResData.Error != "" {
 			result := sources.Result{

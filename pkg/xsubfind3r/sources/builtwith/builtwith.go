@@ -89,12 +89,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			getDomainInfoRes.Body.Close()
+			sources.CloseBody(getDomainInfoRes.Body)
 
 			return
 		}
 
-		getDomainInfoRes.Body.Close()
+		sources.CloseBody(getDomainInfoRes.Body)
 
 		if len(getDomainInfoResData.Errors) > 0 {
 			for _, entry := range getDomainInfoResData.Errors {

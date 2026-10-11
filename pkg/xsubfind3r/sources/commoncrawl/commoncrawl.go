@@ -10,8 +10,9 @@ import (
 	"time"
 
 	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
+
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type getIndexesResponse []struct {
@@ -76,12 +77,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			getIndexesRes.Body.Close()
+			sources.CloseBody(getIndexesRes.Body)
 
 			return
 		}
 
-		getIndexesRes.Body.Close()
+		sources.CloseBody(getIndexesRes.Body)
 
 		year := time.Now().Year()
 		years := make([]string, 0)
@@ -137,12 +138,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				getPaginationRes.Body.Close()
+				sources.CloseBody(getPaginationRes.Body)
 
 				continue
 			}
 
-			getPaginationRes.Body.Close()
+			sources.CloseBody(getPaginationRes.Body)
 
 			if getPaginationResData.Pages < 1 {
 				continue
@@ -220,12 +221,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 					results <- result
 
-					getURLsRes.Body.Close()
+					sources.CloseBody(getURLsRes.Body)
 
 					continue
 				}
 
-				getURLsRes.Body.Close()
+				sources.CloseBody(getURLsRes.Body)
 			}
 		}
 	}()

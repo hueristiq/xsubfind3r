@@ -9,8 +9,9 @@ import (
 	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
 	hqgohttpmime "github.com/hueristiq/hq-lib-http-go/mime"
 	hqgohttpstatus "github.com/hueristiq/hq-lib-http-go/status"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
+
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type searchResponse struct {
@@ -98,12 +99,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				searchRes.Body.Close()
+				sources.CloseBody(searchRes.Body)
 
 				break
 			}
 
-			searchRes.Body.Close()
+			sources.CloseBody(searchRes.Body)
 
 			if searchResData.Status == hqgohttpstatus.TooManyRequests.Int() {
 				break

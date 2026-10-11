@@ -6,8 +6,9 @@ import (
 	"fmt"
 
 	hqgolimiter "github.com/hueristiq/hq-lib-limiter-go"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
+
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type Source struct{}
@@ -71,12 +72,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				getURLsRes.Body.Close()
+				sources.CloseBody(getURLsRes.Body)
 
 				return
 			}
 
-			getURLsRes.Body.Close()
+			sources.CloseBody(getURLsRes.Body)
 
 			// check if there's results, wayback's pagination response
 			// is not always correct

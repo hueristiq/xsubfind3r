@@ -14,14 +14,15 @@ import (
 	hqgologger "github.com/hueristiq/hq-lib-logger-go"
 	hqgologgerformatter "github.com/hueristiq/hq-lib-logger-go/formatter"
 	hqgologgerlevels "github.com/hueristiq/hq-lib-logger-go/levels"
+	"github.com/logrusorgru/aurora/v4"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+
 	"github.com/hueristiq/xsubfind3r/internal/configuration"
 	"github.com/hueristiq/xsubfind3r/internal/input"
 	"github.com/hueristiq/xsubfind3r/internal/output"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	"github.com/logrusorgru/aurora/v4"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -115,11 +116,15 @@ func init() {
 	)
 
 	if silent {
-		hqgologger.DefaultLogger.SetLevel(hqgologgerlevels.LevelSilent)
+		if err := hqgologger.DefaultLogger.SetLevel(hqgologgerlevels.LevelSilent); err != nil {
+			hqgologger.Fatal("failed setting logger level!", hqgologger.WithError(err))
+		}
 	}
 
 	if verbose {
-		hqgologger.DefaultLogger.SetLevel(hqgologgerlevels.LevelDebug)
+		if err := hqgologger.DefaultLogger.SetLevel(hqgologgerlevels.LevelDebug); err != nil {
+			hqgologger.Fatal("failed setting logger level!", hqgologger.WithError(err))
+		}
 	}
 
 	au = aurora.New(aurora.WithColors(!monochrome))
@@ -155,7 +160,7 @@ func main() {
 	}
 
 	if domainsFilePath != "" {
-		file, err := os.Open(domainsFilePath)
+		file, err := os.Open(domainsFilePath) //nolint:gosec // path is the user-specified domains file location.
 		if err != nil {
 			hqgologger.Fatal("failed opening input file", hqgologger.WithError(err))
 		}
@@ -174,7 +179,9 @@ func main() {
 			hqgologger.Fatal("failed reading input file!", hqgologger.WithError(err))
 		}
 
-		file.Close()
+		if err := file.Close(); err != nil {
+			hqgologger.Fatal("failed closing input file!", hqgologger.WithError(err))
+		}
 	}
 
 	if input.HasStdin() {
@@ -264,7 +271,11 @@ func main() {
 			}
 		}
 
-		file.Close()
+		if file != nil {
+			if err := file.Close(); err != nil {
+				hqgologger.Error("failed closing output file!", hqgologger.WithError(err))
+			}
+		}
 
 		hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 	}

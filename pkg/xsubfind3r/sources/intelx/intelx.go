@@ -5,13 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
 	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
 	hqgohttpmethod "github.com/hueristiq/hq-lib-http-go/method"
 	hqgohttpmime "github.com/hueristiq/hq-lib-http-go/mime"
+
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -105,9 +105,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		searchReqBodyReader := bytes.NewBuffer(searchReqBodyBytes)
 
-		var searchRes *http.Response
-
-		searchRes, err = cfg.Client.NewRequest().
+		searchRes, err := cfg.Client.NewRequest().
 			Method(hqgohttpmethod.POST).
 			URL(searchReqURL).
 			SetHeader(hqgohttpheader.ContentType.String(), hqgohttpmime.JSON.String()).
@@ -136,20 +134,18 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			searchRes.Body.Close()
+			sources.CloseBody(searchRes.Body)
 
 			return
 		}
 
-		searchRes.Body.Close()
+		sources.CloseBody(searchRes.Body)
 
 		getResultsReqURL := fmt.Sprintf("https://%s/phonebook/search/result", intelXHost)
 		status := 0
 
 		for status == 0 || status == 3 {
-			var getResultsRes *http.Response
-
-			getResultsRes, err = cfg.Client.NewRequest().
+			getResultsRes, err := cfg.Client.NewRequest().
 				URL(getResultsReqURL).
 				Param("k", intelXKey).
 				Param("id", searchResData.ID).
@@ -178,12 +174,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				getResultsRes.Body.Close()
+				sources.CloseBody(getResultsRes.Body)
 
 				return
 			}
 
-			getResultsRes.Body.Close()
+			sources.CloseBody(getResultsRes.Body)
 
 			status = getResultsResData.Status
 

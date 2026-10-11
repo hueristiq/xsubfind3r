@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	hqgohttpmethod "github.com/hueristiq/hq-lib-http-go/method"
+
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -120,12 +121,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				getSubdomainsRes.Body.Close()
+				sources.CloseBody(getSubdomainsRes.Body)
 
 				return
 			}
 
-			getSubdomainsRes.Body.Close()
+			sources.CloseBody(getSubdomainsRes.Body)
 
 			if getSubdomainsResData.Code != 0 {
 				result := sources.Result{

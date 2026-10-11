@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 	"sync"
@@ -14,8 +13,9 @@ import (
 	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
 	hqgohttpheaderutils "github.com/hueristiq/hq-lib-http-go/header/utils"
 	hqgohttpstatus "github.com/hueristiq/hq-lib-http-go/status"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
+
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type codeSearchResponse struct {
@@ -100,7 +100,11 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 
 		s.keysManager.SetCurrentKeyExceeded(retryAfterSeconds)
 
+		sources.CloseBody(codeSearchRes.Body)
+
 		s.Enumerate(ctx, searchReqURL, cfg, results)
+
+		return
 	}
 
 	var codeSearchResData codeSearchResponse
@@ -114,20 +118,18 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 
 		results <- result
 
-		codeSearchRes.Body.Close()
+		sources.CloseBody(codeSearchRes.Body)
 
 		return
 	}
 
-	codeSearchRes.Body.Close()
+	sources.CloseBody(codeSearchRes.Body)
 
 	for _, item := range codeSearchResData.Items {
 		getRawContentReqURL := strings.ReplaceAll(item.HTMLURL, "https://github.com/", "https://raw.githubusercontent.com/")
 		getRawContentReqURL = strings.ReplaceAll(getRawContentReqURL, "/blob/", "/")
 
-		var getRawContentRes *http.Response
-
-		getRawContentRes, err = cfg.Client.NewRequest().
+		getRawContentRes, err := cfg.Client.NewRequest().
 			URL(getRawContentReqURL).
 			Do(ctx)
 		if err != nil {
@@ -143,6 +145,8 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 		}
 
 		if getRawContentRes.StatusCode != hqgohttpstatus.OK.Int() {
+			sources.CloseBody(getRawContentRes.Body)
+
 			continue
 		}
 
@@ -176,12 +180,12 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 
 			results <- result
 
-			getRawContentRes.Body.Close()
+			sources.CloseBody(getRawContentRes.Body)
 
 			return
 		}
 
-		getRawContentRes.Body.Close()
+		sources.CloseBody(getRawContentRes.Body)
 
 		for _, match := range item.TextMatches {
 			subdomains := cfg.Extractor.FindAllString(match.Fragment, -1)

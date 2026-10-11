@@ -6,9 +6,10 @@ import (
 
 	"dario.cat/mergo"
 	hqgologger "github.com/hueristiq/hq-lib-logger-go"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/logrusorgru/aurora/v4"
 	"gopkg.in/yaml.v3"
+
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type Configuration struct {
@@ -21,7 +22,7 @@ func (cfg *Configuration) Write(path string) (err error) {
 	var file *os.File
 
 	directory := filepath.Dir(path)
-	identation := 4
+	indentation := 4
 
 	if _, err = os.Stat(directory); os.IsNotExist(err) {
 		if directory != "" {
@@ -31,18 +32,28 @@ func (cfg *Configuration) Write(path string) (err error) {
 		}
 	}
 
-	file, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	file, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600) //nolint:gosec // path is the user-specified configuration file location.
 	if err != nil {
 		return
 	}
 
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); err == nil && closeErr != nil {
+			err = closeErr
+		}
+	}()
 
 	enc := yaml.NewEncoder(file)
 
-	enc.SetIndent(identation)
+	enc.SetIndent(indentation)
 
-	err = enc.Encode(&cfg)
+	if err = enc.Encode(&cfg); err != nil {
+		return
+	}
+
+	if err = enc.Close(); err != nil {
+		return
+	}
 
 	return
 }
@@ -153,12 +164,16 @@ func CreateOrUpdate(path string) (err error) {
 func Read(path string) (cfg Configuration, err error) {
 	var file *os.File
 
-	file, err = os.Open(path)
+	file, err = os.Open(path) //nolint:gosec // path is the user-specified configuration file location.
 	if err != nil {
 		return
 	}
 
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); err == nil && closeErr != nil {
+			err = closeErr
+		}
+	}()
 
 	if err = yaml.NewDecoder(file).Decode(&cfg); err != nil {
 		return

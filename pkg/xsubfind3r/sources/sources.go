@@ -5,11 +5,23 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"regexp"
 
 	hqgohttp "github.com/hueristiq/hq-lib-http-go"
 )
+
+// CloseBody closes a response body, discarding the close error: once a
+// response body has been fully read, its close error carries no actionable
+// information. A nil body is ignored.
+func CloseBody(body io.ReadCloser) {
+	if body == nil {
+		return
+	}
+
+	_ = body.Close()
+}
 
 type Source interface {
 	Name() (name string)

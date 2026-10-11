@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
+
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type result struct {
@@ -139,12 +140,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				getSubdomainsRes.Body.Close()
+				sources.CloseBody(getSubdomainsRes.Body)
 
 				return
 			}
 
-			getSubdomainsRes.Body.Close()
+			sources.CloseBody(getSubdomainsRes.Body)
 
 			if page == 1 {
 				maxPage = cast.ToInt(strings.Trim(string(getSubdomainsResData.MaxPage), `"`))

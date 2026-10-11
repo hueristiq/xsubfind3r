@@ -71,12 +71,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			getSubdomainsRes.Body.Close()
+			sources.CloseBody(getSubdomainsRes.Body)
 
 			return
 		}
 
-		getSubdomainsRes.Body.Close()
+		sources.CloseBody(getSubdomainsRes.Body)
 
 		for _, subdomain := range getSubdomainsResData.Subdomains {
 			result := sources.Result{

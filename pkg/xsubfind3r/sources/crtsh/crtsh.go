@@ -8,6 +8,7 @@ import (
 
 	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
 	hqgohttpmime "github.com/hueristiq/hq-lib-http-go/mime"
+
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -61,12 +62,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			getNameValuesRes.Body.Close()
+			sources.CloseBody(getNameValuesRes.Body)
 
 			return
 		}
 
-		getNameValuesRes.Body.Close()
+		sources.CloseBody(getNameValuesRes.Body)
 
 		for _, record := range getNameValuesResData {
 			subdomains := strings.Split(record.NameValue, "\n")

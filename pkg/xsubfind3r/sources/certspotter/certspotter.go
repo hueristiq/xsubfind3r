@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
+
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -75,12 +76,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			getCTLogsSearchRes.Body.Close()
+			sources.CloseBody(getCTLogsSearchRes.Body)
 
 			return
 		}
 
-		getCTLogsSearchRes.Body.Close()
+		sources.CloseBody(getCTLogsSearchRes.Body)
 
 		if len(getCTLogsSearchResData) == 0 {
 			return
@@ -138,12 +139,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				getCTLogsSearchRes.Body.Close()
+				sources.CloseBody(getCTLogsSearchRes.Body)
 
 				break
 			}
 
-			getCTLogsSearchRes.Body.Close()
+			sources.CloseBody(getCTLogsSearchRes.Body)
 
 			if len(getCTLogsSearchResData) == 0 {
 				break

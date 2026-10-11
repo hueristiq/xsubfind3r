@@ -71,12 +71,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			hostSearchRes.Body.Close()
+			sources.CloseBody(hostSearchRes.Body)
 
 			return
 		}
 
-		hostSearchRes.Body.Close()
+		sources.CloseBody(hostSearchRes.Body)
 	}()
 
 	return results

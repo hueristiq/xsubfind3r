@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	hqgohttpstatus "github.com/hueristiq/hq-lib-http-go/status"
+
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -71,12 +72,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			getCertificateDetailsRes.Body.Close()
+			sources.CloseBody(getCertificateDetailsRes.Body)
 
 			return
 		}
 
-		getCertificateDetailsRes.Body.Close()
+		sources.CloseBody(getCertificateDetailsRes.Body)
 	}()
 
 	return results

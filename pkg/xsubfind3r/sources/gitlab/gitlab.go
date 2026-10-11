@@ -8,8 +8,9 @@ import (
 	"net/url"
 
 	hqgohttpstatus "github.com/hueristiq/hq-lib-http-go/status"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/spf13/cast"
+
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type searchResponseItem struct {
@@ -86,12 +87,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				searchRes.Body.Close()
+				sources.CloseBody(searchRes.Body)
 
 				return
 			}
 
-			searchRes.Body.Close()
+			sources.CloseBody(searchRes.Body)
 
 			for _, item := range items {
 				getRawContentReqURL := fmt.Sprintf("https://gitlab.com/api/v4/projects/%d/repository/files/%s/raw?ref=%s", item.ProjectID, url.QueryEscape(item.Path), item.Ref)
@@ -113,7 +114,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				}
 
 				if getRawContentRes.StatusCode != hqgohttpstatus.OK.Int() {
-					getRawContentRes.Body.Close()
+					sources.CloseBody(getRawContentRes.Body)
 
 					continue
 				}
@@ -149,12 +150,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 					results <- result
 
-					getRawContentRes.Body.Close()
+					sources.CloseBody(getRawContentRes.Body)
 
 					return
 				}
 
-				getRawContentRes.Body.Close()
+				sources.CloseBody(getRawContentRes.Body)
 			}
 
 			page = cast.ToInt(nextPage)

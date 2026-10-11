@@ -116,7 +116,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 					results <- result
 
-					getSubdomainsRes.Body.Close()
+					sources.CloseBody(getSubdomainsRes.Body)
 
 					return
 				}
@@ -132,7 +132,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 					results <- result
 
-					getSubdomainsRes.Body.Close()
+					sources.CloseBody(getSubdomainsRes.Body)
 
 					return
 				}
@@ -156,7 +156,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				}
 			}
 
-			getSubdomainsRes.Body.Close()
+			sources.CloseBody(getSubdomainsRes.Body)
 
 			if condition == "limited" {
 				if offsetMax != 0 && emitted <= offsetMax {
@@ -192,7 +192,7 @@ func getMaxOffset(ctx context.Context, cfg *sources.Configuration, key string) (
 		return
 	}
 
-	defer getRateLimitRes.Body.Close()
+	defer sources.CloseBody(getRateLimitRes.Body)
 
 	var getRateLimitResData rateLimitResponse
 
