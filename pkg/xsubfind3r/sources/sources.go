@@ -68,52 +68,86 @@ const (
 
 const (
 	ANUBIS             = "anubis"
+	ARQUIVO            = "arquivo"
 	BEVIGIL            = "bevigil"
 	BUILTWITH          = "builtwith"
+	C99                = "c99"
 	CENSYS             = "censys"
 	CERTIFICATEDETAILS = "certificatedetails"
 	CERTSPOTTER        = "certspotter"
 	CHAOS              = "chaos"
 	COMMONCRAWL        = "commoncrawl"
 	CRTSH              = "crtsh"
+	DNSDB              = "dnsdb"
+	DNSDUMPSTER        = "dnsdumpster"
 	DRIFTNET           = "driftnet"
+	FOFA               = "fofa"
 	FULLHUNT           = "fullhunt"
+	GHOSTARCHIVE       = "ghostarchive"
 	GITHUB             = "github"
+	GITLAB             = "gitlab"
 	HACKERTARGET       = "hackertarget"
+	HUDSONROCK         = "hudsonrock"
 	INTELLIGENCEX      = "intelx"
 	LEAKIX             = "leakix"
 	LEAKRADAR          = "leakradar"
+	MERKLEMAP          = "merklemap"
+	NETLAS             = "netlas"
+	ONYPHE             = "onyphe"
 	OPENTHREATEXCHANGE = "otx"
+	QUAKE              = "quake"
+	RAPIDDNS           = "rapiddns"
+	RIDDLER            = "riddler"
 	SECURITYTRAILS     = "securitytrails"
 	SHODAN             = "shodan"
 	SUBDOMAINCENTER    = "subdomaincenter"
+	THREATMINER        = "threatminer"
 	URLSCAN            = "urlscan"
 	VIRUSTOTAL         = "virustotal"
 	WAYBACK            = "wayback"
+	WHOISXMLAPI        = "whoisxmlapi"
+	ZOOMEYE            = "zoomeye"
 )
 
 var List = []string{
 	ANUBIS,
+	ARQUIVO,
 	BEVIGIL,
 	BUILTWITH,
+	C99,
 	CENSYS,
 	CERTIFICATEDETAILS,
 	CERTSPOTTER,
 	CHAOS,
 	COMMONCRAWL,
 	CRTSH,
+	DNSDB,
+	DNSDUMPSTER,
 	DRIFTNET,
+	FOFA,
 	FULLHUNT,
+	GHOSTARCHIVE,
 	GITHUB,
+	GITLAB,
 	HACKERTARGET,
+	HUDSONROCK,
 	INTELLIGENCEX,
 	LEAKIX,
 	LEAKRADAR,
+	MERKLEMAP,
+	NETLAS,
+	ONYPHE,
 	OPENTHREATEXCHANGE,
+	QUAKE,
+	RAPIDDNS,
+	RIDDLER,
 	SECURITYTRAILS,
 	SHODAN,
 	SUBDOMAINCENTER,
+	THREATMINER,
 	URLSCAN,
 	VIRUSTOTAL,
 	WAYBACK,
+	WHOISXMLAPI,
+	ZOOMEYE,
 }

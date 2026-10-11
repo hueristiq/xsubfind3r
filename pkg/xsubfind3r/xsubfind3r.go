@@ -11,28 +11,45 @@ import (
 	hqgohttp "github.com/hueristiq/hq-lib-http-go"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/anubis"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/arquivo"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/bevigil"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/builtwith"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/c99"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/censys"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/certificatedetails"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/certspotter"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/chaos"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/commoncrawl"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/crtsh"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/dnsdb"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/dnsdumpster"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/driftnet"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/fofa"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/fullhunt"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/ghostarchive"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/github"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/gitlab"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/hackertarget"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/hudsonrock"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/intelx"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/leakix"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/leakradar"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/merklemap"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/netlas"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/onyphe"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/otx"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/quake"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/rapiddns"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/riddler"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/securitytrails"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/shodan"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/subdomaincenter"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/threatminer"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/urlscan"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/virustotal"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/wayback"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/whoisxmlapi"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/zoomeye"
 )
 
 type Finder struct {
@@ -100,28 +117,45 @@ type Configuration struct {
 var (
 	Sources = [...]sources.Source{
 		anubis.New(),
+		arquivo.New(),
 		bevigil.New(),
 		builtwith.New(),
+		c99.New(),
 		censys.New(),
 		certificatedetails.New(),
 		certspotter.New(),
 		chaos.New(),
 		commoncrawl.New(),
-		driftnet.New(),
 		crtsh.New(),
+		dnsdb.New(),
+		dnsdumpster.New(),
+		driftnet.New(),
+		fofa.New(),
 		fullhunt.New(),
+		ghostarchive.New(),
 		github.New(),
+		gitlab.New(),
 		hackertarget.New(),
+		hudsonrock.New(),
 		intelx.New(),
 		leakix.New(),
 		leakradar.New(),
+		merklemap.New(),
+		netlas.New(),
+		onyphe.New(),
 		otx.New(),
+		quake.New(),
+		rapiddns.New(),
+		riddler.New(),
 		securitytrails.New(),
 		shodan.New(),
 		subdomaincenter.New(),
+		threatminer.New(),
 		urlscan.New(),
 		virustotal.New(),
 		wayback.New(),
+		whoisxmlapi.New(),
+		zoomeye.New(),
 	}
 	NameToSourceMap = make(map[string]sources.Source, len(Sources))
 )

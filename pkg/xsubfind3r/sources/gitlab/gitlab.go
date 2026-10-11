@@ -1,0 +1,185 @@
+package gitlab
+
+import (
+	"bufio"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/url"
+
+	hqgohttpstatus "github.com/hueristiq/hq-lib-http-go/status"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/spf13/cast"
+)
+
+type searchResponseItem struct {
+	Data      string `json:"data"`
+	ProjectID int    `json:"project_id"`
+	Path      string `json:"path"`
+	Ref       string `json:"ref"`
+}
+
+type Source struct {
+	keys sources.Keys
+}
+
+func (s *Source) Name() (name string) {
+	name = sources.GITLAB
+
+	return
+}
+
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
+	results := make(chan sources.Result)
+
+	go func() {
+		defer close(results)
+
+		key, err := s.keys.PickRandom()
+		if err != nil {
+			result := sources.Result{
+				Type:   sources.ResultError,
+				Source: s.Name(),
+				Error:  fmt.Errorf("failed to select key: %w", err),
+			}
+
+			results <- result
+
+			return
+		}
+
+		page := 1
+
+		for page > 0 {
+			searchReqURL := "https://gitlab.com/api/v4/search"
+
+			searchRes, err := cfg.Client.NewRequest().
+				URL(searchReqURL).
+				Param("scope", "blobs").
+				Param("search", domain).
+				Param("per_page", "100").
+				Param("page", cast.ToString(page)).
+				SetHeader("PRIVATE-TOKEN", key).
+				Do(ctx)
+			if err != nil {
+				result := sources.Result{
+					Type:   sources.ResultError,
+					Source: s.Name(),
+					Error:  fmt.Errorf("request failed: %w", err),
+				}
+
+				results <- result
+
+				return
+			}
+
+			nextPage := searchRes.Header.Get("X-Next-Page")
+
+			var items []searchResponseItem
+
+			if err = json.NewDecoder(searchRes.Body).Decode(&items); err != nil {
+				result := sources.Result{
+					Type:   sources.ResultError,
+					Source: s.Name(),
+					Error:  fmt.Errorf("failed to parse JSON response: %w", err),
+				}
+
+				results <- result
+
+				searchRes.Body.Close()
+
+				return
+			}
+
+			searchRes.Body.Close()
+
+			for _, item := range items {
+				getRawContentReqURL := fmt.Sprintf("https://gitlab.com/api/v4/projects/%d/repository/files/%s/raw?ref=%s", item.ProjectID, url.QueryEscape(item.Path), item.Ref)
+
+				getRawContentRes, err := cfg.Client.NewRequest().
+					URL(getRawContentReqURL).
+					SetHeader("PRIVATE-TOKEN", key).
+					Do(ctx)
+				if err != nil {
+					result := sources.Result{
+						Type:   sources.ResultError,
+						Source: s.Name(),
+						Error:  fmt.Errorf("request failed: %w", err),
+					}
+
+					results <- result
+
+					continue
+				}
+
+				if getRawContentRes.StatusCode != hqgohttpstatus.OK.Int() {
+					getRawContentRes.Body.Close()
+
+					continue
+				}
+
+				scanner := bufio.NewScanner(getRawContentRes.Body)
+
+				for scanner.Scan() {
+					line := scanner.Text()
+
+					if line == "" {
+						continue
+					}
+
+					subdomains := cfg.Extractor.FindAllString(line, -1)
+
+					for _, subdomain := range subdomains {
+						result := sources.Result{
+							Type:   sources.ResultSubdomain,
+							Source: s.Name(),
+							Value:  subdomain,
+						}
+
+						results <- result
+					}
+				}
+
+				if err = scanner.Err(); err != nil {
+					result := sources.Result{
+						Type:   sources.ResultError,
+						Source: s.Name(),
+						Error:  fmt.Errorf("failed to read response body: %w", err),
+					}
+
+					results <- result
+
+					getRawContentRes.Body.Close()
+
+					return
+				}
+
+				getRawContentRes.Body.Close()
+			}
+
+			page = cast.ToInt(nextPage)
+		}
+	}()
+
+	return results
+}
+
+func (s *Source) NeedsKeys() (needs bool) {
+	needs = true
+
+	return
+}
+
+func (s *Source) UseKeys(keys ...string) {
+	s.keys = append(s.keys, keys...)
+}
+
+var _ sources.Source = (*Source)(nil)
+
+func New() (source sources.Source) {
+	source = &Source{
+		keys: make(sources.Keys, 0),
+	}
+
+	return
+}
