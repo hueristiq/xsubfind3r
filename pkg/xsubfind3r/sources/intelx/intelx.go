@@ -140,7 +140,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			result := sources.Result{
 				Type:   sources.ResultError,
 				Source: s.Name(),
-				Error:  fmt.Errorf("request failed: %w", err),
+				Error:  fmt.Errorf("request failed: %w", sources.SanitizeError(err, intelXKey)),
 			}
 
 			results <- result
@@ -195,7 +195,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				result := sources.Result{
 					Type:   sources.ResultError,
 					Source: s.Name(),
-					Error:  fmt.Errorf("request failed: %w", err),
+					Error:  fmt.Errorf("request failed: %w", sources.SanitizeError(err, intelXKey)),
 				}
 
 				results <- result
