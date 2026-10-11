@@ -296,6 +296,12 @@ func main() {
 			}
 		}
 
+		for _, output := range outputs {
+			if err := writer.Flush(output); err != nil {
+				hqgologger.Error("failed flushing output!", hqgologger.WithError(err))
+			}
+		}
+
 		if file != nil {
 			if err := file.Close(); err != nil {
 				hqgologger.Error("failed closing output file!", hqgologger.WithError(err))

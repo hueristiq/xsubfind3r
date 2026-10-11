@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -12,14 +11,32 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
+// Writer streams enumeration results in plain-text or JSONL format. Each
+// destination (stdout, an output file) gets its own buffered stream, so
+// results are written in bulk instead of allocating and flushing a buffer
+// per result.
 type Writer struct {
-	format format
+	format  format
+	writers map[io.Writer]*bufio.Writer
 }
 
+// SetFormatToJSONL switches the writer to JSONL output.
 func (w *Writer) SetFormatToJSONL() {
 	w.format = formatJSONL
 }
 
+// CreateFile creates (or opens for appending) the output file at path,
+// creating the containing directory with 0750 permissions and the file
+// with 0600. The file extension is normalized to the active format unless
+// it already matches.
+//
+// Parameters:
+//   - path (string): the output file location.
+//
+// Returns:
+//   - file (*os.File): the open file.
+//   - err (error): non-nil when path is empty or the file cannot be
+//     created.
 func (w *Writer) CreateFile(path string) (file *os.File, err error) {
 	if path == "" {
 		err = ErrNoFilePathSpecified
@@ -44,8 +61,7 @@ func (w *Writer) CreateFile(path string) (file *os.File, err error) {
 
 	if directory != "" {
 		if _, err = os.Stat(directory); os.IsNotExist(err) {
-			err = os.MkdirAll(directory, 0o750)
-			if err != nil {
+			if err = os.MkdirAll(directory, 0o750); err != nil {
 				return
 			}
 		}
@@ -59,21 +75,55 @@ func (w *Writer) CreateFile(path string) (file *os.File, err error) {
 	return
 }
 
+// Write buffers a result into writer's stream in the active format; use
+// [Writer.Flush] to push the buffered data to the destination.
+//
+// Parameters:
+//   - writer (io.Writer): the destination stream.
+//   - domain (string): the domain the result belongs to.
+//   - result (sources.Result): the result to write.
+//
+// Returns:
+//   - err (error): non-nil when the result cannot be buffered.
 func (w *Writer) Write(writer io.Writer, domain string, result sources.Result) (err error) {
+	bw := w.bufferedWriter(writer)
+
 	switch w.format {
 	case formatTXT:
-		err = w.writeTXT(writer, result)
+		if _, err = bw.WriteString(result.Value + "\n"); err != nil {
+			return
+		}
 	case formatJSONL:
-		err = w.writeJSON(writer, domain, result)
+		data := resultForJSONL{
+			Domain:    domain,
+			Subdomain: result.Value,
+			Source:    result.Source,
+		}
+
+		var dataJSONBytes []byte
+
+		if dataJSONBytes, err = json.Marshal(data); err != nil {
+			return
+		}
+
+		if _, err = bw.Write(append(dataJSONBytes, '\n')); err != nil {
+			return
+		}
 	}
 
 	return
 }
 
-func (w *Writer) writeTXT(writer io.Writer, result sources.Result) (err error) {
-	bw := bufio.NewWriter(writer)
-
-	if _, err = fmt.Fprintln(bw, result.Value); err != nil {
+// Flush pushes the buffered data of writer's stream to the destination.
+//
+// Parameters:
+//   - writer (io.Writer): the destination stream.
+//
+// Returns:
+//   - err (error): non-nil when the flush fails.
+func (w *Writer) Flush(writer io.Writer) (err error) {
+	bw, ok := w.writers[writer]
+	if !ok {
 		return
 	}
 
@@ -84,30 +134,11 @@ func (w *Writer) writeTXT(writer io.Writer, result sources.Result) (err error) {
 	return
 }
 
-func (w *Writer) writeJSON(writer io.Writer, domain string, result sources.Result) (err error) {
-	data := resultForJSONL{
-		Domain:    domain,
-		Subdomain: result.Value,
-		Source:    result.Source,
-	}
-
-	var dataJSONBytes []byte
-
-	dataJSONBytes, err = json.Marshal(data)
-	if err != nil {
-		return
-	}
-
-	dataJSONString := string(dataJSONBytes)
-
-	bw := bufio.NewWriter(writer)
-
-	if _, err = fmt.Fprintln(bw, dataJSONString); err != nil {
-		return
-	}
-
-	if err = bw.Flush(); err != nil {
-		return
+func (w *Writer) bufferedWriter(writer io.Writer) (bw *bufio.Writer) {
+	bw, ok := w.writers[writer]
+	if !ok {
+		bw = bufio.NewWriterSize(writer, 256*1024)
+		w.writers[writer] = bw
 	}
 
 	return
@@ -133,7 +164,8 @@ var ErrNoFilePathSpecified = errors.New("no file path specified")
 // NewWriter returns a Writer writing plain text.
 func NewWriter() (writer *Writer) {
 	writer = &Writer{
-		format: formatTXT,
+		format:  formatTXT,
+		writers: make(map[io.Writer]*bufio.Writer),
 	}
 
 	return
