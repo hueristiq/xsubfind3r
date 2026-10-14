@@ -101,8 +101,6 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	return results
 }
 
-// paginationCount returns the last page number advertised in src, or 1
-// when the page cannot be determined.
 func paginationCount(src string) (maxPages int) {
 	maxPages = 1
 

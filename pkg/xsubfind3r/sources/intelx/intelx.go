@@ -16,14 +16,6 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
-const (
-	// pollInterval is the wait between result polls while a search is
-	// still running on the API side.
-	pollInterval = 2 * time.Second
-	// maxPollAttempts caps the result polls before giving up.
-	maxPollAttempts = 30
-)
-
 type searchRequestBody struct {
 	Term       string        `json:"term"`
 	MaxResults int           `json:"maxresults"`
@@ -255,6 +247,11 @@ func (s *Source) NeedsKeys() (needs bool) {
 func (s *Source) UseKeys(keys ...string) {
 	s.keys = append(s.keys, keys...)
 }
+
+const (
+	pollInterval    = 2 * time.Second
+	maxPollAttempts = 30
+)
 
 var _ sources.Source = (*Source)(nil)
 

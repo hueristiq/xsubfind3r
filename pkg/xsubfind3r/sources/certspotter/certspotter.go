@@ -11,7 +11,6 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
-// maxPages caps the certspotter pagination.
 const maxPages = 100
 
 type getCTLogsSearchResponse struct {

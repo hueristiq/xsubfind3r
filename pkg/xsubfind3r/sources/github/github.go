@@ -19,7 +19,6 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
-// searchAPIURL is the GitHub code-search API endpoint.
 const searchAPIURL = "https://api.github.com/search/code"
 
 type codeSearchResponse struct {
@@ -33,7 +32,6 @@ type codeSearchResponse struct {
 	} `json:"items"`
 }
 
-// Source enumerates subdomains through the GitHub code-search API.
 type Source struct {
 	keys sources.Keys
 }
@@ -265,15 +263,12 @@ func (s *Source) UseKeys(keys ...string) {
 	s.keys = append(s.keys, keys...)
 }
 
-// ManagedKey is a single API key tracked by the [KeysManager].
 type ManagedKey struct {
 	ExceededTime time.Time
 	RetryAfter   int64
 	Value        string
 }
 
-// KeysManager rotates GitHub API keys in round-robin order, tracking which
-// keys are rate-limited until when.
 type KeysManager struct {
 	mu      sync.Mutex
 	current int
@@ -281,7 +276,6 @@ type KeysManager struct {
 	pool    []ManagedKey
 }
 
-// NewKeyManager returns a manager rotating through keys.
 func NewKeyManager(keys []string) (manager *KeysManager) {
 	pool := make([]ManagedKey, len(keys))
 
@@ -296,8 +290,6 @@ func NewKeyManager(keys []string) (manager *KeysManager) {
 	return
 }
 
-// GetCurrentKey returns the next key in the rotation, resetting any keys
-// whose rate-limit cooldown has elapsed.
 func (m *KeysManager) GetCurrentKey() (key *ManagedKey) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -324,8 +316,6 @@ func (m *KeysManager) GetCurrentKey() (key *ManagedKey) {
 	return
 }
 
-// SetCurrentKeyExceeded marks the key most recently handed out by
-// [GetCurrentKey] as rate-limited for retryAfter seconds.
 func (m *KeysManager) SetCurrentKeyExceeded(retryAfter int64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -338,9 +328,6 @@ func (m *KeysManager) SetCurrentKeyExceeded(retryAfter int64) {
 	}
 }
 
-// rateLimitResetRemaining parses an X-RateLimit-Reset header value into the
-// seconds remaining until the rate-limit window resets, or 0 when the value
-// carries no future timestamp.
 func rateLimitResetRemaining(raw string) (remaining int64) {
 	reset := cast.ToInt64(raw)
 
@@ -351,8 +338,6 @@ func rateLimitResetRemaining(raw string) (remaining int64) {
 	return
 }
 
-// waitSleep sleeps for d unless ctx ends first; it reports whether the
-// sleep completed.
 func waitSleep(ctx context.Context, d time.Duration) (completed bool) {
 	timer := time.NewTimer(d)
 	defer timer.Stop()
