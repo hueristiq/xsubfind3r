@@ -18,7 +18,7 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.BEVIGIL
+	name = sources.Bevigil
 
 	return
 }
@@ -71,12 +71,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			sources.CloseBody(getSubdomainsRes.Body)
+			_ = getSubdomainsRes.Body.Close()
 
 			return
 		}
 
-		sources.CloseBody(getSubdomainsRes.Body)
+		_ = getSubdomainsRes.Body.Close()
 
 		for _, subdomain := range getSubdomainsResData.Subdomains {
 			result := sources.Result{

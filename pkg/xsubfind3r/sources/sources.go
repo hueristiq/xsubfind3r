@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 	"net/url"
 	"regexp"
@@ -13,6 +12,19 @@ import (
 
 	hqgohttp "github.com/hueristiq/hq-lib-http-go"
 )
+
+type redactedError struct {
+	err     error
+	message string
+}
+
+func (e *redactedError) Error() (message string) {
+	return e.message
+}
+
+func (e *redactedError) Unwrap() (err error) {
+	return e.err
+}
 
 type Source interface {
 	Name() (name string)
@@ -88,102 +100,122 @@ func (k Keys) PickRandom() (key string, err error) {
 }
 
 const (
-	ResultSubdomain ResultType = iota
+	ResultSubdomain ResultType = iota + 1
 	ResultError
 )
 
 const (
-	ANUBIS             = "anubis"
-	ARQUIVO            = "arquivo"
-	BEVIGIL            = "bevigil"
-	BUILTWITH          = "builtwith"
+	Anubis             = "anubis"
+	Arquivo            = "arquivo"
+	Bevigil            = "bevigil"
+	Builtwith          = "builtwith"
 	C99                = "c99"
-	CENSYS             = "censys"
-	CERTIFICATEDETAILS = "certificatedetails"
-	CERTSPOTTER        = "certspotter"
-	CHAOS              = "chaos"
-	COMMONCRAWL        = "commoncrawl"
-	CRTSH              = "crtsh"
+	Censys             = "censys"
+	Certificatedetails = "certificatedetails"
+	Certspotter        = "certspotter"
+	Chaos              = "chaos"
+	Commoncrawl        = "commoncrawl"
+	Crtsh              = "crtsh"
 	DNSDB              = "dnsdb"
-	DNSDUMPSTER        = "dnsdumpster"
-	DRIFTNET           = "driftnet"
-	FOFA               = "fofa"
-	FULLHUNT           = "fullhunt"
-	GHOSTARCHIVE       = "ghostarchive"
-	GITHUB             = "github"
-	GITLAB             = "gitlab"
-	HACKERTARGET       = "hackertarget"
-	HUDSONROCK         = "hudsonrock"
-	INTELLIGENCEX      = "intelx"
-	LEAKIX             = "leakix"
-	LEAKRADAR          = "leakradar"
-	MERKLEMAP          = "merklemap"
-	NETLAS             = "netlas"
-	ONYPHE             = "onyphe"
-	OPENTHREATEXCHANGE = "otx"
-	QUAKE              = "quake"
-	RAPIDDNS           = "rapiddns"
-	RIDDLER            = "riddler"
-	SECURITYTRAILS     = "securitytrails"
-	SHODAN             = "shodan"
-	SUBDOMAINCENTER    = "subdomaincenter"
-	THREATMINER        = "threatminer"
-	URLSCAN            = "urlscan"
-	VIRUSTOTAL         = "virustotal"
-	WAYBACK            = "wayback"
-	WHOISXMLAPI        = "whoisxmlapi"
-	ZOOMEYE            = "zoomeye"
+	DNSDumpster        = "dnsdumpster"
+	Driftnet           = "driftnet"
+	Fofa               = "fofa"
+	Fullhunt           = "fullhunt"
+	Ghostarchive       = "ghostarchive"
+	Github             = "github"
+	Gitlab             = "gitlab"
+	Hackertarget       = "hackertarget"
+	Hudsonrock         = "hudsonrock"
+	IntelligenceX      = "intelx"
+	Leakix             = "leakix"
+	Leakradar          = "leakradar"
+	Merklemap          = "merklemap"
+	Netlas             = "netlas"
+	Onyphe             = "onyphe"
+	OpenThreatExchange = "otx"
+	Quake              = "quake"
+	RapidDNS           = "rapiddns"
+	Riddler            = "riddler"
+	Securitytrails     = "securitytrails"
+	Shodan             = "shodan"
+	Subdomaincenter    = "subdomaincenter"
+	Threatminer        = "threatminer"
+	URLScan            = "urlscan"
+	Virustotal         = "virustotal"
+	Wayback            = "wayback"
+	WhoisXMLAPI        = "whoisxmlapi"
+	Zoomeye            = "zoomeye"
 )
 
 var List = []string{
-	ANUBIS,
-	ARQUIVO,
-	BEVIGIL,
-	BUILTWITH,
+	Anubis,
+	Arquivo,
+	Bevigil,
+	Builtwith,
 	C99,
-	CENSYS,
-	CERTIFICATEDETAILS,
-	CERTSPOTTER,
-	CHAOS,
-	COMMONCRAWL,
-	CRTSH,
+	Censys,
+	Certificatedetails,
+	Certspotter,
+	Chaos,
+	Commoncrawl,
+	Crtsh,
 	DNSDB,
-	DNSDUMPSTER,
-	DRIFTNET,
-	FOFA,
-	FULLHUNT,
-	GHOSTARCHIVE,
-	GITHUB,
-	GITLAB,
-	HACKERTARGET,
-	HUDSONROCK,
-	INTELLIGENCEX,
-	LEAKIX,
-	LEAKRADAR,
-	MERKLEMAP,
-	NETLAS,
-	ONYPHE,
-	OPENTHREATEXCHANGE,
-	QUAKE,
-	RAPIDDNS,
-	RIDDLER,
-	SECURITYTRAILS,
-	SHODAN,
-	SUBDOMAINCENTER,
-	THREATMINER,
-	URLSCAN,
-	VIRUSTOTAL,
-	WAYBACK,
-	WHOISXMLAPI,
-	ZOOMEYE,
+	DNSDumpster,
+	Driftnet,
+	Fofa,
+	Fullhunt,
+	Ghostarchive,
+	Github,
+	Gitlab,
+	Hackertarget,
+	Hudsonrock,
+	IntelligenceX,
+	Leakix,
+	Leakradar,
+	Merklemap,
+	Netlas,
+	Onyphe,
+	OpenThreatExchange,
+	Quake,
+	RapidDNS,
+	Riddler,
+	Securitytrails,
+	Shodan,
+	Subdomaincenter,
+	Threatminer,
+	URLScan,
+	Virustotal,
+	Wayback,
+	WhoisXMLAPI,
+	Zoomeye,
 }
 
-func CloseBody(body io.ReadCloser) {
-	if body == nil {
-		return
+var _ error = (*redactedError)(nil)
+
+func RedactError(err error, secrets ...string) (redacted error) {
+	if err == nil || len(secrets) == 0 {
+		return err
 	}
 
-	_ = body.Close()
+	message := err.Error()
+
+	for _, secret := range secrets {
+		if secret == "" {
+			continue
+		}
+
+		message = strings.ReplaceAll(message, secret, "[REDACTED]")
+		message = strings.ReplaceAll(message, url.QueryEscape(secret), "[REDACTED]")
+	}
+
+	if message == err.Error() {
+		return err
+	}
+
+	return &redactedError{
+		err:     err,
+		message: message,
+	}
 }
 
 func CompileExtractor(domain string) (extractor *regexp.Regexp) {
@@ -200,27 +232,6 @@ func isHostnameChar(c byte) (is bool) {
 	case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '-', c == '.':
 		is = true
 	}
-
-	return
-}
-
-func SanitizeError(err error, secrets ...string) (sanitized error) {
-	if err == nil {
-		return nil
-	}
-
-	text := err.Error()
-
-	for _, secret := range secrets {
-		if secret == "" {
-			continue
-		}
-
-		text = strings.ReplaceAll(text, secret, "REDACTED")
-		text = strings.ReplaceAll(text, url.QueryEscape(secret), "REDACTED")
-	}
-
-	sanitized = errors.New(text)
 
 	return
 }

@@ -4,7 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"time"
 
+	hqgohttp "github.com/hueristiq/hq-lib-http-go"
+	hqgohttpstatus "github.com/hueristiq/hq-lib-http-go/status"
 	hqgolimiter "github.com/hueristiq/hq-lib-limiter-go"
 	"github.com/spf13/cast"
 
@@ -14,7 +20,7 @@ import (
 type Source struct{}
 
 func (s *Source) Name() (name string) {
-	name = sources.WAYBACK
+	name = sources.Wayback
 
 	return
 }
@@ -25,13 +31,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	go func() {
 		defer close(results)
 
-		limiter := hqgolimiter.New(
-			hqgolimiter.WithRequestsPerMinute(40),
-		)
-
 		for page := uint(0); ; page++ {
-			getURLsReqURL := "https://web.archive.org/cdx/search/cdx"
-
 			if err := limiter.Wait(ctx); err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
@@ -44,56 +44,32 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				break
 			}
 
-			getURLsRes, err := cfg.Client.NewRequest().
-				URL(getURLsReqURL).
-				Param("url", "*."+domain+"/*").
-				Param("output", "json").
-				Param("collapse", "urlkey").
-				Param("fl", "original").
-				Param("pageSize", "100").
-				Param("page", cast.ToString(page)).
-				Do(ctx)
+			data, err := getPage(ctx, cfg, domain, page, rateLimitWait)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
 					Source: s.Name(),
-					Error:  fmt.Errorf("request failed: %w", err),
+					Error:  err,
 				}
 
 				results <- result
 
-				return
-			}
-
-			var getURLsResData [][]string
-
-			if err = json.NewDecoder(getURLsRes.Body).Decode(&getURLsResData); err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-				}
-
-				results <- result
-
-				sources.CloseBody(getURLsRes.Body)
-
-				return
-			}
-
-			sources.CloseBody(getURLsRes.Body)
-
-			// check if there's results, wayback's pagination response
-			// is not always correct
-			if len(getURLsResData) == 0 {
 				break
 			}
 
-			// Slicing as [1:] to skip first result by default
-			for _, entry := range getURLsResData[1:] {
-				match := cfg.Extract(entry[0])
+			// An empty or header-only page means the results are
+			// exhausted. wayback's page counts are not reliable when
+			// filters are applied, so the page loop itself detects the
+			// end.
+			if len(data) <= 1 {
+				break
+			}
 
-				for _, subdomain := range match {
+			// Slicing as [1:] to skip the header row.
+			for _, record := range data[1:] {
+				subdomains := cfg.Extract(record[1])
+
+				for _, subdomain := range subdomains {
 					result := sources.Result{
 						Type:   sources.ResultSubdomain,
 						Source: s.Name(),
@@ -109,6 +85,76 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	return results
 }
 
+func getPage(ctx context.Context, cfg *sources.Configuration, domain string, page uint, wait time.Duration) (data [][]string, err error) {
+	for attempts := 0; attempts <= rateLimitMaxRetries; attempts++ {
+		var getURLsRes *http.Response
+
+		getURLsRes, err = cfg.Client.NewRequest().
+			URL("https://web.archive.org/cdx/search/cdx").
+			Param("url", "*."+domain+"/*").
+			Param("output", "json").
+			Param("collapse", "urlkey").
+			Param("fl", "timestamp,original,mimetype,statuscode,digest").
+			Param("pageSize", cast.ToString(pageSize)).
+			Param("page", cast.ToString(page)).
+			WithOptions(hqgohttp.WithRequestRetryPolicy(no429RetryPolicy)).
+			Do(ctx)
+		if err != nil {
+			if getURLsRes != nil {
+				_ = getURLsRes.Body.Close()
+			}
+
+			return nil, fmt.Errorf("request failed: %w", err)
+		}
+
+		if getURLsRes.StatusCode == hqgohttpstatus.TooManyRequests.Int() {
+			_ = getURLsRes.Body.Close()
+
+			timer := time.NewTimer(wait)
+
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+
+				return nil, fmt.Errorf("waiting out rate limit: %w", ctx.Err())
+			case <-timer.C:
+			}
+
+			continue
+		}
+
+		var body []byte
+
+		body, err = io.ReadAll(getURLsRes.Body)
+
+		_ = getURLsRes.Body.Close()
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to read response body: %w", err)
+		}
+
+		if strings.TrimSpace(string(body)) == "" {
+			return nil, nil
+		}
+
+		if err = json.Unmarshal(body, &data); err != nil {
+			return nil, fmt.Errorf("failed to parse JSON response: %w", err)
+		}
+
+		return data, nil
+	}
+
+	return nil, fmt.Errorf("wayback rate limited after %d attempts", rateLimitMaxRetries+1)
+}
+
+func no429RetryPolicy(ctx context.Context, resp *http.Response, err error) (retry bool, rerr error) {
+	if ctx.Err() == nil && resp != nil && resp.StatusCode == hqgohttpstatus.TooManyRequests.Int() {
+		return false, nil
+	}
+
+	return hqgohttp.DefaultRetryPolicy(ctx, resp, err) //nolint:wrapcheck // the policy result is passed through verbatim by design.
+}
+
 func (s *Source) NeedsKeys() (needs bool) {
 	needs = false
 
@@ -118,7 +164,17 @@ func (s *Source) NeedsKeys() (needs bool) {
 func (s *Source) UseKeys(keys ...string) {
 }
 
+var limiter = hqgolimiter.New(
+	hqgolimiter.WithRate(40, time.Minute),
+)
+
 var _ sources.Source = (*Source)(nil)
+
+const (
+	pageSize            = 10000
+	rateLimitWait       = 60 * time.Second
+	rateLimitMaxRetries = 5
+)
 
 func New() (source sources.Source) {
 	source = &Source{}

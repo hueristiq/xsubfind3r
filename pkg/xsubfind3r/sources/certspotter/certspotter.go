@@ -11,8 +11,6 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
-const maxPages = 100
-
 type getCTLogsSearchResponse struct {
 	ID       string   `json:"id"`
 	DNSNames []string `json:"dns_names"`
@@ -23,7 +21,7 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.CERTSPOTTER
+	name = sources.Certspotter
 
 	return
 }
@@ -79,12 +77,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				sources.CloseBody(getCTLogsSearchRes.Body)
+				_ = getCTLogsSearchRes.Body.Close()
 
 				break
 			}
 
-			sources.CloseBody(getCTLogsSearchRes.Body)
+			_ = getCTLogsSearchRes.Body.Close()
 
 			if len(getCTLogsSearchResData) == 0 {
 				break
@@ -122,6 +120,8 @@ func (s *Source) NeedsKeys() (needs bool) {
 func (s *Source) UseKeys(keys ...string) {
 	s.keys = append(s.keys, keys...)
 }
+
+const maxPages = 100
 
 var _ sources.Source = (*Source)(nil)
 

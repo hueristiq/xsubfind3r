@@ -105,7 +105,7 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.ONYPHE
+	name = sources.Onyphe
 
 	return
 }
@@ -165,12 +165,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				sources.CloseBody(getSubdomainsRes.Body)
+				_ = getSubdomainsRes.Body.Close()
 
 				return
 			}
 
-			sources.CloseBody(getSubdomainsRes.Body)
+			_ = getSubdomainsRes.Body.Close()
 
 			if page == 1 {
 				maxPage = cast.ToInt(strings.Trim(string(getSubdomainsResData.MaxPage), `"`))

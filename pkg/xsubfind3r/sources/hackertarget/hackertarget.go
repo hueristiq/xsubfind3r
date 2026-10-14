@@ -11,7 +11,7 @@ import (
 type Source struct{}
 
 func (s *Source) Name() (name string) {
-	name = sources.HACKERTARGET
+	name = sources.Hackertarget
 
 	return
 }
@@ -71,12 +71,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			sources.CloseBody(hostSearchRes.Body)
+			_ = hostSearchRes.Body.Close()
 
 			return
 		}
 
-		sources.CloseBody(hostSearchRes.Body)
+		_ = hostSearchRes.Body.Close()
 	}()
 
 	return results

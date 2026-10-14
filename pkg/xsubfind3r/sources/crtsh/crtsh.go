@@ -20,7 +20,7 @@ type getNameValuesResponse []struct {
 type Source struct{}
 
 func (s *Source) Name() (name string) {
-	name = sources.CRTSH
+	name = sources.Crtsh
 
 	return
 }
@@ -62,12 +62,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			sources.CloseBody(getNameValuesRes.Body)
+			_ = getNameValuesRes.Body.Close()
 
 			return
 		}
 
-		sources.CloseBody(getNameValuesRes.Body)
+		_ = getNameValuesRes.Body.Close()
 
 		for _, record := range getNameValuesResData {
 			subdomains := strings.Split(record.NameValue, "\n")

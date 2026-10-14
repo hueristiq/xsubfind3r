@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	hqgolimiter "github.com/hueristiq/hq-lib-limiter-go"
+
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -30,7 +32,7 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.VIRUSTOTAL
+	name = sources.Virustotal
 
 	return
 }
@@ -57,6 +59,18 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		var cursor string
 
 		for {
+			if err := limiter.Wait(ctx); err != nil {
+				result := sources.Result{
+					Type:   sources.ResultError,
+					Source: s.Name(),
+					Error:  fmt.Errorf("failed to wait on rate limiter: %w", err),
+				}
+
+				results <- result
+
+				break
+			}
+
 			getSubdomainsReqURL := fmt.Sprintf("https://www.virustotal.com/api/v3/domains/%s/subdomains", domain)
 
 			getSubdomainsReq := cfg.Client.NewRequest().
@@ -73,7 +87,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				result := sources.Result{
 					Type:   sources.ResultError,
 					Source: s.Name(),
-					Error:  fmt.Errorf("request failed: %w", err),
+					Error:  fmt.Errorf("request failed: %w", sources.RedactError(err, key)),
 				}
 
 				results <- result
@@ -92,12 +106,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				sources.CloseBody(getSubdomainsRes.Body)
+				_ = getSubdomainsRes.Body.Close()
 
 				break
 			}
 
-			sources.CloseBody(getSubdomainsRes.Body)
+			_ = getSubdomainsRes.Body.Close()
 
 			if getSubdomainsResData.Error.Message != "" {
 				result := sources.Result{
@@ -143,6 +157,10 @@ func (s *Source) NeedsKeys() (needs bool) {
 func (s *Source) UseKeys(keys ...string) {
 	s.keys = append(s.keys, keys...)
 }
+
+var limiter = hqgolimiter.New(
+	hqgolimiter.WithRequestsPerMinute(4),
+)
 
 var _ sources.Source = (*Source)(nil)
 

@@ -21,7 +21,7 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.WHOISXMLAPI
+	name = sources.WhoisXMLAPI
 
 	return
 }
@@ -56,7 +56,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			result := sources.Result{
 				Type:   sources.ResultError,
 				Source: s.Name(),
-				Error:  fmt.Errorf("request failed: %w", sources.SanitizeError(err, key)),
+				Error:  fmt.Errorf("request failed: %w", sources.RedactError(err, key)),
 			}
 
 			results <- result
@@ -75,12 +75,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			sources.CloseBody(getSubdomainsRes.Body)
+			_ = getSubdomainsRes.Body.Close()
 
 			return
 		}
 
-		sources.CloseBody(getSubdomainsRes.Body)
+		_ = getSubdomainsRes.Body.Close()
 
 		for _, record := range getSubdomainsResData.Result.Records {
 			result := sources.Result{

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"sync"
@@ -37,7 +38,7 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.GITHUB
+	name = sources.Github
 
 	return
 }
@@ -52,35 +53,39 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		params := url.Values{}
-		params.Set("per_page", "100")
-		params.Set("q", fmt.Sprintf("%q", domain))
-		params.Set("sort", "created")
-		params.Set("order", "asc")
+		keysManager := NewKeyManager(s.keys)
 
-		searchReqURL := searchAPIURL + "?" + params.Encode()
+		parameters := url.Values{}
+		parameters.Set("per_page", "100")
+		parameters.Set("q", fmt.Sprintf("%q", domain))
+		parameters.Set("sort", "created")
+		parameters.Set("order", "asc")
 
-		s.Enumerate(ctx, searchReqURL, cfg, results, NewKeyManager(s.keys))
+		searchReqURL := searchAPIURL + "?" + parameters.Encode()
+
+		s.Enumerate(ctx, searchReqURL, cfg, results, keysManager)
 	}()
 
 	return results
 }
 
 func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *sources.Configuration, results chan sources.Result, keysManager *KeysManager) {
-	token := keysManager.GetCurrentKey()
+	token, index := keysManager.GetCurrentKey()
 
-	if token.RetryAfter > 0 {
-		remaining := time.Duration(token.RetryAfter)*time.Second - time.Since(token.ExceededTime)
+	if token.RetryAfter > 0 && len(keysManager.pool) == 1 {
+		retryAfter := time.Duration(token.RetryAfter)*time.Second - time.Since(token.ExceededTime)
 
-		if remaining > 0 {
-			if !waitSleep(ctx, remaining) {
-				return
-			}
+		if retryAfter > 0 && !waitSleep(ctx, retryAfter) {
+			return
 		}
 
 		s.Enumerate(ctx, searchReqURL, cfg, results, keysManager)
 
 		return
+	}
+
+	if token.RetryAfter > 0 {
+		token, index = keysManager.GetCurrentKey()
 	}
 
 	codeSearchRes, err := cfg.Client.NewRequest().
@@ -92,6 +97,10 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 	isForbidden := codeSearchRes != nil && codeSearchRes.StatusCode == hqgohttpstatus.Forbidden.Int()
 
 	if err != nil && !isForbidden {
+		if codeSearchRes != nil {
+			_ = codeSearchRes.Body.Close()
+		}
+
 		result := sources.Result{
 			Type:   sources.ResultError,
 			Source: s.Name(),
@@ -103,9 +112,7 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 		return
 	}
 
-	ratelimitRemaining := cast.ToInt64(
-		codeSearchRes.Header.Get(hqgohttpheader.XRateLimitRemaining.String()),
-	)
+	ratelimitRemaining := cast.ToInt64(codeSearchRes.Header.Get(hqgohttpheader.XRateLimitRemaining.String()))
 
 	if isForbidden && ratelimitRemaining == 0 {
 		retryAfterSeconds := cast.ToInt64(codeSearchRes.Header.Get(hqgohttpheader.RetryAfter.String()))
@@ -115,7 +122,7 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 		}
 
 		if retryAfterSeconds <= 0 {
-			sources.CloseBody(codeSearchRes.Body)
+			_ = codeSearchRes.Body.Close()
 
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -128,9 +135,9 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 			return
 		}
 
-		keysManager.SetCurrentKeyExceeded(retryAfterSeconds)
+		keysManager.SetKeyExceeded(index, retryAfterSeconds)
 
-		sources.CloseBody(codeSearchRes.Body)
+		_ = codeSearchRes.Body.Close()
 
 		s.Enumerate(ctx, searchReqURL, cfg, results, keysManager)
 
@@ -148,18 +155,20 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 
 		results <- result
 
-		sources.CloseBody(codeSearchRes.Body)
+		_ = codeSearchRes.Body.Close()
 
 		return
 	}
 
-	sources.CloseBody(codeSearchRes.Body)
+	_ = codeSearchRes.Body.Close()
 
 	for _, item := range codeSearchResData.Items {
 		getRawContentReqURL := strings.ReplaceAll(item.HTMLURL, "https://github.com/", "https://raw.githubusercontent.com/")
 		getRawContentReqURL = strings.ReplaceAll(getRawContentReqURL, "/blob/", "/")
 
-		getRawContentRes, err := cfg.Client.NewRequest().
+		var getRawContentRes *http.Response
+
+		getRawContentRes, err = cfg.Client.NewRequest().
 			URL(getRawContentReqURL).
 			Do(ctx)
 		if err != nil {
@@ -175,7 +184,7 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 		}
 
 		if getRawContentRes.StatusCode != hqgohttpstatus.OK.Int() {
-			sources.CloseBody(getRawContentRes.Body)
+			_ = getRawContentRes.Body.Close()
 
 			continue
 		}
@@ -189,7 +198,9 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 				continue
 			}
 
-			for _, subdomain := range cfg.Extract(line) {
+			subdomains := cfg.Extract(line)
+
+			for _, subdomain := range subdomains {
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
 					Source: s.Name(),
@@ -209,15 +220,17 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 
 			results <- result
 
-			sources.CloseBody(getRawContentRes.Body)
+			_ = getRawContentRes.Body.Close()
 
-			return
+			continue
 		}
 
-		sources.CloseBody(getRawContentRes.Body)
+		_ = getRawContentRes.Body.Close()
 
-		for _, match := range item.TextMatches {
-			for _, subdomain := range cfg.Extract(match.Fragment) {
+		for _, textMatch := range item.TextMatches {
+			subdomains := cfg.Extract(textMatch.Fragment)
+
+			for _, subdomain := range subdomains {
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
 					Source: s.Name(),
@@ -272,7 +285,6 @@ type ManagedKey struct {
 type KeysManager struct {
 	mu      sync.Mutex
 	current int
-	last    int
 	pool    []ManagedKey
 }
 
@@ -290,16 +302,16 @@ func NewKeyManager(keys []string) (manager *KeysManager) {
 	return
 }
 
-func (m *KeysManager) GetCurrentKey() (key *ManagedKey) {
+func (m *KeysManager) GetCurrentKey() (key *ManagedKey, index int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	for i := range m.pool {
-		key := &m.pool[i]
+		poolKey := &m.pool[i]
 
-		if key.RetryAfter > 0 && time.Since(key.ExceededTime) > time.Duration(key.RetryAfter)*time.Second {
-			key.ExceededTime = time.Time{}
-			key.RetryAfter = 0
+		if poolKey.RetryAfter > 0 && time.Since(poolKey.ExceededTime) > time.Duration(poolKey.RetryAfter)*time.Second {
+			poolKey.ExceededTime = time.Time{}
+			poolKey.RetryAfter = 0
 		}
 	}
 
@@ -307,20 +319,23 @@ func (m *KeysManager) GetCurrentKey() (key *ManagedKey) {
 		m.current %= len(m.pool)
 	}
 
-	m.last = m.current
-
-	key = &m.pool[m.current]
+	index = m.current
+	key = &m.pool[index]
 
 	m.current++
 
 	return
 }
 
-func (m *KeysManager) SetCurrentKeyExceeded(retryAfter int64) {
+func (m *KeysManager) SetKeyExceeded(index int, retryAfter int64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	key := &m.pool[m.last]
+	if index >= len(m.pool) {
+		return
+	}
+
+	key := &m.pool[index]
 
 	if key.RetryAfter == 0 {
 		key.ExceededTime = time.Now()

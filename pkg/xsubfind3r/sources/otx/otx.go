@@ -20,7 +20,7 @@ type getPassiveDNSResponse struct {
 type Source struct{}
 
 func (s *Source) Name() (name string) {
-	name = sources.OPENTHREATEXCHANGE
+	name = sources.OpenThreatExchange
 
 	return
 }
@@ -59,12 +59,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			sources.CloseBody(getPassiveDNSRes.Body)
+			_ = getPassiveDNSRes.Body.Close()
 
 			return
 		}
 
-		sources.CloseBody(getPassiveDNSRes.Body)
+		_ = getPassiveDNSRes.Body.Close()
 
 		if getPassiveDNSResData.Error != "" {
 			result := sources.Result{

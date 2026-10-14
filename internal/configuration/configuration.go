@@ -48,7 +48,7 @@ func (cfg *Configuration) Write(path string) (err error) {
 
 	enc.SetIndent(indentation)
 
-	if err = enc.Encode(&cfg); err != nil {
+	if err = enc.Encode(cfg); err != nil {
 		return
 	}
 
@@ -104,31 +104,31 @@ var DefaultConfiguration = Configuration{
 	Version: Version,
 	Sources: sources.List,
 	Keys: map[string]sources.Keys{
-		sources.BEVIGIL:        {},
-		sources.BUILTWITH:      {},
+		sources.Bevigil:        {},
+		sources.Builtwith:      {},
 		sources.C99:            {},
-		sources.CENSYS:         {},
-		sources.CERTSPOTTER:    {},
-		sources.CHAOS:          {},
+		sources.Censys:         {},
+		sources.Certspotter:    {},
+		sources.Chaos:          {},
 		sources.DNSDB:          {},
-		sources.DNSDUMPSTER:    {},
-		sources.FOFA:           {},
-		sources.FULLHUNT:       {},
-		sources.GITHUB:         {},
-		sources.GITLAB:         {},
-		sources.INTELLIGENCEX:  {},
-		sources.LEAKIX:         {},
-		sources.LEAKRADAR:      {},
-		sources.MERKLEMAP:      {},
-		sources.NETLAS:         {},
-		sources.ONYPHE:         {},
-		sources.QUAKE:          {},
-		sources.SECURITYTRAILS: {},
-		sources.SHODAN:         {},
-		sources.URLSCAN:        {},
-		sources.VIRUSTOTAL:     {},
-		sources.WHOISXMLAPI:    {},
-		sources.ZOOMEYE:        {},
+		sources.DNSDumpster:    {},
+		sources.Fofa:           {},
+		sources.Fullhunt:       {},
+		sources.Github:         {},
+		sources.Gitlab:         {},
+		sources.IntelligenceX:  {},
+		sources.Leakix:         {},
+		sources.Leakradar:      {},
+		sources.Merklemap:      {},
+		sources.Netlas:         {},
+		sources.Onyphe:         {},
+		sources.Quake:          {},
+		sources.Securitytrails: {},
+		sources.Shodan:         {},
+		sources.URLScan:        {},
+		sources.Virustotal:     {},
+		sources.WhoisXMLAPI:    {},
+		sources.Zoomeye:        {},
 	},
 }
 

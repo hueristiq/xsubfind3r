@@ -27,7 +27,7 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.LEAKRADAR
+	name = sources.Leakradar
 
 	return
 }
@@ -83,12 +83,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				sources.CloseBody(getURLsRes.Body)
+				_ = getURLsRes.Body.Close()
 
 				return
 			}
 
-			sources.CloseBody(getURLsRes.Body)
+			_ = getURLsRes.Body.Close()
 
 			for _, item := range getURLsResData.Items {
 				URL := item.URL

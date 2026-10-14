@@ -31,7 +31,7 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.ZOOMEYE
+	name = sources.Zoomeye
 
 	return
 }
@@ -108,12 +108,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				sources.CloseBody(getSubdomainsRes.Body)
+				_ = getSubdomainsRes.Body.Close()
 
 				return
 			}
 
-			sources.CloseBody(getSubdomainsRes.Body)
+			_ = getSubdomainsRes.Body.Close()
 
 			if len(getSubdomainsResData.Data) == 0 {
 				break

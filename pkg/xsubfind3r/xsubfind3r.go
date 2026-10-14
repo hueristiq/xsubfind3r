@@ -3,6 +3,7 @@ package xsubfind3r
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
 	"strings"
 	"sync"
 	"time"
@@ -69,7 +70,7 @@ func (finder *Finder) Find(ctx context.Context, domain string) (results chan sou
 	go func() {
 		defer close(results)
 
-		seen := &sync.Map{}
+		deduper := newDeduper()
 
 		wg := &sync.WaitGroup{}
 
@@ -87,8 +88,7 @@ func (finder *Finder) Find(ctx context.Context, domain string) (results chan sou
 						sResult.Value = strings.TrimPrefix(sResult.Value, "*.")
 						sResult.Value = strings.TrimPrefix(sResult.Value, ".")
 
-						_, loaded := seen.LoadOrStore(sResult.Value, struct{}{})
-						if loaded {
+						if deduper.seen(sResult.Value) {
 							continue
 						}
 					}
@@ -115,64 +115,85 @@ type Configuration struct {
 	Keys             map[string]sources.Keys
 }
 
-type SourceFactory func() sources.Source
-
-var sourceFactories = map[string]SourceFactory{
-	sources.ANUBIS:             anubis.New,
-	sources.ARQUIVO:            arquivo.New,
-	sources.BEVIGIL:            bevigil.New,
-	sources.BUILTWITH:          builtwith.New,
+// sourceRegistry maps source names to their constructors. It is written
+// once at package load and only read afterwards, so constructors are
+// safe for concurrent use.
+var sourceRegistry = map[string]func() sources.Source{
+	sources.Anubis:             anubis.New,
+	sources.Arquivo:            arquivo.New,
+	sources.Bevigil:            bevigil.New,
+	sources.Builtwith:          builtwith.New,
 	sources.C99:                c99.New,
-	sources.CENSYS:             censys.New,
-	sources.CERTIFICATEDETAILS: certificatedetails.New,
-	sources.CERTSPOTTER:        certspotter.New,
-	sources.CHAOS:              chaos.New,
-	sources.COMMONCRAWL:        commoncrawl.New,
-	sources.CRTSH:              crtsh.New,
+	sources.Censys:             censys.New,
+	sources.Certificatedetails: certificatedetails.New,
+	sources.Certspotter:        certspotter.New,
+	sources.Chaos:              chaos.New,
+	sources.Commoncrawl:        commoncrawl.New,
+	sources.Crtsh:              crtsh.New,
 	sources.DNSDB:              dnsdb.New,
-	sources.DNSDUMPSTER:        dnsdumpster.New,
-	sources.DRIFTNET:           driftnet.New,
-	sources.FOFA:               fofa.New,
-	sources.FULLHUNT:           fullhunt.New,
-	sources.GHOSTARCHIVE:       ghostarchive.New,
-	sources.GITHUB:             github.New,
-	sources.GITLAB:             gitlab.New,
-	sources.HACKERTARGET:       hackertarget.New,
-	sources.HUDSONROCK:         hudsonrock.New,
-	sources.INTELLIGENCEX:      intelx.New,
-	sources.LEAKIX:             leakix.New,
-	sources.LEAKRADAR:          leakradar.New,
-	sources.MERKLEMAP:          merklemap.New,
-	sources.NETLAS:             netlas.New,
-	sources.ONYPHE:             onyphe.New,
-	sources.OPENTHREATEXCHANGE: otx.New,
-	sources.QUAKE:              quake.New,
-	sources.RAPIDDNS:           rapiddns.New,
-	sources.RIDDLER:            riddler.New,
-	sources.SECURITYTRAILS:     securitytrails.New,
-	sources.SHODAN:             shodan.New,
-	sources.SUBDOMAINCENTER:    subdomaincenter.New,
-	sources.THREATMINER:        threatminer.New,
-	sources.URLSCAN:            urlscan.New,
-	sources.VIRUSTOTAL:         virustotal.New,
-	sources.WAYBACK:            wayback.New,
-	sources.WHOISXMLAPI:        whoisxmlapi.New,
-	sources.ZOOMEYE:            zoomeye.New,
+	sources.DNSDumpster:        dnsdumpster.New,
+	sources.Driftnet:           driftnet.New,
+	sources.Fofa:               fofa.New,
+	sources.Fullhunt:           fullhunt.New,
+	sources.Ghostarchive:       ghostarchive.New,
+	sources.Github:             github.New,
+	sources.Gitlab:             gitlab.New,
+	sources.Hackertarget:       hackertarget.New,
+	sources.Hudsonrock:         hudsonrock.New,
+	sources.IntelligenceX:      intelx.New,
+	sources.Leakix:             leakix.New,
+	sources.Leakradar:          leakradar.New,
+	sources.Merklemap:          merklemap.New,
+	sources.Netlas:             netlas.New,
+	sources.Onyphe:             onyphe.New,
+	sources.OpenThreatExchange: otx.New,
+	sources.Quake:              quake.New,
+	sources.RapidDNS:           rapiddns.New,
+	sources.Riddler:            riddler.New,
+	sources.Securitytrails:     securitytrails.New,
+	sources.Shodan:             shodan.New,
+	sources.Subdomaincenter:    subdomaincenter.New,
+	sources.Threatminer:        threatminer.New,
+	sources.URLScan:            urlscan.New,
+	sources.Virustotal:         virustotal.New,
+	sources.Wayback:            wayback.New,
+	sources.WhoisXMLAPI:        whoisxmlapi.New,
+	sources.Zoomeye:            zoomeye.New,
 }
 
-func SourceFactories() (factories map[string]SourceFactory) {
-	factories = make(map[string]SourceFactory, len(sourceFactories))
-
-	for name, factory := range sourceFactories {
-		factories[name] = factory
+// NewSource returns a fresh instance of the source registered under
+// name.
+//
+// Parameters:
+//   - name (string): the registered source name.
+//
+// Returns:
+//   - source (sources.Source): the new source instance; nil when name
+//     is unknown.
+//   - ok (bool): whether name is registered.
+func NewSource(name string) (source sources.Source, ok bool) {
+	constructor, exists := sourceRegistry[name]
+	if !exists {
+		return nil, false
 	}
 
-	return
+	return constructor(), true
 }
 
+// New returns a finder configured with cfg. Every finder owns fresh
+// source instances, so finders are safe to construct and use
+// concurrently.
+//
+// Parameters:
+//   - cfg (*Configuration): the finder configuration.
+//
+// Returns:
+//   - finder (*Finder): the configured finder.
+//   - err (error): non-nil when the HTTP client cannot be initialized
+//     or a requested source name is unknown.
 func New(cfg *Configuration) (finder *Finder, err error) {
 	finder = &Finder{
-		sources: make(map[string]sources.Source),
+		sources: make(map[string]sources.Source, len(sources.List)),
 	}
 
 	ofs := []hqgohttp.ClientOptionFunc{
@@ -201,15 +222,17 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 		sourcesToUse = sources.List
 	}
 
-	for _, name := range sourcesToUse {
-		factory, ok := sourceFactories[name]
+	for i := range sourcesToUse {
+		name := sourcesToUse[i]
+
+		source, ok := NewSource(name)
 		if !ok {
-			err = fmt.Errorf("unknown source %q", name)
+			err = fmt.Errorf("unknown source %q; supported sources: %s", name, strings.Join(sources.List, ", "))
 
 			return
 		}
 
-		finder.sources[name] = factory()
+		finder.sources[name] = source
 	}
 
 	for _, name := range cfg.SourcesToExclude {
@@ -221,6 +244,57 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 			source.UseKeys(keys...)
 		}
 	}
+
+	return
+}
+
+// dedupShardCount is the number of hash shards in a deduper.
+const dedupShardCount = 32
+
+type deduper struct {
+	shards [dedupShardCount]dedupShard
+}
+
+type dedupShard struct {
+	mu      sync.Mutex
+	entries map[uint64]struct{}
+}
+
+func newDeduper() (d *deduper) {
+	d = &deduper{}
+
+	for i := range d.shards {
+		d.shards[i].entries = make(map[uint64]struct{})
+	}
+
+	return
+}
+
+// seen reports whether value was already recorded, recording it on first
+// sight.
+func (d *deduper) seen(value string) (duplicate bool) {
+	hash := dedupHash(value)
+
+	shard := &d.shards[hash%dedupShardCount]
+
+	shard.mu.Lock()
+	defer shard.mu.Unlock()
+
+	if _, exists := shard.entries[hash]; exists {
+		return true
+	}
+
+	shard.entries[hash] = struct{}{}
+
+	return false
+}
+
+func dedupHash(value string) (hash uint64) {
+	hasher := fnv.New64a()
+
+	_, _ = hasher.Write([]byte(value))
+
+	hash = hasher.Sum64()
 
 	return
 }

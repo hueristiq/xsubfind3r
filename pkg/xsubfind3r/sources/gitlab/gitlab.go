@@ -25,7 +25,7 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.GITLAB
+	name = sources.Gitlab
 
 	return
 }
@@ -87,12 +87,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				sources.CloseBody(searchRes.Body)
+				_ = searchRes.Body.Close()
 
 				return
 			}
 
-			sources.CloseBody(searchRes.Body)
+			_ = searchRes.Body.Close()
 
 			for _, item := range items {
 				getRawContentReqURL := fmt.Sprintf(
@@ -119,7 +119,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				}
 
 				if getRawContentRes.StatusCode != hqgohttpstatus.OK.Int() {
-					sources.CloseBody(getRawContentRes.Body)
+					_ = getRawContentRes.Body.Close()
 
 					continue
 				}
@@ -155,12 +155,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 					results <- result
 
-					sources.CloseBody(getRawContentRes.Body)
+					_ = getRawContentRes.Body.Close()
 
 					return
 				}
 
-				sources.CloseBody(getRawContentRes.Body)
+				_ = getRawContentRes.Body.Close()
 			}
 
 			page = cast.ToInt(nextPage)

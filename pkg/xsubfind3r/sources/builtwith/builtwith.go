@@ -29,7 +29,7 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.BUILTWITH
+	name = sources.Builtwith
 
 	return
 }
@@ -89,12 +89,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			sources.CloseBody(getDomainInfoRes.Body)
+			_ = getDomainInfoRes.Body.Close()
 
 			return
 		}
 
-		sources.CloseBody(getDomainInfoRes.Body)
+		_ = getDomainInfoRes.Body.Close()
 
 		if len(getDomainInfoResData.Errors) > 0 {
 			for _, entry := range getDomainInfoResData.Errors {

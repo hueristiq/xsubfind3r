@@ -34,7 +34,7 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.NETLAS
+	name = sources.Netlas
 
 	return
 }
@@ -91,12 +91,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			sources.CloseBody(getCountRes.Body)
+			_ = getCountRes.Body.Close()
 
 			return
 		}
 
-		sources.CloseBody(getCountRes.Body)
+		_ = getCountRes.Body.Close()
 
 		size := getCountResData.Count
 
@@ -155,12 +155,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			sources.CloseBody(getSubdomainsRes.Body)
+			_ = getSubdomainsRes.Body.Close()
 
 			return
 		}
 
-		sources.CloseBody(getSubdomainsRes.Body)
+		_ = getSubdomainsRes.Body.Close()
 
 		for _, item := range getSubdomainsResData {
 			result := sources.Result{

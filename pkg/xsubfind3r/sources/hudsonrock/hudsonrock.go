@@ -22,7 +22,7 @@ type getSubdomainsResponse struct {
 type Source struct{}
 
 func (s *Source) Name() (name string) {
-	name = sources.HUDSONROCK
+	name = sources.Hudsonrock
 
 	return
 }
@@ -62,12 +62,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			sources.CloseBody(getSubdomainsRes.Body)
+			_ = getSubdomainsRes.Body.Close()
 
 			return
 		}
 
-		sources.CloseBody(getSubdomainsRes.Body)
+		_ = getSubdomainsRes.Body.Close()
 
 		for _, record := range append(getSubdomainsResData.Data.EmployeesUrls, getSubdomainsResData.Data.ClientsUrls...) {
 			subdomains := cfg.Extract(record.URL)

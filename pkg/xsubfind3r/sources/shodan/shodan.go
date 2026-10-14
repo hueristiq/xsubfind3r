@@ -20,7 +20,7 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.SHODAN
+	name = sources.Shodan
 
 	return
 }
@@ -54,7 +54,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			result := sources.Result{
 				Type:   sources.ResultError,
 				Source: s.Name(),
-				Error:  fmt.Errorf("request failed: %w", sources.SanitizeError(err, key)),
+				Error:  fmt.Errorf("request failed: %w", sources.RedactError(err, key)),
 			}
 
 			results <- result
@@ -73,12 +73,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			sources.CloseBody(getDNSRes.Body)
+			_ = getDNSRes.Body.Close()
 
 			return
 		}
 
-		sources.CloseBody(getDNSRes.Body)
+		_ = getDNSRes.Body.Close()
 
 		for _, subdomain := range getDNSResData.Subdomains {
 			result := sources.Result{

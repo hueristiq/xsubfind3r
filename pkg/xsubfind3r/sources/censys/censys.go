@@ -44,7 +44,7 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.CENSYS
+	name = sources.Censys
 
 	return
 }
@@ -108,12 +108,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				sources.CloseBody(certSearchRes.Body)
+				_ = certSearchRes.Body.Close()
 
 				return
 			}
 
-			sources.CloseBody(certSearchRes.Body)
+			_ = certSearchRes.Body.Close()
 
 			if certSearchResData.Error != "" {
 				result := sources.Result{

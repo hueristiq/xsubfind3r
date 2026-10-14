@@ -13,7 +13,7 @@ import (
 type Source struct{}
 
 func (s *Source) Name() (name string) {
-	name = sources.CERTIFICATEDETAILS
+	name = sources.Certificatedetails
 
 	return
 }
@@ -42,7 +42,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		}
 
 		if getCertificateDetailsRes.StatusCode == hqgohttpstatus.NotFound.Int() {
-			sources.CloseBody(getCertificateDetailsRes.Body)
+			_ = getCertificateDetailsRes.Body.Close()
 
 			return
 		}
@@ -78,12 +78,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			sources.CloseBody(getCertificateDetailsRes.Body)
+			_ = getCertificateDetailsRes.Body.Close()
 
 			return
 		}
 
-		sources.CloseBody(getCertificateDetailsRes.Body)
+		_ = getCertificateDetailsRes.Body.Close()
 	}()
 
 	return results

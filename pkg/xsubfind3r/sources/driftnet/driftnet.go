@@ -106,7 +106,7 @@ type TitleHTML struct {
 type Source struct{}
 
 func (s *Source) Name() (name string) {
-	name = sources.DRIFTNET
+	name = sources.Driftnet
 
 	return
 }
@@ -157,12 +157,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			results <- result
 
-			sources.CloseBody(getResultsRes.Body)
+			_ = getResultsRes.Body.Close()
 
 			return
 		}
 
-		sources.CloseBody(getResultsRes.Body)
+		_ = getResultsRes.Body.Close()
 
 		for _, v := range getResultsResData.Observations.Host.Values {
 			for subdomain := range v {

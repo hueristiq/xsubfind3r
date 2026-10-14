@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 
 	hqgologger "github.com/hueristiq/hq-lib-logger-go"
 	hqgologgerformatter "github.com/hueristiq/hq-lib-logger-go/formatter"
@@ -144,19 +145,19 @@ func main() {
 	}
 
 	if listSupportedSources {
-		factories := xsubfind3r.SourceFactories()
-
-		hqgologger.Info(fmt.Sprintf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(factories))).Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+		hqgologger.Info(fmt.Sprintf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(sources.List))).Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 		hqgologger.Info(fmt.Sprintf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 		hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 
-		for _, name := range sources.List {
-			factory, ok := factories[name]
+		for i := range sources.List {
+			name := sources.List[i]
+
+			source, ok := xsubfind3r.NewSource(name)
 			if !ok {
 				continue
 			}
 
-			if factory().NeedsKeys() {
+			if source.NeedsKeys() {
 				hqgologger.Print("> "+name+" *", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 			} else {
 				hqgologger.Print("> "+name, hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
@@ -229,7 +230,9 @@ func main() {
 		writer.SetFormatToJSONL()
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	signal.Ignore(syscall.SIGPIPE)
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 	defer stop()
 
@@ -247,43 +250,51 @@ func main() {
 	})
 	if err != nil {
 		hqgologger.Fatal("failed creating finder!", hqgologger.WithError(err))
-
-		return
 	}
 
-	for _, domain := range domains {
-		hqgologger.Info(fmt.Sprintf("Finding subdomains for %v...", au.Underline(domain).Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
-		hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+	outputs := []io.Writer{
+		os.Stdout,
+	}
 
-		outputs := []io.Writer{
-			os.Stdout,
+	var file *os.File
+
+	if outputFilePath != "" {
+		file, err = writer.CreateFile(outputFilePath)
+		if err != nil {
+			hqgologger.Fatal("failed to create output file!", hqgologger.WithString("file", outputFilePath), hqgologger.WithError(err))
 		}
 
-		var file *os.File
+		outputs = append(outputs, file)
+	}
 
-		switch {
-		case outputFilePath != "":
-			file, err = writer.CreateFile(outputFilePath)
-			if err != nil {
-				hqgologger.Fatal("failed creating output file!", hqgologger.WithString("file", outputFilePath), hqgologger.WithError(err))
-			}
+	for index := range domains {
+		domain := domains[index]
 
-			outputs = append(outputs, file)
-		case outputDirectoryPath != "":
+		hqgologger.Info(fmt.Sprintf("Finding subdomains for %v...", au.Underline(domain).Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+
+		if !silent {
+			hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+		}
+
+		domainOutputs := outputs
+
+		var domainFile *os.File
+
+		if outputFilePath == "" && outputDirectoryPath != "" {
 			domainOutputFilePath := filepath.Join(outputDirectoryPath, domain)
 
-			file, err = writer.CreateFile(domainOutputFilePath)
+			domainFile, err = writer.CreateFile(domainOutputFilePath)
 			if err != nil {
-				hqgologger.Fatal("failed creating output file!", hqgologger.WithString("file", domainOutputFilePath), hqgologger.WithError(err))
+				hqgologger.Fatal("failed to create output file!", hqgologger.WithString("file", domainOutputFilePath), hqgologger.WithError(err))
 			}
 
-			outputs = append(outputs, file)
+			domainOutputs = append(domainOutputs, domainFile)
 		}
 
 		results := finder.Find(ctx, domain)
 
 		for result := range results {
-			for _, output := range outputs {
+			for _, output := range domainOutputs {
 				switch result.Type {
 				case sources.ResultError:
 					if verbose {
@@ -291,24 +302,68 @@ func main() {
 					}
 				case sources.ResultSubdomain:
 					if err := writer.Write(output, domain, result); err != nil {
-						hqgologger.Error("failed to write result!", hqgologger.WithString("source", result.Source), hqgologger.WithError(err))
+						if output != os.Stdout {
+							_ = writer.Flush(os.Stdout)
+
+							hqgologger.Fatal("failed to write result to output file!", hqgologger.WithError(err))
+						}
+
+						domainOutputs = dropOutput(domainOutputs, output)
+
+						hqgologger.Error("failed to write result to stdout; dropping stdout output!", hqgologger.WithError(err))
+
+						if len(domainOutputs) == 0 {
+							stop()
+						}
+					}
+				}
+			}
+
+			for _, output := range domainOutputs {
+				if err := writer.Flush(output); err != nil {
+					if output != os.Stdout {
+						_ = writer.Flush(os.Stdout)
+
+						hqgologger.Fatal("failed to flush output file!", hqgologger.WithError(err))
+					}
+
+					domainOutputs = dropOutput(domainOutputs, output)
+
+					hqgologger.Error("failed to flush stdout; dropping stdout output!", hqgologger.WithError(err))
+
+					if len(domainOutputs) == 0 {
+						stop()
 					}
 				}
 			}
 		}
 
-		for _, output := range outputs {
-			if err := writer.Flush(output); err != nil {
-				hqgologger.Error("failed flushing output!", hqgologger.WithError(err))
+		if domainFile != nil {
+			if err := domainFile.Close(); err != nil {
+				hqgologger.Fatal("failed closing output file!", hqgologger.WithError(err))
 			}
 		}
 
-		if file != nil {
-			if err := file.Close(); err != nil {
-				hqgologger.Error("failed closing output file!", hqgologger.WithError(err))
-			}
+		if !silent {
+			hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 		}
-
-		hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 	}
+
+	if file != nil {
+		if err := file.Close(); err != nil {
+			hqgologger.Fatal("failed closing output file!", hqgologger.WithError(err))
+		}
+	}
+}
+
+func dropOutput(outputs []io.Writer, dropped io.Writer) (remaining []io.Writer) {
+	remaining = make([]io.Writer, 0, len(outputs))
+
+	for _, output := range outputs {
+		if output != dropped {
+			remaining = append(remaining, output)
+		}
+	}
+
+	return
 }

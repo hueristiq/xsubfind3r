@@ -35,7 +35,7 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.URLSCAN
+	name = sources.URLScan
 
 	return
 }
@@ -99,12 +99,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				sources.CloseBody(searchRes.Body)
+				_ = searchRes.Body.Close()
 
 				break
 			}
 
-			sources.CloseBody(searchRes.Body)
+			_ = searchRes.Body.Close()
 
 			if searchResData.Status == hqgohttpstatus.TooManyRequests.Int() {
 				break

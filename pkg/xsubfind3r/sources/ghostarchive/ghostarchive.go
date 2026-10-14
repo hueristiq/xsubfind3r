@@ -20,7 +20,7 @@ var resultPattern = regexp.MustCompile(`<a href="/archive/[^"]*">([^<]+)</a>`)
 type Source struct{}
 
 func (s *Source) Name() (name string) {
-	name = sources.GHOSTARCHIVE
+	name = sources.Ghostarchive
 
 	return
 }
@@ -85,12 +85,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				results <- result
 
-				sources.CloseBody(getSubdomainsRes.Body)
+				_ = getSubdomainsRes.Body.Close()
 
 				break
 			}
 
-			sources.CloseBody(getSubdomainsRes.Body)
+			_ = getSubdomainsRes.Body.Close()
 
 			if status == hqgohttpstatus.TooManyRequests.Int() || status == hqgohttpstatus.ServiceUnavailable.Int() {
 				result := sources.Result{
