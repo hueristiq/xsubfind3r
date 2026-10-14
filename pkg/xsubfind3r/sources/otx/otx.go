@@ -1,11 +1,11 @@
 package otx
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -17,23 +17,38 @@ type getPassiveDNSResponse struct {
 	} `json:"passive_dns"`
 }
 
-type Source struct{}
+type Source struct {
+	keys sources.Keys
+}
 
 func (s *Source) Name() (name string) {
-	name = sources.OPENTHREATEXCHANGE
+	name = sources.OpenThreatExchange
 
 	return
 }
 
-func (s *Source) Run(_ *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
+		key := ""
+
+		if picked, err := s.keys.PickRandom(); err == nil {
+			key = picked
+		}
+
 		getPassiveDNSReqURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", domain)
 
-		getPassiveDNSRes, err := hqgohttp.Get(getPassiveDNSReqURL)
+		getPassiveDNSReq := cfg.Client.NewRequest().
+			URL(getPassiveDNSReqURL)
+
+		if key != "" {
+			getPassiveDNSReq = getPassiveDNSReq.SetHeader("X-OTX-API-KEY", key)
+		}
+
+		getPassiveDNSRes, err := getPassiveDNSReq.Do(ctx)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -57,12 +72,12 @@ func (s *Source) Run(_ *sources.Configuration, domain string) <-chan sources.Res
 
 			results <- result
 
-			getPassiveDNSRes.Body.Close()
+			_ = getPassiveDNSRes.Body.Close()
 
 			return
 		}
 
-		getPassiveDNSRes.Body.Close()
+		_ = getPassiveDNSRes.Body.Close()
 
 		if getPassiveDNSResData.Error != "" {
 			result := sources.Result{
@@ -97,18 +112,21 @@ func (s *Source) Run(_ *sources.Configuration, domain string) <-chan sources.Res
 }
 
 func (s *Source) NeedsKeys() (needs bool) {
-	needs = false
+	needs = true
 
 	return
 }
 
 func (s *Source) UseKeys(keys ...string) {
+	s.keys = append(s.keys, keys...)
 }
 
 var _ sources.Source = (*Source)(nil)
 
 func New() (source sources.Source) {
-	source = &Source{}
+	source = &Source{
+		keys: make(sources.Keys, 0),
+	}
 
 	return
 }

@@ -2,22 +2,23 @@ package certificatedetails
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
-	hqgohttpstatus "github.com/hueristiq/hq-go-http/status"
+	hqgohttpstatus "github.com/hueristiq/hq-lib-http-go/status"
+
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type Source struct{}
 
 func (s *Source) Name() (name string) {
-	name = sources.CERTIFICATEDETAILS
+	name = sources.Certificatedetails
 
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -25,8 +26,10 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 
 		getCertificateDetailsReqURL := "https://certificatedetails.com/" + domain
 
-		getCertificateDetailsRes, err := hqgohttp.Get(getCertificateDetailsReqURL)
-		if err != nil && getCertificateDetailsRes.StatusCode != hqgohttpstatus.NotFound.Int() {
+		getCertificateDetailsRes, err := cfg.Client.NewRequest().
+			URL(getCertificateDetailsReqURL).
+			Do(ctx)
+		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
 				Source: s.Name(),
@@ -34,6 +37,12 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 			}
 
 			results <- result
+
+			return
+		}
+
+		if getCertificateDetailsRes.StatusCode == hqgohttpstatus.NotFound.Int() {
+			_ = getCertificateDetailsRes.Body.Close()
 
 			return
 		}
@@ -47,7 +56,7 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 				continue
 			}
 
-			match := cfg.Extractor.FindAllString(line, -1)
+			match := cfg.Extract(line)
 
 			for _, subdomain := range match {
 				result := sources.Result{
@@ -69,12 +78,12 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 
 			results <- result
 
-			getCertificateDetailsRes.Body.Close()
+			_ = getCertificateDetailsRes.Body.Close()
 
 			return
 		}
 
-		getCertificateDetailsRes.Body.Close()
+		_ = getCertificateDetailsRes.Body.Close()
 	}()
 
 	return results

@@ -1,12 +1,13 @@
 package certspotter
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
-	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
+	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
+
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -20,107 +21,39 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.CERTSPOTTER
+	name = sources.Certspotter
 
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
-		key, err := s.keys.PickRandom()
-		if key == "" || err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to select key: %w", err),
-			}
+		key, _ := s.keys.PickRandom()
 
-			results <- result
+		after := ""
 
-			return
-		}
-
-		getCTLogsSearchReqURL := "https://api.certspotter.com/v1/issuances"
-		getCTLogsSearchReqCFG := &hqgohttp.RequestConfiguration{
-			Params: map[string]string{
-				"domain":             domain,
-				"include_subdomains": "true",
-				"expand":             "dns_names",
-			},
-		}
-
-		getCTLogsSearchRes, err := hqgohttp.Get(getCTLogsSearchReqURL, getCTLogsSearchReqCFG)
-		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("request failed: %w", err),
-			}
-
-			results <- result
-
-			return
-		}
-
-		var getCTLogsSearchResData []getCTLogsSearchResponse
-
-		if err = json.NewDecoder(getCTLogsSearchRes.Body).Decode(&getCTLogsSearchResData); err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-			}
-
-			results <- result
-
-			getCTLogsSearchRes.Body.Close()
-
-			return
-		}
-
-		getCTLogsSearchRes.Body.Close()
-
-		if len(getCTLogsSearchResData) == 0 {
-			return
-		}
-
-		for _, cert := range getCTLogsSearchResData {
-			for _, subdomain := range cert.DNSNames {
-				if subdomain != domain && !strings.HasSuffix(subdomain, "."+domain) {
-					continue
-				}
-
-				result := sources.Result{
-					Type:   sources.ResultSubdomain,
-					Source: s.Name(),
-					Value:  subdomain,
-				}
-
-				results <- result
-			}
-		}
-
-		id := getCTLogsSearchResData[len(getCTLogsSearchResData)-1].ID
-
-		for {
+		for range maxPages {
 			getCTLogsSearchReqURL := "https://api.certspotter.com/v1/issuances"
-			getCTLogsSearchReqCFG := &hqgohttp.RequestConfiguration{
-				Params: map[string]string{
-					"domain":             domain,
-					"include_subdomains": "true",
-					"expand":             "dns_names",
-					"after":              id,
-				},
-				Headers: []hqgohttp.Header{
-					hqgohttp.NewSetHeader(hqgohttpheader.Authorization.String(), "Bearer "+key),
-				},
+
+			req := cfg.Client.NewRequest().
+				URL(getCTLogsSearchReqURL).
+				Param("domain", domain).
+				Param("include_subdomains", "true").
+				Param("expand", "dns_names")
+
+			if key != "" {
+				req = req.SetHeader(hqgohttpheader.Authorization.String(), "Bearer "+key)
 			}
 
-			getCTLogsSearchRes, err := hqgohttp.Get(getCTLogsSearchReqURL, getCTLogsSearchReqCFG)
+			if after != "" {
+				req = req.Param("after", after)
+			}
+
+			getCTLogsSearchRes, err := req.Do(ctx)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
@@ -144,12 +77,12 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 
 				results <- result
 
-				getCTLogsSearchRes.Body.Close()
+				_ = getCTLogsSearchRes.Body.Close()
 
 				break
 			}
 
-			getCTLogsSearchRes.Body.Close()
+			_ = getCTLogsSearchRes.Body.Close()
 
 			if len(getCTLogsSearchResData) == 0 {
 				break
@@ -171,7 +104,7 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 				}
 			}
 
-			id = getCTLogsSearchResData[len(getCTLogsSearchResData)-1].ID
+			after = getCTLogsSearchResData[len(getCTLogsSearchResData)-1].ID
 		}
 	}()
 
@@ -179,7 +112,7 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 }
 
 func (s *Source) NeedsKeys() (needs bool) {
-	needs = true
+	needs = false
 
 	return
 }
@@ -187,6 +120,8 @@ func (s *Source) NeedsKeys() (needs bool) {
 func (s *Source) UseKeys(keys ...string) {
 	s.keys = append(s.keys, keys...)
 }
+
+const maxPages = 100
 
 var _ sources.Source = (*Source)(nil)
 

@@ -2,16 +2,18 @@ package commoncrawl
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
-	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	hqgolimiter "github.com/hueristiq/hq-lib-limiter-go"
 	"github.com/spf13/cast"
+
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type getIndexesResponse []struct {
@@ -37,12 +39,12 @@ type getURLsResponse struct {
 type Source struct{}
 
 func (s *Source) Name() (name string) {
-	name = sources.COMMONCRAWL
+	name = sources.Commoncrawl
 
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (source *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -50,11 +52,13 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 
 		getIndexesReqURL := "https://index.commoncrawl.org/collinfo.json"
 
-		getIndexesRes, err := hqgohttp.Get(getIndexesReqURL)
+		getIndexesRes, err := cfg.Client.NewRequest().
+			URL(getIndexesReqURL).
+			Do(ctx)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
-				Source: s.Name(),
+				Source: source.Name(),
 				Error:  fmt.Errorf("request failed: %w", err),
 			}
 
@@ -68,18 +72,18 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 		if err = json.NewDecoder(getIndexesRes.Body).Decode(&getIndexesResData); err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
-				Source: s.Name(),
+				Source: source.Name(),
 				Error:  fmt.Errorf("failed to parse JSON response: %w", err),
 			}
 
 			results <- result
 
-			getIndexesRes.Body.Close()
+			_ = getIndexesRes.Body.Close()
 
 			return
 		}
 
-		getIndexesRes.Body.Close()
+		_ = getIndexesRes.Body.Close()
 
 		year := time.Now().Year()
 		years := make([]string, 0)
@@ -104,23 +108,22 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 		}
 
 		for _, CCIndexAPI := range searchIndexes {
-			getPaginationReqCFG := &hqgohttp.RequestConfiguration{
-				Headers: []hqgohttp.Header{
-					hqgohttp.NewSetHeader(hqgohttpheader.Host.String(), "index.commoncrawl.org"),
-				},
-				Params: map[string]string{
-					"url":          "*." + domain + "/*",
-					"output":       "json",
-					"fl":           "url",
-					"showNumPages": "true",
-				},
-			}
-
-			getPaginationRes, err := hqgohttp.Get(CCIndexAPI, getPaginationReqCFG)
+			getPaginationRes, err := cfg.Client.NewRequest().
+				URL(CCIndexAPI).
+				Param("url", "*."+domain).
+				Param("output", "json").
+				Param("fl", "url").
+				Param("collapse", "urlkey").
+				Param("showNumPages", "true").
+				Do(ctx)
 			if err != nil {
+				if getPaginationRes != nil {
+					_ = getPaginationRes.Body.Close()
+				}
+
 				result := sources.Result{
 					Type:   sources.ResultError,
-					Source: s.Name(),
+					Source: source.Name(),
 					Error:  fmt.Errorf("request failed: %w", err),
 				}
 
@@ -129,46 +132,59 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 				continue
 			}
 
-			var getPaginationResData getPaginationResponse
+			var getPaginationData getPaginationResponse
 
-			if err = json.NewDecoder(getPaginationRes.Body).Decode(&getPaginationResData); err != nil {
+			if err = json.NewDecoder(getPaginationRes.Body).Decode(&getPaginationData); err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
-					Source: s.Name(),
+					Source: source.Name(),
 					Error:  fmt.Errorf("failed to parse JSON response: %w", err),
 				}
 
 				results <- result
 
-				getPaginationRes.Body.Close()
+				_ = getPaginationRes.Body.Close()
 
 				continue
 			}
 
-			getPaginationRes.Body.Close()
+			_ = getPaginationRes.Body.Close()
 
-			if getPaginationResData.Pages < 1 {
+			if getPaginationData.Pages < 1 {
 				continue
 			}
 
-			for page := range getPaginationResData.Pages {
-				getURLsReqCFG := &hqgohttp.RequestConfiguration{
-					Headers: []hqgohttp.Header{
-						hqgohttp.NewSetHeader(hqgohttpheader.Host.String(), "index.commoncrawl.org"),
-					},
-					Params: map[string]string{
-						"url":    "*." + domain + "/*",
-						"output": "json",
-						"fl":     "url",
-						"page":   cast.ToString(page),
-					},
-				}
-
-				getURLsRes, err := hqgohttp.Get(CCIndexAPI, getURLsReqCFG)
-				if err != nil {
+			for page := range getPaginationData.Pages {
+				if err := limiter.Wait(ctx); err != nil {
 					result := sources.Result{
 						Type:   sources.ResultError,
-						Source: s.Name(),
+						Source: source.Name(),
+						Error:  fmt.Errorf("failed to wait on rate limiter: %w", err),
+					}
+
+					results <- result
+
+					break
+				}
+
+				var getURLsRes *http.Response
+
+				getURLsRes, err = cfg.Client.NewRequest().
+					URL(CCIndexAPI).
+					Param("url", "*."+domain).
+					Param("output", "json").
+					Param("fl", "url").
+					Param("collapse", "urlkey").
+					Param("page", cast.ToString(page)).
+					Do(ctx)
+				if err != nil {
+					if getURLsRes != nil {
+						_ = getURLsRes.Body.Close()
+					}
+
+					result := sources.Result{
+						Type:   sources.ResultError,
+						Source: source.Name(),
 						Error:  fmt.Errorf("request failed: %w", err),
 					}
 
@@ -185,8 +201,8 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 					if err = json.Unmarshal(scanner.Bytes(), &getURLsResData); err != nil {
 						result := sources.Result{
 							Type:   sources.ResultError,
-							Source: s.Name(),
-							Error:  fmt.Errorf("failed to parse JSON response: %w", err),
+							Source: source.Name(),
+							Error:  err,
 						}
 
 						results <- result
@@ -197,7 +213,7 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 					if getURLsResData.Error != "" {
 						result := sources.Result{
 							Type:   sources.ResultError,
-							Source: s.Name(),
+							Source: source.Name(),
 							Error:  fmt.Errorf("domain error: %s", getURLsResData.Error),
 						}
 
@@ -206,12 +222,12 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 						continue
 					}
 
-					subdomains := cfg.Extractor.FindAllString(getURLsResData.URL, -1)
+					subdomains := cfg.Extract(getURLsResData.URL)
 
 					for _, subdomain := range subdomains {
 						result := sources.Result{
 							Type:   sources.ResultSubdomain,
-							Source: s.Name(),
+							Source: source.Name(),
 							Value:  subdomain,
 						}
 
@@ -222,18 +238,18 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 				if err = scanner.Err(); err != nil {
 					result := sources.Result{
 						Type:   sources.ResultError,
-						Source: s.Name(),
+						Source: source.Name(),
 						Error:  fmt.Errorf("failed to read response body: %w", err),
 					}
 
 					results <- result
 
-					getURLsRes.Body.Close()
+					_ = getURLsRes.Body.Close()
 
 					continue
 				}
 
-				getURLsRes.Body.Close()
+				_ = getURLsRes.Body.Close()
 			}
 		}
 	}()
@@ -249,6 +265,10 @@ func (s *Source) NeedsKeys() (needs bool) {
 
 func (s *Source) UseKeys(keys ...string) {
 }
+
+var limiter = hqgolimiter.New(
+	hqgolimiter.WithRequestsPerMinute(30),
+)
 
 var _ sources.Source = (*Source)(nil)
 

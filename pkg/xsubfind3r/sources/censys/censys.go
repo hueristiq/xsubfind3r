@@ -1,14 +1,15 @@
 package censys
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
-	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
 	"github.com/spf13/cast"
+
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type certSearchResponse struct {
@@ -43,12 +44,12 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.CENSYS
+	name = sources.Censys
 
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -73,21 +74,17 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 		certSearchReqURL := "https://search.censys.io/api/v2/certificates/search"
 
 		for {
-			certSearchReqCFG := &hqgohttp.RequestConfiguration{
-				Params: map[string]string{
-					"q":        domain,
-					"per_page": cast.ToString(maxPerPage),
-				},
-				Headers: []hqgohttp.Header{
-					hqgohttp.NewSetHeader(hqgohttpheader.Authorization.String(), "Basic "+base64.StdEncoding.EncodeToString([]byte(key))),
-				},
-			}
+			certSearchReq := cfg.Client.NewRequest().
+				URL(certSearchReqURL).
+				Param("q", domain).
+				Param("per_page", cast.ToString(maxPerPage)).
+				SetHeader(hqgohttpheader.Authorization.String(), "Basic "+base64.StdEncoding.EncodeToString([]byte(key)))
 
 			if cursor != "" {
-				certSearchReqCFG.Params["cursor"] = cursor
+				certSearchReq = certSearchReq.Param("cursor", cursor)
 			}
 
-			certSearchRes, err := hqgohttp.Get(certSearchReqURL, certSearchReqCFG)
+			certSearchRes, err := certSearchReq.Do(ctx)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
@@ -111,12 +108,12 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 
 				results <- result
 
-				certSearchRes.Body.Close()
+				_ = certSearchRes.Body.Close()
 
 				return
 			}
 
-			certSearchRes.Body.Close()
+			_ = certSearchRes.Body.Close()
 
 			if certSearchResData.Error != "" {
 				result := sources.Result{

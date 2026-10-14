@@ -1,12 +1,14 @@
 package driftnet
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
-	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
+	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
+
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -54,8 +56,8 @@ type Observations struct {
 	PortTCP      PortData        `json:"port-tcp"`
 	PortUDP      struct{}        `json:"port-udp"`
 	ServerBanner ServerBanner    `json:"server-banner"`
-	SubjectCert  SubjectCert     `json:"subject;cert"` //nolint: staticcheck
-	TitleHTML    TitleHTML       `json:"title;html"`   //nolint: staticcheck
+	SubjectCert  SubjectCert     `json:"subject;cert"`
+	TitleHTML    TitleHTML       `json:"title;html"`
 }
 
 type ObservationData struct {
@@ -104,32 +106,34 @@ type TitleHTML struct {
 type Source struct{}
 
 func (s *Source) Name() (name string) {
-	name = sources.DRIFTNET
+	name = sources.Driftnet
 
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
 		getResultsReqURL := "https://api.driftnet.io/v1/multi/summary"
-		getResultsReqCFG := &hqgohttp.RequestConfiguration{
-			Headers: []hqgohttp.Header{
-				hqgohttp.NewSetHeader(hqgohttpheader.Authorization.String(), "Bearer anon"),
-			},
-			Params: map[string]string{
-				"summary_limit": "10",
-				"timeout":       "30",
-				"from":          "2024-12-01",
-				"to":            "2024-12-11",
-				"field":         "host:" + domain,
-			},
-		}
 
-		getResultsRes, err := hqgohttp.Get(getResultsReqURL, getResultsReqCFG)
+		// The public endpoint accepts the documented anonymous bearer
+		// token; a rolling 30-day window keeps the query current instead
+		// of pinned to a fixed period.
+		to := time.Now().UTC()
+		from := to.AddDate(0, 0, -30)
+
+		getResultsRes, err := cfg.Client.NewRequest().
+			URL(getResultsReqURL).
+			Param("summary_limit", "10").
+			Param("timeout", "30").
+			Param("from", from.Format("2006-01-02")).
+			Param("to", to.Format("2006-01-02")).
+			Param("field", "host:"+domain).
+			SetHeader(hqgohttpheader.Authorization.String(), "Bearer anon").
+			Do(ctx)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -153,12 +157,12 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 
 			results <- result
 
-			getResultsRes.Body.Close()
+			_ = getResultsRes.Body.Close()
 
 			return
 		}
 
-		getResultsRes.Body.Close()
+		_ = getResultsRes.Body.Close()
 
 		for _, v := range getResultsResData.Observations.Host.Values {
 			for subdomain := range v {
@@ -178,15 +182,7 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 
 		for _, value := range getResultsResData.Observations.SubjectCert.Values {
 			for entry := range value {
-				subdomains := cfg.Extractor.FindAllString(entry, -1)
-
-				for i := range subdomains {
-					subdomain := subdomains[i]
-
-					if subdomain != domain && !strings.HasSuffix(subdomain, "."+domain) {
-						continue
-					}
-
+				for _, subdomain := range cfg.Extract(entry) {
 					result := sources.Result{
 						Type:   sources.ResultSubdomain,
 						Source: s.Name(),

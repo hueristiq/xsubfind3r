@@ -1,13 +1,14 @@
 package crtsh
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
-	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
-	hqgohttpmime "github.com/hueristiq/hq-go-http/mime"
+	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
+	hqgohttpmime "github.com/hueristiq/hq-lib-http-go/mime"
+
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -19,29 +20,25 @@ type getNameValuesResponse []struct {
 type Source struct{}
 
 func (s *Source) Name() (name string) {
-	name = sources.CRTSH
+	name = sources.Crtsh
 
 	return
 }
 
-func (s *Source) Run(_ *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
 		getNameValuesReqURL := "https://crt.sh"
-		getNameValuesReqCFG := &hqgohttp.RequestConfiguration{
-			Params: map[string]string{
-				"q":      "%." + domain,
-				"output": "json",
-			},
-			Headers: []hqgohttp.Header{
-				hqgohttp.NewSetHeader(hqgohttpheader.ContentType.String(), hqgohttpmime.JSON.String()),
-			},
-		}
 
-		getNameValuesRes, err := hqgohttp.Get(getNameValuesReqURL, getNameValuesReqCFG)
+		getNameValuesRes, err := cfg.Client.NewRequest().
+			URL(getNameValuesReqURL).
+			Param("q", "%."+domain).
+			Param("output", "json").
+			SetHeader(hqgohttpheader.ContentType.String(), hqgohttpmime.JSON.String()).
+			Do(ctx)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -65,12 +62,12 @@ func (s *Source) Run(_ *sources.Configuration, domain string) <-chan sources.Res
 
 			results <- result
 
-			getNameValuesRes.Body.Close()
+			_ = getNameValuesRes.Body.Close()
 
 			return
 		}
 
-		getNameValuesRes.Body.Close()
+		_ = getNameValuesRes.Body.Close()
 
 		for _, record := range getNameValuesResData {
 			subdomains := strings.Split(record.NameValue, "\n")

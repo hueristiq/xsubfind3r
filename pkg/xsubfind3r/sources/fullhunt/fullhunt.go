@@ -1,10 +1,10 @@
 package fullhunt
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -19,12 +19,12 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.FULLHUNT
+	name = sources.Fullhunt
 
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -44,13 +44,11 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 		}
 
 		getSubdomainsReqURL := fmt.Sprintf("https://fullhunt.io/api/v1/domain/%s/subdomains", domain)
-		getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
-			Headers: []hqgohttp.Header{
-				hqgohttp.NewSetHeader("X-API-KEY", key),
-			},
-		}
 
-		getSubdomainsRes, err := hqgohttp.Get(getSubdomainsReqURL, getSubdomainsReqCFG)
+		getSubdomainsRes, err := cfg.Client.NewRequest().
+			URL(getSubdomainsReqURL).
+			SetHeader("X-API-KEY", key).
+			Do(ctx)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -75,12 +73,12 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 
 			results <- result
 
-			getSubdomainsRes.Body.Close()
+			_ = getSubdomainsRes.Body.Close()
 
 			return
 		}
 
-		getSubdomainsRes.Body.Close()
+		_ = getSubdomainsRes.Body.Close()
 
 		for _, subdomain := range getSubdomainsResData.Hosts {
 			result := sources.Result{

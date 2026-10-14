@@ -1,10 +1,10 @@
 package shodan
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -20,12 +20,12 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.SHODAN
+	name = sources.Shodan
 
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -45,18 +45,16 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 		}
 
 		getDNSReqURL := "https://api.shodan.io/dns/domain/" + domain
-		getDNSReqCFG := &hqgohttp.RequestConfiguration{
-			Params: map[string]string{
-				"key": key,
-			},
-		}
 
-		getDNSRes, err := hqgohttp.Get(getDNSReqURL, getDNSReqCFG)
+		getDNSRes, err := cfg.Client.NewRequest().
+			URL(getDNSReqURL).
+			Param("key", key).
+			Do(ctx)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
 				Source: s.Name(),
-				Error:  fmt.Errorf("request failed: %w", err),
+				Error:  fmt.Errorf("request failed: %w", sources.RedactError(err, key)),
 			}
 
 			results <- result
@@ -75,12 +73,12 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 
 			results <- result
 
-			getDNSRes.Body.Close()
+			_ = getDNSRes.Body.Close()
 
 			return
 		}
 
-		getDNSRes.Body.Close()
+		_ = getDNSRes.Body.Close()
 
 		for _, subdomain := range getDNSResData.Subdomains {
 			result := sources.Result{

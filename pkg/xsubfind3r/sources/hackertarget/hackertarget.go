@@ -2,34 +2,32 @@ package hackertarget
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type Source struct{}
 
 func (s *Source) Name() (name string) {
-	name = sources.HACKERTARGET
+	name = sources.Hackertarget
 
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
 		defer close(results)
 
 		hostSearchReqURL := "https://api.hackertarget.com/hostsearch"
-		hostSearchReqCFG := &hqgohttp.RequestConfiguration{
-			Params: map[string]string{
-				"q": domain,
-			},
-		}
 
-		hostSearchRes, err := hqgohttp.Get(hostSearchReqURL, hostSearchReqCFG)
+		hostSearchRes, err := cfg.Client.NewRequest().
+			URL(hostSearchReqURL).
+			Param("q", domain).
+			Do(ctx)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -51,7 +49,7 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 				continue
 			}
 
-			match := cfg.Extractor.FindAllString(line, -1)
+			match := cfg.Extract(line)
 
 			for _, subdomain := range match {
 				result := sources.Result{
@@ -73,12 +71,12 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 
 			results <- result
 
-			hostSearchRes.Body.Close()
+			_ = hostSearchRes.Body.Close()
 
 			return
 		}
 
-		hostSearchRes.Body.Close()
+		_ = hostSearchRes.Body.Close()
 	}()
 
 	return results

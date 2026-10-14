@@ -1,10 +1,12 @@
 package virustotal
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
+	hqgolimiter "github.com/hueristiq/hq-lib-limiter-go"
+
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -30,12 +32,12 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.VIRUSTOTAL
+	name = sources.Virustotal
 
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -57,26 +59,35 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 		var cursor string
 
 		for {
-			getSubdomainsReqURL := fmt.Sprintf("https://www.virustotal.com/api/v3/domains/%s/subdomains", domain)
-			getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
-				Params: map[string]string{
-					"limit": "40",
-				},
-				Headers: []hqgohttp.Header{
-					hqgohttp.NewSetHeader("x-apikey", key),
-				},
+			if err := limiter.Wait(ctx); err != nil {
+				result := sources.Result{
+					Type:   sources.ResultError,
+					Source: s.Name(),
+					Error:  fmt.Errorf("failed to wait on rate limiter: %w", err),
+				}
+
+				results <- result
+
+				break
 			}
+
+			getSubdomainsReqURL := fmt.Sprintf("https://www.virustotal.com/api/v3/domains/%s/subdomains", domain)
+
+			getSubdomainsReq := cfg.Client.NewRequest().
+				URL(getSubdomainsReqURL).
+				Param("limit", "40").
+				SetHeader("x-apikey", key)
 
 			if cursor != "" {
-				getSubdomainsReqCFG.Params["cursor"] = cursor
+				getSubdomainsReq = getSubdomainsReq.Param("cursor", cursor)
 			}
 
-			getSubdomainsRes, err := hqgohttp.Get(getSubdomainsReqURL, getSubdomainsReqCFG)
+			getSubdomainsRes, err := getSubdomainsReq.Do(ctx)
 			if err != nil {
 				result := sources.Result{
 					Type:   sources.ResultError,
 					Source: s.Name(),
-					Error:  fmt.Errorf("request failed: %w", err),
+					Error:  fmt.Errorf("request failed: %w", sources.RedactError(err, key)),
 				}
 
 				results <- result
@@ -95,12 +106,12 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 
 				results <- result
 
-				getSubdomainsRes.Body.Close()
+				_ = getSubdomainsRes.Body.Close()
 
 				break
 			}
 
-			getSubdomainsRes.Body.Close()
+			_ = getSubdomainsRes.Body.Close()
 
 			if getSubdomainsResData.Error.Message != "" {
 				result := sources.Result{
@@ -146,6 +157,10 @@ func (s *Source) NeedsKeys() (needs bool) {
 func (s *Source) UseKeys(keys ...string) {
 	s.keys = append(s.keys, keys...)
 }
+
+var limiter = hqgolimiter.New(
+	hqgolimiter.WithRequestsPerMinute(4),
+)
 
 var _ sources.Source = (*Source)(nil)
 

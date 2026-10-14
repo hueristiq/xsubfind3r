@@ -1,13 +1,14 @@
 package securitytrails
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 
-	hqgohttp "github.com/hueristiq/hq-go-http"
-	hqgohttpheader "github.com/hueristiq/hq-go-http/header"
-	hqgohttpmime "github.com/hueristiq/hq-go-http/mime"
+	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
+	hqgohttpmime "github.com/hueristiq/hq-lib-http-go/mime"
+
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -20,7 +21,7 @@ type getSubdomainsResponse struct {
 	Records []struct {
 		Hostname string `json:"hostname"`
 	} `json:"records"`
-	SubdomainCount bool     `json:"subdomain_count"`
+	SubdomainCount int      `json:"subdomain_count"`
 	Subdomains     []string `json:"subdomains"`
 }
 
@@ -29,12 +30,12 @@ type Source struct {
 }
 
 func (s *Source) Name() (name string) {
-	name = sources.SECURITYTRAILS
+	name = sources.Securitytrails
 
 	return
 }
 
-func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.Result {
+func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
 	go func() {
@@ -54,18 +55,14 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 		}
 
 		getSubdomainsReqURL := fmt.Sprintf("https://api.securitytrails.com/v1/domain/%s/subdomains", domain)
-		getSubdomainsReqCFG := &hqgohttp.RequestConfiguration{
-			Params: map[string]string{
-				"children_only":    "false",
-				"include_inactive": "true",
-			},
-			Headers: []hqgohttp.Header{
-				hqgohttp.NewSetHeader(hqgohttpheader.Accept.String(), hqgohttpmime.JSON.String()),
-				hqgohttp.NewSetHeader("APIKEY", key),
-			},
-		}
 
-		getSubdomainsRes, err := hqgohttp.Get(getSubdomainsReqURL, getSubdomainsReqCFG)
+		getSubdomainsRes, err := cfg.Client.NewRequest().
+			URL(getSubdomainsReqURL).
+			Param("children_only", "false").
+			Param("include_inactive", "true").
+			SetHeader(hqgohttpheader.Accept.String(), hqgohttpmime.JSON.String()).
+			SetHeader("APIKEY", key).
+			Do(ctx)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -89,10 +86,12 @@ func (s *Source) Run(cfg *sources.Configuration, domain string) <-chan sources.R
 
 			results <- result
 
-			getSubdomainsRes.Body.Close()
+			_ = getSubdomainsRes.Body.Close()
+
+			return
 		}
 
-		getSubdomainsRes.Body.Close()
+		_ = getSubdomainsRes.Body.Close()
 
 		for _, subdomain := range getSubdomainsResData.Subdomains {
 			if strings.HasSuffix(subdomain, ".") {

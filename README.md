@@ -2,7 +2,7 @@
 
 ![made with go](https://img.shields.io/badge/made%20with-Go-1E90FF.svg) [![go report card](https://goreportcard.com/badge/github.com/hueristiq/xsubfind3r)](https://goreportcard.com/report/github.com/hueristiq/xsubfind3r) [![release](https://img.shields.io/github/release/hueristiq/xsubfind3r?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/releases) [![open issues](https://img.shields.io/github/issues-raw/hueristiq/xsubfind3r.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:open) [![closed issues](https://img.shields.io/github/issues-closed-raw/hueristiq/xsubfind3r.svg?style=flat&color=1E90FF)](https://github.com/hueristiq/xsubfind3r/issues?q=is:issue+is:closed) [![license](https://img.shields.io/badge/license-MIT-gray.svg?color=1E90FF)](https://github.com/hueristiq/xsubfind3r/blob/master/LICENSE) ![maintenance](https://img.shields.io/badge/maintained%3F-yes-1E90FF.svg) [![contribution](https://img.shields.io/badge/contributions-welcome-1E90FF.svg)](https://github.com/hueristiq/xsubfind3r/blob/master/CONTRIBUTING.md)
 
-`xsubfind3r` is a command-line utility designed to discover subdomains for a given domain in a simple, efficient way. It works by gathering information from a variety of passive sources, meaning it doesn't interact directly with the target but instead gathers data that is already publicly available. This makes `xsubfind3r` a powerful tool for security researchers, IT professionals, and anyone looking to gain insights into the subdomains associated with a domain.
+`xsubfind3r` is a command-line tool for discovering subdomains for a given domain in a simple, efficient way. It works by gathering information from a variety of passive sources, meaning it doesn't interact directly with the target but instead gathers data that is already publicly available. This makes `xsubfind3r` a powerful tool for security researchers, IT professionals, and anyone looking to gain insights into the subdomains associated with a domain.
 
 ## Resource
 
@@ -123,7 +123,7 @@ If you have Docker installed, you can use `xsubfind3r` using it's image:
 
 ## Post Installation
 
-`xsubfind3r` will work right after [installation](#installation). However, some sources require API keys to work. These keys can be added to a configuration file at `$HOME/.config/xsubfind3r/config.yaml`, created upon first run, or set as environment variables.
+`xsubfind3r` will work right after [installation](#installation). However, some sources require API keys to work. These keys can be added to a configuration file at `$HOME/.config/xsubfind3r/config.yaml`, created upon first run, or set as environment variables. The configuration file's `sources:` list selects the sources used by default; it applies when neither `-u` nor `-e` is given.
 
 Example of environment variables for API keys:
 
@@ -173,9 +173,9 @@ OUTPUT:
      --jsonl bool                     output in JSONL(ines)
  -o, --output string                  output write file path
  -O, --output-directory string        output write directory path
- -m, --monochrome bool                stdout in monochrome
- -s, --silent bool                    stdout in silent mode
- -v, --verbose bool                   stdout in verbose mode
+ -m, --monochrome bool                disable colored console output
+ -s, --silent bool                    disable logging output, only results
+ -v, --verbose bool                   enable detailed debug logging output
 
 ```
 

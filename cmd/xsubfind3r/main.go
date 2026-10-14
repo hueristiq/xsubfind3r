@@ -2,24 +2,28 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 
-	hqgologger "github.com/hueristiq/hq-go-logger"
-	hqgologgerformatter "github.com/hueristiq/hq-go-logger/formatter"
-	hqgologgerlevels "github.com/hueristiq/hq-go-logger/levels"
+	hqgologger "github.com/hueristiq/hq-lib-logger-go"
+	hqgologgerformatter "github.com/hueristiq/hq-lib-logger-go/formatter"
+	hqgologgerlevels "github.com/hueristiq/hq-lib-logger-go/levels"
+	"github.com/logrusorgru/aurora/v4"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+
 	"github.com/hueristiq/xsubfind3r/internal/configuration"
 	"github.com/hueristiq/xsubfind3r/internal/input"
 	"github.com/hueristiq/xsubfind3r/internal/output"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	"github.com/logrusorgru/aurora/v4"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -40,7 +44,7 @@ var (
 )
 
 func init() {
-	pflag.StringVarP(&configurationFilePath, "configuration", "c", configuration.DefaultConfigurationFilePath, "")
+	pflag.StringVarP(&configurationFilePath, "configuration", "c", configuration.DefaultConfigurationFilePath(), "")
 	pflag.StringSliceVarP(&domains, "domain", "d", []string{}, "")
 	pflag.StringVarP(&domainsFilePath, "list", "l", "", "")
 	pflag.BoolVar(&listSupportedSources, "sources", false, "")
@@ -54,14 +58,18 @@ func init() {
 	pflag.BoolVarP(&verbose, "verbose", "v", false, "")
 
 	pflag.Usage = func() {
-		hqgologger.Info(configuration.BANNER(au), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+		hqgologger.Info(configuration.Banner(au), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 
 		h := "USAGE:\n"
-		h += fmt.Sprintf(" %s [OPTIONS]\n", configuration.NAME)
+		h += fmt.Sprintf(" %s [OPTIONS]\n", configuration.Name)
 
 		h += "\nCONFIGURATION:\n"
 
-		defaultConfigurationFilePath := strings.ReplaceAll(configuration.DefaultConfigurationFilePath, configuration.UserDotConfigDirectoryPath, "$HOME/.config")
+		defaultConfigurationFilePath := configuration.DefaultConfigurationFilePath()
+
+		if userConfigDirectoryPath, err := configuration.UserConfigDirectoryPath(); err == nil {
+			defaultConfigurationFilePath = strings.ReplaceAll(defaultConfigurationFilePath, userConfigDirectoryPath, "$HOME/.config")
+		}
 
 		h += fmt.Sprintf(" -c, --configuration string           (default: %v)\n", au.Underline(defaultConfigurationFilePath).Bold())
 
@@ -99,7 +107,7 @@ func init() {
 
 	viper.AutomaticEnv()
 
-	viper.SetEnvPrefix(strings.ToUpper(configuration.NAME))
+	viper.SetEnvPrefix(strings.ToUpper(configuration.Name))
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
@@ -113,18 +121,22 @@ func init() {
 	)
 
 	if silent {
-		hqgologger.DefaultLogger.SetLevel(hqgologgerlevels.LevelSilent)
+		if err := hqgologger.DefaultLogger.SetLevel(hqgologgerlevels.LevelSilent); err != nil {
+			hqgologger.Fatal("failed setting logger level!", hqgologger.WithError(err))
+		}
 	}
 
 	if verbose {
-		hqgologger.DefaultLogger.SetLevel(hqgologgerlevels.LevelDebug)
+		if err := hqgologger.DefaultLogger.SetLevel(hqgologgerlevels.LevelDebug); err != nil {
+			hqgologger.Fatal("failed setting logger level!", hqgologger.WithError(err))
+		}
 	}
 
 	au = aurora.New(aurora.WithColors(!monochrome))
 }
 
 func main() {
-	hqgologger.Info(configuration.BANNER(au), hqgologger.WithoutLabel())
+	hqgologger.Info(configuration.Banner(au), hqgologger.WithoutLabel())
 
 	var cfg *configuration.Configuration
 
@@ -133,17 +145,22 @@ func main() {
 	}
 
 	if listSupportedSources {
-		hqgologger.Info(fmt.Sprintf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(xsubfind3r.Sources))).Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+		hqgologger.Info(fmt.Sprintf("listing, %v, current supported sources.", au.Underline(strconv.Itoa(len(sources.List))).Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 		hqgologger.Info(fmt.Sprintf("sources marked with %v take in key(s) or token(s).", au.Underline("*").Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 		hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 
-		for i := range xsubfind3r.Sources {
-			source := xsubfind3r.Sources[i]
+		for i := range sources.List {
+			name := sources.List[i]
+
+			source, ok := xsubfind3r.NewSource(name)
+			if !ok {
+				continue
+			}
 
 			if source.NeedsKeys() {
-				hqgologger.Print("> "+source.Name()+" *", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+				hqgologger.Print("> "+name+" *", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 			} else {
-				hqgologger.Print("> "+source.Name(), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+				hqgologger.Print("> "+name, hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 			}
 		}
 
@@ -153,7 +170,7 @@ func main() {
 	}
 
 	if domainsFilePath != "" {
-		file, err := os.Open(domainsFilePath)
+		file, err := os.Open(domainsFilePath) //nolint:gosec // path is the user-specified domains file location.
 		if err != nil {
 			hqgologger.Fatal("failed opening input file", hqgologger.WithError(err))
 		}
@@ -161,34 +178,50 @@ func main() {
 		scanner := bufio.NewScanner(file)
 
 		for scanner.Scan() {
-			domain := scanner.Text()
-
-			if domain != "" {
-				domains = append(domains, domain)
-			}
+			domains = append(domains, scanner.Text())
 		}
 
 		if err := scanner.Err(); err != nil {
 			hqgologger.Fatal("failed reading input file!", hqgologger.WithError(err))
 		}
 
-		file.Close()
+		if err := file.Close(); err != nil {
+			hqgologger.Fatal("failed closing input file!", hqgologger.WithError(err))
+		}
 	}
 
 	if input.HasStdin() {
 		scanner := bufio.NewScanner(os.Stdin)
 
 		for scanner.Scan() {
-			domain := scanner.Text()
-
-			if domain != "" {
-				domains = append(domains, domain)
-			}
+			domains = append(domains, scanner.Text())
 		}
 
 		if err := scanner.Err(); err != nil {
 			hqgologger.Fatal("failed reading stdin!", hqgologger.WithError(err))
 		}
+	}
+
+	validatedDomains := make([]string, 0, len(domains))
+
+	for _, domain := range domains {
+		domain = strings.TrimSpace(domain)
+
+		if domain == "" {
+			continue
+		}
+
+		if err := input.ValidateDomain(domain); err != nil {
+			hqgologger.Fatal("invalid domain!", hqgologger.WithString("domain", domain), hqgologger.WithError(err))
+		}
+
+		validatedDomains = append(validatedDomains, domain)
+	}
+
+	domains = validatedDomains
+
+	if len(domains) == 0 {
+		hqgologger.Fatal("no domains provided! specify at least one with --domain, --list or stdin.")
 	}
 
 	writer := output.NewWriter()
@@ -197,9 +230,19 @@ func main() {
 		writer.SetFormatToJSONL()
 	}
 
+	signal.Ignore(syscall.SIGPIPE)
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
+	defer stop()
+
+	if len(sourcesToUse) == 0 {
+		sourcesToUse = cfg.Sources
+	}
+
 	finder, err := xsubfind3r.New(&xsubfind3r.Configuration{
 		Client: &xsubfind3r.ClientConfiguration{
-			UserAgent: fmt.Sprintf("%s %s (https://github.com/hueristiq/%s.git)", configuration.NAME, configuration.VERSION, configuration.NAME),
+			UserAgent: fmt.Sprintf("%s %s (https://github.com/hueristiq/%s.git)", configuration.Name, configuration.Version, configuration.Name),
 		},
 		SourcesToUse:     sourcesToUse,
 		SourcesToExclude: sourcesToExclude,
@@ -207,45 +250,51 @@ func main() {
 	})
 	if err != nil {
 		hqgologger.Fatal("failed creating finder!", hqgologger.WithError(err))
+	}
 
-		return
+	outputs := []io.Writer{
+		os.Stdout,
+	}
+
+	var file *os.File
+
+	if outputFilePath != "" {
+		file, err = writer.CreateFile(outputFilePath)
+		if err != nil {
+			hqgologger.Fatal("failed to create output file!", hqgologger.WithString("file", outputFilePath), hqgologger.WithError(err))
+		}
+
+		outputs = append(outputs, file)
 	}
 
 	for index := range domains {
 		domain := domains[index]
 
 		hqgologger.Info(fmt.Sprintf("Finding subdomains for %v...", au.Underline(domain).Bold()), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
-		hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 
-		outputs := []io.Writer{
-			os.Stdout,
+		if !silent {
+			hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 		}
 
-		var file *os.File
+		domainOutputs := outputs
 
-		switch {
-		case outputFilePath != "":
-			file, err = writer.CreateFile(outputFilePath)
-			if err != nil {
-				hqgologger.Fatal("failed creating output file!", hqgologger.WithString("file", outputFilePath), hqgologger.WithError(err))
-			}
+		var domainFile *os.File
 
-			outputs = append(outputs, file)
-		case outputDirectoryPath != "":
+		if outputFilePath == "" && outputDirectoryPath != "" {
 			domainOutputFilePath := filepath.Join(outputDirectoryPath, domain)
 
-			file, err = writer.CreateFile(domainOutputFilePath)
+			domainFile, err = writer.CreateFile(domainOutputFilePath)
 			if err != nil {
-				hqgologger.Fatal("failed creating output file!", hqgologger.WithString("file", domainOutputFilePath), hqgologger.WithError(err))
+				hqgologger.Fatal("failed to create output file!", hqgologger.WithString("file", domainOutputFilePath), hqgologger.WithError(err))
 			}
 
-			outputs = append(outputs, file)
+			domainOutputs = append(domainOutputs, domainFile)
 		}
 
-		results := finder.Find(domain)
+		results := finder.Find(ctx, domain)
 
 		for result := range results {
-			for _, output := range outputs {
+			for _, output := range domainOutputs {
 				switch result.Type {
 				case sources.ResultError:
 					if verbose {
@@ -253,14 +302,68 @@ func main() {
 					}
 				case sources.ResultSubdomain:
 					if err := writer.Write(output, domain, result); err != nil {
-						hqgologger.Error("failed to write result!", hqgologger.WithString("source", result.Source), hqgologger.WithError(err))
+						if output != os.Stdout {
+							_ = writer.Flush(os.Stdout)
+
+							hqgologger.Fatal("failed to write result to output file!", hqgologger.WithError(err))
+						}
+
+						domainOutputs = dropOutput(domainOutputs, output)
+
+						hqgologger.Error("failed to write result to stdout; dropping stdout output!", hqgologger.WithError(err))
+
+						if len(domainOutputs) == 0 {
+							stop()
+						}
+					}
+				}
+			}
+
+			for _, output := range domainOutputs {
+				if err := writer.Flush(output); err != nil {
+					if output != os.Stdout {
+						_ = writer.Flush(os.Stdout)
+
+						hqgologger.Fatal("failed to flush output file!", hqgologger.WithError(err))
+					}
+
+					domainOutputs = dropOutput(domainOutputs, output)
+
+					hqgologger.Error("failed to flush stdout; dropping stdout output!", hqgologger.WithError(err))
+
+					if len(domainOutputs) == 0 {
+						stop()
 					}
 				}
 			}
 		}
 
-		file.Close()
+		if domainFile != nil {
+			if err := domainFile.Close(); err != nil {
+				hqgologger.Fatal("failed closing output file!", hqgologger.WithError(err))
+			}
+		}
 
-		hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+		if !silent {
+			hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
+		}
 	}
+
+	if file != nil {
+		if err := file.Close(); err != nil {
+			hqgologger.Fatal("failed closing output file!", hqgologger.WithError(err))
+		}
+	}
+}
+
+func dropOutput(outputs []io.Writer, dropped io.Writer) (remaining []io.Writer) {
+	remaining = make([]io.Writer, 0, len(outputs))
+
+	for _, output := range outputs {
+		if output != dropped {
+			remaining = append(remaining, output)
+		}
+	}
+
+	return
 }
