@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 
 	"dario.cat/mergo"
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/logrusorgru/aurora/v4"
 	"gopkg.in/yaml.v3"
+
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type Configuration struct {

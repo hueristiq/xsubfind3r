@@ -8,6 +8,7 @@ import (
 	"time"
 
 	hqgohttp "github.com/hueristiq/hq-lib-http-go"
+
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/anubis"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/arquivo"

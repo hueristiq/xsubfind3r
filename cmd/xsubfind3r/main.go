@@ -14,14 +14,15 @@ import (
 	hqgologger "github.com/hueristiq/hq-lib-logger-go"
 	hqgologgerformatter "github.com/hueristiq/hq-lib-logger-go/formatter"
 	hqgologgerlevels "github.com/hueristiq/hq-lib-logger-go/levels"
+	"github.com/logrusorgru/aurora/v4"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+
 	"github.com/hueristiq/xsubfind3r/internal/configuration"
 	"github.com/hueristiq/xsubfind3r/internal/input"
 	"github.com/hueristiq/xsubfind3r/internal/output"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
-	"github.com/logrusorgru/aurora/v4"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 )
 
 var (
