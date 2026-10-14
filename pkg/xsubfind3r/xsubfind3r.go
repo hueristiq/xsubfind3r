@@ -1,6 +1,3 @@
-// Package xsubfind3r enumerates subdomains of a domain by fanning it out
-// to ~40 passive OSINT sources concurrently, with API-key configuration,
-// dedup, and streaming results.
 package xsubfind3r
 
 import (
@@ -11,7 +8,6 @@ import (
 	"time"
 
 	hqgohttp "github.com/hueristiq/hq-lib-http-go"
-
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/anubis"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/arquivo"
@@ -55,22 +51,11 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/zoomeye"
 )
 
-// Finder enumerates subdomains through the sources it was built with.
 type Finder struct {
-	sources map[string]sources.Source
 	client  *hqgohttp.Client
+	sources map[string]sources.Source
 }
 
-// Find enumerates subdomains of domain, streaming results on the returned
-// channel until it is closed.
-//
-// Parameters:
-//   - ctx (context.Context): the context governing every source request.
-//   - domain (string): the domain to enumerate.
-//
-// Returns:
-//   - results (chan sources.Result): the result stream; subdomain values
-//     are lowercased, wildcard-prefix-stripped, and deduplicated.
 func (finder *Finder) Find(ctx context.Context, domain string) (results chan sources.Result) {
 	results = make(chan sources.Result)
 
@@ -118,13 +103,10 @@ func (finder *Finder) Find(ctx context.Context, domain string) (results chan sou
 	return
 }
 
-// ClientConfiguration configures the HTTP client the finder uses.
 type ClientConfiguration struct {
 	UserAgent string
 }
 
-// Configuration configures a finder: the client knobs, the source
-// selection, and the API keys handed to keyed sources.
 type Configuration struct {
 	Client           *ClientConfiguration
 	SourcesToUse     []string
@@ -132,11 +114,8 @@ type Configuration struct {
 	Keys             map[string]sources.Keys
 }
 
-// SourceFactory constructs a fresh source instance.
 type SourceFactory func() sources.Source
 
-// sourceFactories maps source names to their constructors. Finders always
-// build their sources from these factories, never from shared singletons.
 var sourceFactories = map[string]SourceFactory{
 	sources.ANUBIS:             anubis.New,
 	sources.ARQUIVO:            arquivo.New,
@@ -180,8 +159,6 @@ var sourceFactories = map[string]SourceFactory{
 	sources.ZOOMEYE:            zoomeye.New,
 }
 
-// SourceFactories returns a copy of the source registry, mapping source
-// names to their constructors.
 func SourceFactories() (factories map[string]SourceFactory) {
 	factories = make(map[string]SourceFactory, len(sourceFactories))
 
@@ -192,17 +169,6 @@ func SourceFactories() (factories map[string]SourceFactory) {
 	return
 }
 
-// New builds a finder with fresh source instances for the configured source
-// selection; every call is independent, so finders never share keys or
-// mutable source state.
-//
-// Parameters:
-//   - cfg (*Configuration): the finder configuration; never mutated.
-//
-// Returns:
-//   - finder (*Finder): the built finder.
-//   - err (error): non-nil when the HTTP client cannot be created or an
-//     unknown source name is requested.
 func New(cfg *Configuration) (finder *Finder, err error) {
 	finder = &Finder{
 		sources: make(map[string]sources.Source),

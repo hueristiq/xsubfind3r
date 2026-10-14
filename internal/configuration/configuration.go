@@ -7,27 +7,17 @@ import (
 	"path/filepath"
 
 	"dario.cat/mergo"
+	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/logrusorgru/aurora/v4"
 	"gopkg.in/yaml.v3"
-
-	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
-// Configuration holds the tool's configuration file contents.
 type Configuration struct {
 	Version string                  `yaml:"version"`
 	Sources []string                `yaml:"sources"`
 	Keys    map[string]sources.Keys `yaml:"keys"`
 }
 
-// Write writes the configuration to the YAML file at path, creating the
-// containing directory with 0750 permissions and the file with 0600.
-//
-// Parameters:
-//   - path (string): the configuration file location.
-//
-// Returns:
-//   - err (error): non-nil on any filesystem or encoding failure.
 func (cfg *Configuration) Write(path string) (err error) {
 	directory := filepath.Dir(path)
 	indentation := 4
@@ -68,15 +58,10 @@ func (cfg *Configuration) Write(path string) (err error) {
 	return
 }
 
-// Name holds the tool's name.
 const Name = "xsubfind3r"
 
-// Version holds the tool's version. It is overridden at build time via
-// -ldflags -X github.com/hueristiq/xsubfind3r/internal/configuration.Version.
 var Version = "1.2.0"
 
-// Banner returns the colored application banner, embedding the current
-// [Version].
 func Banner(au *aurora.Aurora) (banner string) {
 	banner = au.Sprintf(
 		au.BrightBlue(`
@@ -92,13 +77,6 @@ __  _____ _   _| |__  / _(_)_ __   __| |___ / _ __
 	return
 }
 
-// UserConfigDirectoryPath returns the user-specific configuration directory
-// (usually `$HOME/.config`).
-//
-// Returns:
-//   - userConfigDirectoryPath (string): the resolved directory path.
-//   - err (error): non-nil when the directory cannot be resolved (for
-//     example, on a `$HOME`-less system).
 func UserConfigDirectoryPath() (userConfigDirectoryPath string, err error) {
 	userConfigDirectoryPath, err = os.UserConfigDir()
 	if err != nil {
@@ -110,9 +88,6 @@ func UserConfigDirectoryPath() (userConfigDirectoryPath string, err error) {
 	return
 }
 
-// DefaultConfigurationFilePath returns the default configuration file path.
-// When the user configuration directory cannot be resolved, the current
-// directory is used as a fallback.
 func DefaultConfigurationFilePath() (path string) {
 	userConfigDirectoryPath, err := UserConfigDirectoryPath()
 	if err != nil {
@@ -124,9 +99,6 @@ func DefaultConfigurationFilePath() (path string) {
 	return
 }
 
-// DefaultConfiguration holds the configuration written on first run: the
-// current version, the full source list, and an empty key map for every
-// keyed source.
 var DefaultConfiguration = Configuration{
 	Version: Version,
 	Sources: sources.List,
@@ -159,15 +131,6 @@ var DefaultConfiguration = Configuration{
 	},
 }
 
-// CreateOrUpdate creates the configuration file at path when it does not
-// exist yet, or refreshes it in place when its version or source list has
-// drifted from the defaults.
-//
-// Parameters:
-//   - path (string): the configuration file location.
-//
-// Returns:
-//   - err (error): non-nil on any filesystem or decoding failure.
 func CreateOrUpdate(path string) (err error) {
 	var cfg Configuration
 
@@ -205,14 +168,6 @@ func CreateOrUpdate(path string) (err error) {
 	return
 }
 
-// Read reads and decodes the configuration file at path.
-//
-// Parameters:
-//   - path (string): the configuration file location.
-//
-// Returns:
-//   - cfg (Configuration): the decoded configuration.
-//   - err (error): non-nil on any filesystem or decoding failure.
 func Read(path string) (cfg Configuration, err error) {
 	file, err := os.Open(path) //nolint:gosec // path is the user-specified configuration file location.
 	if err != nil {

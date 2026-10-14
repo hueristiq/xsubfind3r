@@ -14,18 +14,6 @@ import (
 	hqgohttp "github.com/hueristiq/hq-lib-http-go"
 )
 
-// CloseBody closes a response body, discarding the close error: once a
-// response body has been fully read, its close error carries no actionable
-// information. A nil body is ignored.
-func CloseBody(body io.ReadCloser) {
-	if body == nil {
-		return
-	}
-
-	_ = body.Close()
-}
-
-// Source is a subdomain enumeration source.
 type Source interface {
 	Name() (name string)
 	Run(ctx context.Context, cfg *Configuration, domain string) <-chan Result
@@ -33,34 +21,12 @@ type Source interface {
 	UseKeys(keys ...string)
 }
 
-// Configuration carries the shared state handed to every source run: the
-// HTTP client, the domain being enumerated, and the extractor compiled for
-// that domain.
 type Configuration struct {
 	Client    *hqgohttp.Client
 	Domain    string
 	Extractor *regexp.Regexp
 }
 
-// CompileExtractor compiles the subdomain extractor for domain: the domain
-// and any dotted labels before it, preceded by a non-hostname character or
-// the start of the input (Go regexes have no lookaround, so the leading
-// boundary character is consumed as part of the match; [Configuration.Extract]
-// validates the trailing boundary from the match indices).
-func CompileExtractor(domain string) (extractor *regexp.Regexp) {
-	extractor = regexp.MustCompile(fmt.Sprintf(
-		`(?i)(?:^|[^a-z0-9.-])(((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+)%s)`,
-		regexp.QuoteMeta(domain),
-	))
-
-	return
-}
-
-// Extract returns every subdomain of cfg.Domain found in line. Each match is
-// validated against hostname boundaries on both sides and against the
-// domain itself, so look-alike domains (notexample.com, sub.example.comm,
-// example.com.evil.com) are never returned; the validation is
-// case-insensitive and preserves the matched casing.
 func (cfg *Configuration) Extract(line string) (subdomains []string) {
 	domain := strings.ToLower(cfg.Domain)
 
@@ -85,41 +51,6 @@ func (cfg *Configuration) Extract(line string) (subdomains []string) {
 	return
 }
 
-// isHostnameChar reports whether c may appear inside a hostname label.
-func isHostnameChar(c byte) (is bool) {
-	switch {
-	case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '-', c == '.':
-		is = true
-	}
-
-	return
-}
-
-// SanitizeError returns err with every occurrence of the given secrets —
-// and their query-escaped forms — replaced by "REDACTED", so API keys
-// interpolated into request URLs do not leak into error output.
-func SanitizeError(err error, secrets ...string) (sanitized error) {
-	if err == nil {
-		return nil
-	}
-
-	text := err.Error()
-
-	for _, secret := range secrets {
-		if secret == "" {
-			continue
-		}
-
-		text = strings.ReplaceAll(text, secret, "REDACTED")
-		text = strings.ReplaceAll(text, url.QueryEscape(secret), "REDACTED")
-	}
-
-	sanitized = errors.New(text)
-
-	return
-}
-
-// Result is a single enumeration outcome: a subdomain or a source error.
 type Result struct {
 	Type   ResultType
 	Source string
@@ -127,17 +58,10 @@ type Result struct {
 	Error  error
 }
 
-// ResultType discriminates result payloads.
 type ResultType int
 
-// Keys is a set of API keys; sources pick one at random per run.
 type Keys []string
 
-// PickRandom returns a uniformly random key from the set.
-//
-// Returns:
-//   - key (string): the selected key.
-//   - err (error): non-nil when the set is empty.
 func (k Keys) PickRandom() (key string, err error) {
 	length := len(k)
 
@@ -252,4 +176,51 @@ var List = []string{
 	WAYBACK,
 	WHOISXMLAPI,
 	ZOOMEYE,
+}
+
+func CloseBody(body io.ReadCloser) {
+	if body == nil {
+		return
+	}
+
+	_ = body.Close()
+}
+
+func CompileExtractor(domain string) (extractor *regexp.Regexp) {
+	extractor = regexp.MustCompile(fmt.Sprintf(
+		`(?i)(?:^|[^a-z0-9.-])(((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+)%s)`,
+		regexp.QuoteMeta(domain),
+	))
+
+	return
+}
+
+func isHostnameChar(c byte) (is bool) {
+	switch {
+	case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '-', c == '.':
+		is = true
+	}
+
+	return
+}
+
+func SanitizeError(err error, secrets ...string) (sanitized error) {
+	if err == nil {
+		return nil
+	}
+
+	text := err.Error()
+
+	for _, secret := range secrets {
+		if secret == "" {
+			continue
+		}
+
+		text = strings.ReplaceAll(text, secret, "REDACTED")
+		text = strings.ReplaceAll(text, url.QueryEscape(secret), "REDACTED")
+	}
+
+	sanitized = errors.New(text)
+
+	return
 }

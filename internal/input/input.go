@@ -1,5 +1,3 @@
-// Package input handles user-provided input: stdin detection and domain
-// validation.
 package input
 
 import (
@@ -10,18 +8,8 @@ import (
 	"strings"
 )
 
-// domainPattern accepts a bare hostname: one or more labels separated by
-// dots, ending in an alphabetic TLD of at least two characters.
 var domainPattern = regexp.MustCompile(`^(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$`)
 
-// ValidateDomain reports whether domain is a well-formed hostname.
-//
-// Parameters:
-//   - domain (string): the candidate domain; surrounding whitespace is
-//     trimmed before validation.
-//
-// Returns:
-//   - err (error): non-nil when domain is empty or not a valid hostname.
 func ValidateDomain(domain string) (err error) {
 	domain = strings.TrimSpace(domain)
 
@@ -40,8 +28,6 @@ func ValidateDomain(domain string) (err error) {
 	return
 }
 
-// HasStdin reports whether stdin is redirected from a pipe or file, or is
-// a named pipe (FIFO).
 func HasStdin() (has bool) {
 	stat, err := os.Stdin.Stat()
 	if err != nil {

@@ -14,15 +14,14 @@ import (
 	hqgologger "github.com/hueristiq/hq-lib-logger-go"
 	hqgologgerformatter "github.com/hueristiq/hq-lib-logger-go/formatter"
 	hqgologgerlevels "github.com/hueristiq/hq-lib-logger-go/levels"
-	"github.com/logrusorgru/aurora/v4"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
-
 	"github.com/hueristiq/xsubfind3r/internal/configuration"
 	"github.com/hueristiq/xsubfind3r/internal/input"
 	"github.com/hueristiq/xsubfind3r/internal/output"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
+	"github.com/logrusorgru/aurora/v4"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -38,7 +37,6 @@ var (
 	monochrome            bool
 	silent                bool
 	verbose               bool
-	version               bool
 
 	au = aurora.New(aurora.WithColors(true))
 )
@@ -56,7 +54,6 @@ func init() {
 	pflag.BoolVarP(&monochrome, "monochrome", "m", false, "")
 	pflag.BoolVarP(&silent, "silent", "s", false, "")
 	pflag.BoolVarP(&verbose, "verbose", "v", false, "")
-	pflag.BoolVar(&version, "version", false, "")
 
 	pflag.Usage = func() {
 		hqgologger.Info(configuration.Banner(au), hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
@@ -93,7 +90,6 @@ func init() {
 		h += " -m, --monochrome bool                disable colored console output\n"
 		h += " -s, --silent bool                    disable logging output, only results\n"
 		h += " -v, --verbose bool                   enable detailed debug logging output\n"
-		h += "     --version bool                   display the version and exit\n"
 
 		hqgologger.Info(h, hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
 		hqgologger.Print("", hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
@@ -138,12 +134,6 @@ func init() {
 }
 
 func main() {
-	if version {
-		hqgologger.Print(configuration.Name+" "+configuration.Version, hqgologger.WithoutTimestamp(), hqgologger.WithoutLabel())
-
-		os.Exit(0)
-	}
-
 	hqgologger.Info(configuration.Banner(au), hqgologger.WithoutLabel())
 
 	var cfg *configuration.Configuration
@@ -239,6 +229,7 @@ func main() {
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+
 	defer stop()
 
 	if len(sourcesToUse) == 0 {
