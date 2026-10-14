@@ -17,7 +17,9 @@ type getPassiveDNSResponse struct {
 	} `json:"passive_dns"`
 }
 
-type Source struct{}
+type Source struct {
+	keys sources.Keys
+}
 
 func (s *Source) Name() (name string) {
 	name = sources.OpenThreatExchange
@@ -31,11 +33,22 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	go func() {
 		defer close(results)
 
+		key := ""
+
+		if picked, err := s.keys.PickRandom(); err == nil {
+			key = picked
+		}
+
 		getPassiveDNSReqURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", domain)
 
-		getPassiveDNSRes, err := cfg.Client.NewRequest().
-			URL(getPassiveDNSReqURL).
-			Do(ctx)
+		getPassiveDNSReq := cfg.Client.NewRequest().
+			URL(getPassiveDNSReqURL)
+
+		if key != "" {
+			getPassiveDNSReq = getPassiveDNSReq.SetHeader("X-OTX-API-KEY", key)
+		}
+
+		getPassiveDNSRes, err := getPassiveDNSReq.Do(ctx)
 		if err != nil {
 			result := sources.Result{
 				Type:   sources.ResultError,
@@ -99,18 +112,21 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 }
 
 func (s *Source) NeedsKeys() (needs bool) {
-	needs = false
+	needs = true
 
 	return
 }
 
 func (s *Source) UseKeys(keys ...string) {
+	s.keys = append(s.keys, keys...)
 }
 
 var _ sources.Source = (*Source)(nil)
 
 func New() (source sources.Source) {
-	source = &Source{}
+	source = &Source{
+		keys: make(sources.Keys, 0),
+	}
 
 	return
 }

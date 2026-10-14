@@ -104,31 +104,32 @@ var DefaultConfiguration = Configuration{
 	Version: Version,
 	Sources: sources.List,
 	Keys: map[string]sources.Keys{
-		sources.Bevigil:        {},
-		sources.Builtwith:      {},
-		sources.C99:            {},
-		sources.Censys:         {},
-		sources.Certspotter:    {},
-		sources.Chaos:          {},
-		sources.DNSDB:          {},
-		sources.DNSDumpster:    {},
-		sources.Fofa:           {},
-		sources.Fullhunt:       {},
-		sources.Github:         {},
-		sources.Gitlab:         {},
-		sources.IntelligenceX:  {},
-		sources.Leakix:         {},
-		sources.Leakradar:      {},
-		sources.Merklemap:      {},
-		sources.Netlas:         {},
-		sources.Onyphe:         {},
-		sources.Quake:          {},
-		sources.Securitytrails: {},
-		sources.Shodan:         {},
-		sources.URLScan:        {},
-		sources.Virustotal:     {},
-		sources.WhoisXMLAPI:    {},
-		sources.Zoomeye:        {},
+		sources.Bevigil:            {},
+		sources.Builtwith:          {},
+		sources.C99:                {},
+		sources.Censys:             {},
+		sources.Certspotter:        {},
+		sources.Chaos:              {},
+		sources.DNSDB:              {},
+		sources.DNSDumpster:        {},
+		sources.Fofa:               {},
+		sources.Fullhunt:           {},
+		sources.Github:             {},
+		sources.Gitlab:             {},
+		sources.IntelligenceX:      {},
+		sources.Leakix:             {},
+		sources.Leakradar:          {},
+		sources.Merklemap:          {},
+		sources.Netlas:             {},
+		sources.Onyphe:             {},
+		sources.OpenThreatExchange: {},
+		sources.Quake:              {},
+		sources.Securitytrails:     {},
+		sources.Shodan:             {},
+		sources.URLScan:            {},
+		sources.Virustotal:         {},
+		sources.WhoisXMLAPI:        {},
+		sources.Zoomeye:            {},
 	},
 }
 
@@ -152,7 +153,7 @@ func CreateOrUpdate(path string) (err error) {
 			return
 		}
 
-		if cfg.Version != Version || len(cfg.Sources) != len(sources.List) {
+		if cfg.Version != Version || len(cfg.Sources) != len(sources.List) || hasMissingKeySlots(&cfg) {
 			if err = mergo.Merge(&cfg, DefaultConfiguration); err != nil {
 				return
 			}
@@ -163,6 +164,16 @@ func CreateOrUpdate(path string) (err error) {
 			if err = cfg.Write(path); err != nil {
 				return
 			}
+		}
+	}
+
+	return
+}
+
+func hasMissingKeySlots(cfg *Configuration) (missing bool) {
+	for name := range DefaultConfiguration.Keys {
+		if _, exists := cfg.Keys[name]; !exists {
+			return true
 		}
 	}
 
