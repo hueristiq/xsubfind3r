@@ -115,10 +115,7 @@ type Configuration struct {
 	Keys             map[string]sources.Keys
 }
 
-// sourceRegistry maps source names to their constructors. It is written
-// once at package load and only read afterwards, so constructors are
-// safe for concurrent use.
-var sourceRegistry = map[string]func() sources.Source{
+var registry = map[string]func() sources.Source{
 	sources.Anubis:             anubis.New,
 	sources.Arquivo:            arquivo.New,
 	sources.Bevigil:            bevigil.New,
@@ -172,7 +169,7 @@ var sourceRegistry = map[string]func() sources.Source{
 //     is unknown.
 //   - ok (bool): whether name is registered.
 func NewSource(name string) (source sources.Source, ok bool) {
-	constructor, exists := sourceRegistry[name]
+	constructor, exists := registry[name]
 	if !exists {
 		return nil, false
 	}
@@ -248,7 +245,6 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 	return
 }
 
-// dedupShardCount is the number of hash shards in a deduper.
 const dedupShardCount = 32
 
 type deduper struct {
@@ -270,8 +266,6 @@ func newDeduper() (d *deduper) {
 	return
 }
 
-// seen reports whether value was already recorded, recording it on first
-// sight.
 func (d *deduper) seen(value string) (duplicate bool) {
 	hash := dedupHash(value)
 
