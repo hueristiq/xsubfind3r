@@ -163,6 +163,8 @@ func (source *Source) Run(ctx context.Context, cfg *sources.Configuration, domai
 				continue
 			}
 
+			emptyPages := 0
+
 			for page := range getPaginationData.Pages {
 				if err := limiter.Wait(ctx); err != nil {
 					result := sources.Result{
@@ -185,7 +187,7 @@ func (source *Source) Run(ctx context.Context, cfg *sources.Configuration, domai
 					Param("fl", "url").
 					Param("collapse", "urlkey").
 					Param("page", cast.ToString(page)).
-					Do(ctx)
+					Do(ctx) //nolint:bodyclose // closed after the reader goroutine exits, see the select below.
 				if err != nil {
 					if getURLsRes != nil {
 						_ = getURLsRes.Body.Close()
@@ -202,63 +204,97 @@ func (source *Source) Run(ctx context.Context, cfg *sources.Configuration, domai
 					continue
 				}
 
-				scanner := bufio.NewScanner(getURLsRes.Body)
+				emittedThisPage := 0
 
-				for scanner.Scan() {
-					var getURLsResData getURLsResponse
+				done := make(chan struct{})
 
-					if err = json.Unmarshal(scanner.Bytes(), &getURLsResData); err != nil {
-						result := sources.Result{
-							Type:   sources.ResultError,
-							Source: source.Name(),
-							Error:  err,
-						}
+				go func() {
+					defer close(done)
 
-						results <- result
+					scanner := bufio.NewScanner(getURLsRes.Body)
 
-						continue
-					}
+					scanner.Buffer(make([]byte, 0, 64*1024), maxScanTokenSize)
 
-					if getURLsResData.Error != "" {
-						result := sources.Result{
-							Type:   sources.ResultError,
-							Source: source.Name(),
-							Error:  fmt.Errorf("domain error: %s", getURLsResData.Error),
-						}
+					for scanner.Scan() {
+						var getURLsResData getURLsResponse
 
-						results <- result
+						if err = json.Unmarshal(scanner.Bytes(), &getURLsResData); err != nil {
+							result := sources.Result{
+								Type:   sources.ResultError,
+								Source: source.Name(),
+								Error:  err,
+							}
 
-						continue
-					}
+							results <- result
 
-					for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, getURLsResData.URL) {
-						subdomain, valid := cfg.Validator(candidate)
-						if !valid {
 							continue
 						}
 
+						if getURLsResData.Error != "" {
+							result := sources.Result{
+								Type:   sources.ResultError,
+								Source: source.Name(),
+								Error:  fmt.Errorf("domain error: %s", getURLsResData.Error),
+							}
+
+							results <- result
+
+							continue
+						}
+
+						for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, getURLsResData.URL) {
+							subdomain, valid := cfg.Validator(candidate)
+							if !valid {
+								continue
+							}
+
+							result := sources.Result{
+								Type:   sources.ResultSubdomain,
+								Source: source.Name(),
+								Value:  subdomain,
+							}
+
+							results <- result
+
+							emittedThisPage++
+						}
+					}
+
+					if scanErr := scanner.Err(); scanErr != nil && ctx.Err() == nil {
 						result := sources.Result{
-							Type:   sources.ResultSubdomain,
+							Type:   sources.ResultError,
 							Source: source.Name(),
-							Value:  subdomain,
+							Error:  fmt.Errorf("failed to read response body: %w", scanErr),
 						}
 
 						results <- result
 					}
-				}
+				}()
 
-				if err = scanner.Err(); err != nil {
-					result := sources.Result{
-						Type:   sources.ResultError,
-						Source: source.Name(),
-						Error:  fmt.Errorf("failed to read response body: %w", err),
-					}
-
-					results <- result
-
+				select {
+				case <-done:
+				case <-ctx.Done():
 					_ = getURLsRes.Body.Close()
 
-					continue
+					<-done
+				}
+
+				if ctx.Err() != nil {
+					_ = getURLsRes.Body.Close()
+
+					return
+				}
+
+				if emittedThisPage == 0 {
+					emptyPages++
+
+					if emptyPages >= 3 {
+						_ = getURLsRes.Body.Close()
+
+						break
+					}
+				} else {
+					emptyPages = 0
 				}
 
 				_ = getURLsRes.Body.Close()
@@ -268,6 +304,8 @@ func (source *Source) Run(ctx context.Context, cfg *sources.Configuration, domai
 
 	return results
 }
+
+const maxScanTokenSize = 1 << 20
 
 var limiter = hqgolimiter.New(
 	hqgolimiter.WithRequestsPerMinute(30),

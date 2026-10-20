@@ -73,6 +73,10 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				SetHeader("PRIVATE-TOKEN", key).
 				Do(ctx)
 			if err != nil {
+				if searchRes != nil {
+					_ = searchRes.Body.Close()
+				}
+
 				result := sources.Result{
 					Type:   sources.ResultError,
 					Source: s.Name(),
@@ -117,6 +121,10 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 					SetHeader("PRIVATE-TOKEN", key).
 					Do(ctx)
 				if err != nil {
+					if getRawContentRes != nil {
+						_ = getRawContentRes.Body.Close()
+					}
+
 					result := sources.Result{
 						Type:   sources.ResultError,
 						Source: s.Name(),
@@ -135,6 +143,8 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				}
 
 				scanner := bufio.NewScanner(getRawContentRes.Body)
+
+				scanner.Buffer(make([]byte, 0, 64*1024), maxScanTokenSize)
 
 				for scanner.Scan() {
 					line := scanner.Text()
@@ -182,6 +192,8 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 	return results
 }
+
+const maxScanTokenSize = 16 << 20
 
 var _ sources.Source = (*Source)(nil)
 

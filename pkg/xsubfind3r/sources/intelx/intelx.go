@@ -192,6 +192,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getResultsReqURL := "https://" + intelXHost + "/phonebook/search/result"
 		status := 0
+		seenSelectors := make(map[string]struct{})
 
 		for attempts := 0; status == 0 || status == 3; attempts++ {
 			if attempts >= s.pollAttemptsMax {
@@ -263,6 +264,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			status = getResultsResData.Status
 
 			for _, selector := range getResultsResData.Selectors {
+				if _, seen := seenSelectors[selector.Selectvalue]; seen {
+					continue
+				}
+
+				seenSelectors[selector.Selectvalue] = struct{}{}
+
 				for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, selector.Selectvalue) {
 					subdomain, valid := cfg.Validator(candidate)
 					if !valid {

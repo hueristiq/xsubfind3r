@@ -72,6 +72,12 @@ func (k Keys) PickRandom() (key string, err error) {
 
 	key = k[index]
 
+	if key == "" {
+		err = errors.New("selected key is empty")
+
+		return
+	}
+
 	return
 }
 
@@ -189,7 +195,7 @@ func ExtractSubdomains(extractor *regexp.Regexp, text string) (subdomains []stri
 
 func isHostnameChar(c byte) (is bool) {
 	switch {
-	case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '-', c == '.', c == '_':
+	case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '.', c == '-', c == '_':
 		is = true
 	}
 

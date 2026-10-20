@@ -110,66 +110,90 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			var condition string
 
-			reader := bufio.NewReader(getSubdomainsRes.Body)
+			aborted := false
 
-			for {
-				line, err := reader.ReadBytes('\n')
-				if errors.Is(err, io.EOF) {
-					break
-				}
+			done := make(chan struct{})
 
-				if err != nil {
-					result := sources.Result{
-						Type:   sources.ResultError,
-						Source: s.Name(),
-						Error:  fmt.Errorf("failed to read response body: %w", err),
+			go func() {
+				defer close(done)
+
+				reader := bufio.NewReader(getSubdomainsRes.Body)
+
+				for {
+					line, err := reader.ReadBytes('\n')
+					if errors.Is(err, io.EOF) {
+						return
 					}
 
-					results <- result
+					if err != nil {
+						if ctx.Err() == nil {
+							result := sources.Result{
+								Type:   sources.ResultError,
+								Source: s.Name(),
+								Error:  fmt.Errorf("failed to read response body: %w", err),
+							}
 
-					_ = getSubdomainsRes.Body.Close()
+							results <- result
 
-					return
-				}
-
-				var record lookupResponse
-
-				if err = json.Unmarshal(line, &record); err != nil {
-					result := sources.Result{
-						Type:   sources.ResultError,
-						Source: s.Name(),
-						Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-					}
-
-					results <- result
-
-					_ = getSubdomainsRes.Body.Close()
-
-					return
-				}
-
-				condition = record.Condition
-
-				if condition == "" || condition == "ongoing" {
-					if record.Obj.Name != "" {
-						subdomain, valid := cfg.Validator(record.Obj.Name)
-						if !valid {
-							continue
+							aborted = true
 						}
 
+						return
+					}
+
+					var record lookupResponse
+
+					if err = json.Unmarshal(line, &record); err != nil {
 						result := sources.Result{
-							Type:   sources.ResultSubdomain,
+							Type:   sources.ResultError,
 							Source: s.Name(),
-							Value:  subdomain,
+							Error:  fmt.Errorf("failed to parse JSON response: %w", err),
 						}
 
 						results <- result
 
-						emitted++
+						aborted = true
+
+						return
 					}
-				} else if condition != "begin" {
-					break
+
+					condition = record.Condition
+
+					if condition == "" || condition == "ongoing" || condition == "begin" {
+						if record.Obj.Name != "" {
+							subdomain, valid := cfg.Validator(record.Obj.Name)
+							if !valid {
+								continue
+							}
+
+							result := sources.Result{
+								Type:   sources.ResultSubdomain,
+								Source: s.Name(),
+								Value:  subdomain,
+							}
+
+							results <- result
+
+							emitted++
+						}
+					} else {
+						return
+					}
 				}
+			}()
+
+			select {
+			case <-done:
+			case <-ctx.Done():
+				_ = getSubdomainsRes.Body.Close()
+
+				<-done
+			}
+
+			if ctx.Err() != nil || aborted {
+				_ = getSubdomainsRes.Body.Close()
+
+				return
 			}
 
 			_ = getSubdomainsRes.Body.Close()
@@ -180,6 +204,14 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 					continue
 				}
+
+				result := sources.Result{
+					Type:   sources.ResultError,
+					Source: s.Name(),
+					Error:  errors.New("lookup truncated: pagination limit reached"),
+				}
+
+				results <- result
 			} else if condition != "succeeded" {
 				result := sources.Result{
 					Type:   sources.ResultError,

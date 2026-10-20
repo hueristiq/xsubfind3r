@@ -56,43 +56,53 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		scanner := bufio.NewScanner(getCertificateDetailsRes.Body)
+		done := make(chan struct{})
 
-		for scanner.Scan() {
-			line := scanner.Text()
+		go func() {
+			defer close(done)
 
-			if line == "" {
-				continue
-			}
+			scanner := bufio.NewScanner(getCertificateDetailsRes.Body)
 
-			for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, line) {
-				subdomain, valid := cfg.Validator(candidate)
-				if !valid {
+			for scanner.Scan() {
+				line := scanner.Text()
+
+				if line == "" {
 					continue
 				}
 
+				for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, line) {
+					subdomain, valid := cfg.Validator(candidate)
+					if !valid {
+						continue
+					}
+
+					result := sources.Result{
+						Type:   sources.ResultSubdomain,
+						Source: s.Name(),
+						Value:  subdomain,
+					}
+
+					results <- result
+				}
+			}
+
+			if scanErr := scanner.Err(); scanErr != nil && ctx.Err() == nil {
 				result := sources.Result{
-					Type:   sources.ResultSubdomain,
+					Type:   sources.ResultError,
 					Source: s.Name(),
-					Value:  subdomain,
+					Error:  fmt.Errorf("failed to read response body: %w", scanErr),
 				}
 
 				results <- result
 			}
-		}
+		}()
 
-		if err = scanner.Err(); err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to read response body: %w", err),
-			}
-
-			results <- result
-
+		select {
+		case <-done:
+		case <-ctx.Done():
 			_ = getCertificateDetailsRes.Body.Close()
 
-			return
+			<-done
 		}
 
 		_ = getCertificateDetailsRes.Body.Close()

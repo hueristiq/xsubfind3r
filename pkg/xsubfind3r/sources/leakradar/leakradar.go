@@ -48,20 +48,20 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	go func() {
 		defer close(results)
 
-		for page := 1; ; page++ {
-			key, err := s.keys.PickRandom()
-			if err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("failed to select key: %w", err),
-				}
-
-				results <- result
-
-				return
+		key, err := s.keys.PickRandom()
+		if err != nil {
+			result := sources.Result{
+				Type:   sources.ResultError,
+				Source: s.Name(),
+				Error:  fmt.Errorf("failed to select key: %w", err),
 			}
 
+			results <- result
+
+			return
+		}
+
+		for page := 1; ; page++ {
 			getURLsReqURL := fmt.Sprintf("https://api.leakradar.io/search/domain/%s/urls", domain)
 
 			getURLsRes, err := cfg.Client.NewRequest().
@@ -119,7 +119,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				}
 			}
 
-			if getURLsResData.PageSize*getURLsResData.Page >= getURLsResData.Total {
+			if len(getURLsResData.Items) < 1 || getURLsResData.PageSize*getURLsResData.Page >= getURLsResData.Total {
 				break
 			}
 		}

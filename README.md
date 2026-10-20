@@ -173,9 +173,9 @@ OUTPUT:
      --jsonl bool                     output in JSONL(ines)
  -o, --output string                  output write file path
  -O, --output-directory string        output write directory path
- -m, --monochrome bool                disable colored console output
- -s, --silent bool                    disable logging output, only results
- -v, --verbose bool                   enable detailed debug logging output
+ -m, --monochrome bool                stdout in monochrome
+ -s, --silent bool                    stdout in silent mode
+ -v, --verbose bool                   stdout in verbose mode
 
 ```
 

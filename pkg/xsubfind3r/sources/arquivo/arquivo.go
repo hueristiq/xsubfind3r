@@ -58,49 +58,61 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		scanner := bufio.NewScanner(getSubdomainsRes.Body)
+		done := make(chan struct{})
 
-		for scanner.Scan() {
-			line := scanner.Text()
+		go func() {
+			defer close(done)
 
-			if line == "" {
-				continue
-			}
+			scanner := bufio.NewScanner(getSubdomainsRes.Body)
 
-			var record cdxRecord
+			scanner.Buffer(make([]byte, 0, 64*1024), maxScanTokenSize)
 
-			if err = json.Unmarshal([]byte(line), &record); err != nil {
-				continue
-			}
+			for scanner.Scan() {
+				line := scanner.Text()
 
-			for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, record.URL) {
-				subdomain, valid := cfg.Validator(candidate)
-				if !valid {
+				if line == "" {
 					continue
 				}
 
+				var record cdxRecord
+
+				if err = json.Unmarshal([]byte(line), &record); err != nil {
+					continue
+				}
+
+				for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, record.URL) {
+					subdomain, valid := cfg.Validator(candidate)
+					if !valid {
+						continue
+					}
+
+					result := sources.Result{
+						Type:   sources.ResultSubdomain,
+						Source: s.Name(),
+						Value:  subdomain,
+					}
+
+					results <- result
+				}
+			}
+
+			if scanErr := scanner.Err(); scanErr != nil && ctx.Err() == nil {
 				result := sources.Result{
-					Type:   sources.ResultSubdomain,
+					Type:   sources.ResultError,
 					Source: s.Name(),
-					Value:  subdomain,
+					Error:  fmt.Errorf("failed to read response body: %w", scanErr),
 				}
 
 				results <- result
 			}
-		}
+		}()
 
-		if err = scanner.Err(); err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to read response body: %w", err),
-			}
-
-			results <- result
-
+		select {
+		case <-done:
+		case <-ctx.Done():
 			_ = getSubdomainsRes.Body.Close()
 
-			return
+			<-done
 		}
 
 		_ = getSubdomainsRes.Body.Close()
@@ -108,6 +120,8 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 	return results
 }
+
+const maxScanTokenSize = 1 << 20
 
 var _ sources.Source = (*Source)(nil)
 

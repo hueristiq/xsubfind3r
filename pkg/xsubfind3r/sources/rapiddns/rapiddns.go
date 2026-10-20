@@ -10,7 +10,9 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
-var pagePattern = regexp.MustCompile(`class="page-link" href="/subdomain/[^"]+\?page=(\d+)">`)
+var totalPattern = regexp.MustCompile(`Total:\s*<span[^>]*>(\d+)</span>`)
+
+var rowPattern = regexp.MustCompile(`<th scope="row\s*">(\d+)</th>`)
 
 type Source struct{}
 
@@ -35,104 +37,83 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	go func() {
 		defer close(results)
 
-		page := 1
-		maxPages := 1
+		getSubdomainsReqURL := "https://rapiddns.io/subdomain/" + domain
 
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
+		getSubdomainsRes, err := cfg.Client.NewRequest().
+			URL(getSubdomainsReqURL).
+			Param("full", "1").
+			Do(ctx)
+		if err != nil {
+			result := sources.Result{
+				Type:   sources.ResultError,
+				Source: s.Name(),
+				Error:  fmt.Errorf("request failed: %w", err),
 			}
 
-			getSubdomainsReqURL := "https://rapiddns.io/subdomain/" + domain
+			results <- result
 
-			getSubdomainsRes, err := cfg.Client.NewRequest().
-				URL(getSubdomainsReqURL).
-				Param("full", "1").
-				Param("page", strconv.Itoa(page)).
-				Do(ctx)
-			if err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("request failed: %w", err),
-				}
+			return
+		}
 
-				results <- result
-
-				return
+		body, err := io.ReadAll(getSubdomainsRes.Body)
+		if err != nil {
+			result := sources.Result{
+				Type:   sources.ResultError,
+				Source: s.Name(),
+				Error:  fmt.Errorf("failed to read response body: %w", err),
 			}
 
-			body, err := io.ReadAll(getSubdomainsRes.Body)
-			if err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("failed to read response body: %w", err),
-				}
-
-				results <- result
-
-				_ = getSubdomainsRes.Body.Close()
-
-				return
-			}
+			results <- result
 
 			_ = getSubdomainsRes.Body.Close()
 
-			src := string(body)
+			return
+		}
 
-			for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, src) {
-				subdomain, valid := cfg.Validator(candidate)
-				if !valid {
-					continue
-				}
+		_ = getSubdomainsRes.Body.Close()
 
-				result := sources.Result{
-					Type:   sources.ResultSubdomain,
-					Source: s.Name(),
-					Value:  subdomain,
-				}
+		src := string(body)
 
-				results <- result
+		for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, src) {
+			subdomain, valid := cfg.Validator(candidate)
+			if !valid {
+				continue
 			}
 
-			if maxPages == 1 {
-				maxPages = paginationCount(src)
+			result := sources.Result{
+				Type:   sources.ResultSubdomain,
+				Source: s.Name(),
+				Value:  subdomain,
 			}
 
-			if page >= maxPages {
-				break
+			results <- result
+		}
+
+		// RapidDNS no longer renders pagination links and ignores the
+		// page parameter, so guests receive a single capped page while
+		// the markup still reports the full total.
+		total := 0
+
+		if match := totalPattern.FindStringSubmatch(src); len(match) > 1 {
+			if parsed, err := strconv.Atoi(match[1]); err == nil {
+				total = parsed
+			}
+		}
+
+		rows := len(rowPattern.FindAllString(src, -1))
+
+		if total > 0 && rows < total {
+			result := sources.Result{
+				Type:   sources.ResultError,
+				Source: s.Name(),
+				Error:  fmt.Errorf("results truncated to %d of %d rows; authenticate for full data", rows, total),
 			}
 
-			page++
+			results <- result
 		}
 	}()
 
 	return results
-}
-
-func paginationCount(src string) (maxPages int) {
-	maxPages = 1
-
-	matches := pagePattern.FindAllStringSubmatch(src, -1)
-
-	if len(matches) == 0 {
-		return
-	}
-
-	lastMatch := matches[len(matches)-1]
-
-	if len(lastMatch) < 2 {
-		return
-	}
-
-	if parsed, err := strconv.Atoi(lastMatch[1]); err == nil {
-		maxPages = parsed
-	}
-
-	return
 }
 
 var _ sources.Source = (*Source)(nil)

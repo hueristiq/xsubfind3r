@@ -134,18 +134,18 @@ func (d *deduper) seen(value string) (duplicate bool) {
 	shard.mu.Lock()
 	defer shard.mu.Unlock()
 
-	if _, exists := shard.entries[hash]; exists {
+	if _, exists := shard.entries[value]; exists {
 		return true
 	}
 
-	shard.entries[hash] = struct{}{}
+	shard.entries[value] = struct{}{}
 
 	return false
 }
 
 type dedupShard struct {
 	mu      sync.Mutex
-	entries map[uint64]struct{}
+	entries map[string]struct{}
 }
 
 type ClientConfiguration struct {
@@ -320,7 +320,7 @@ func newDeduper() (d *deduper) {
 	d = &deduper{}
 
 	for i := range d.shards {
-		d.shards[i].entries = make(map[uint64]struct{})
+		d.shards[i].entries = make(map[string]struct{})
 	}
 
 	return

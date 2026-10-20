@@ -117,11 +117,19 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			_ = searchRes.Body.Close()
 
 			if searchResData.Status == hqgohttpstatus.TooManyRequests.Int() {
+				result := sources.Result{
+					Type:   sources.ResultError,
+					Source: s.Name(),
+					Error:  fmt.Errorf("request failed with status: %v", searchResData.Status),
+				}
+
+				results <- result
+
 				break
 			}
 
-			for _, record := range searchResData.Results {
-				subdomain, valid := cfg.Validator(record.Page.Domain)
+			for _, item := range searchResData.Results {
+				subdomain, valid := cfg.Validator(item.Page.Domain)
 				if !valid {
 					continue
 				}
@@ -145,15 +153,19 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			lastResult := searchResData.Results[len(searchResData.Results)-1]
 
-			if lastResult.Sort != nil {
-				var temp []string
-
-				for index := range lastResult.Sort {
-					temp = append(temp, cast.ToString(lastResult.Sort[index]))
-				}
-
-				after = strings.Join(temp, ",")
+			// Without a sort cursor the next page would repeat this
+			// one forever.
+			if len(lastResult.Sort) < 1 {
+				break
 			}
+
+			var sortValues []string
+
+			for index := range lastResult.Sort {
+				sortValues = append(sortValues, cast.ToString(lastResult.Sort[index]))
+			}
+
+			after = strings.Join(sortValues, ",")
 		}
 	}()
 
