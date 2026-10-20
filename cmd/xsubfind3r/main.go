@@ -113,7 +113,8 @@ func init() {
 
 	hqgologger.DefaultLogger.SetFormatter(
 		hqgologgerformatter.NewConsoleFormatter(&hqgologgerformatter.ConsoleFormatterConfiguration{
-			Colorize: !monochrome,
+			Colorize:     !monochrome,
+			IncludeLabel: true,
 		}),
 	)
 
