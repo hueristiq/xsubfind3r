@@ -170,7 +170,7 @@ INPUT:
  -l, --list string                    target domains file path
 
  For multiple domains, use comma(,) separated value with `--domain`,
- specify multiple `--domains`, load from file with `--list` or load from stdin.
+ specify multiple `--domain`, load from file with `--list` or load from stdin.
 
 SOURCES:
      --sources bool                   list supported sources

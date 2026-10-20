@@ -75,7 +75,7 @@ func init() {
 		h += " -l, --list string                    target domains file path\n"
 
 		h += "\n For multiple domains, use comma(,) separated value with `--domain`,\n"
-		h += " specify multiple `--domains`, load from file with `--list` or load from stdin.\n"
+		h += " specify multiple `--domain`, load from file with `--list` or load from stdin.\n"
 
 		h += "\nSOURCES:\n"
 		h += "     --sources bool                   list supported sources\n"
