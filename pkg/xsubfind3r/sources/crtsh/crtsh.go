@@ -25,6 +25,15 @@ func (s *Source) Name() (name string) {
 	return
 }
 
+func (s *Source) NeedsKeys() (needs bool) {
+	needs = false
+
+	return
+}
+
+func (s *Source) UseKeys(keys ...string) {
+}
+
 func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
@@ -73,10 +82,6 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			subdomains := strings.Split(record.NameValue, "\n")
 
 			for _, subdomain := range subdomains {
-				if subdomain != domain && !strings.HasSuffix(subdomain, "."+domain) {
-					continue
-				}
-
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
 					Source: s.Name(),
@@ -89,15 +94,6 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	}()
 
 	return results
-}
-
-func (s *Source) NeedsKeys() (needs bool) {
-	needs = false
-
-	return
-}
-
-func (s *Source) UseKeys(keys ...string) {
 }
 
 var _ sources.Source = (*Source)(nil)

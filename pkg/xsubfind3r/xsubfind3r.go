@@ -61,6 +61,8 @@ type Finder struct {
 func (finder *Finder) Find(ctx context.Context, domain string) (results chan sources.Result) {
 	results = make(chan sources.Result)
 
+	domain = strings.ToLower(domain)
+
 	configuration := &sources.Configuration{
 		Client:    finder.client,
 		Domain:    domain,
@@ -87,8 +89,9 @@ func (finder *Finder) Find(ctx context.Context, domain string) (results chan sou
 						sResult.Value = strings.ToLower(sResult.Value)
 						sResult.Value = strings.TrimPrefix(sResult.Value, "*.")
 						sResult.Value = strings.TrimPrefix(sResult.Value, ".")
+						sResult.Value = strings.TrimSuffix(sResult.Value, ".")
 
-						if sResult.Value != domain && !strings.HasSuffix(sResult.Value, "."+domain) {
+						if sResult.Value == domain || !strings.HasSuffix(sResult.Value, "."+domain) {
 							continue
 						}
 

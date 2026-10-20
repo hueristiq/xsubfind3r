@@ -17,12 +17,25 @@ import (
 
 var resultPattern = regexp.MustCompile(`<a href="/archive/[^"]*">([^<]+)</a>`)
 
+var limiter = hqgolimiter.New(
+	hqgolimiter.WithRequestsPerMinute(30),
+)
+
 type Source struct{}
 
 func (s *Source) Name() (name string) {
 	name = sources.Ghostarchive
 
 	return
+}
+
+func (s *Source) NeedsKeys() (needs bool) {
+	needs = false
+
+	return
+}
+
+func (s *Source) UseKeys(keys ...string) {
 }
 
 func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
@@ -36,10 +49,6 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		if strings.Count(domain, ".") == 1 {
 			term = "." + domain
 		}
-
-		limiter := hqgolimiter.New(
-			hqgolimiter.WithRequestsPerMinute(30),
-		)
 
 		for page := uint(0); ; page++ {
 			if err := limiter.Wait(ctx); err != nil {
@@ -145,15 +154,6 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	}()
 
 	return results
-}
-
-func (s *Source) NeedsKeys() (needs bool) {
-	needs = false
-
-	return
-}
-
-func (s *Source) UseKeys(keys ...string) {
 }
 
 var _ sources.Source = (*Source)(nil)

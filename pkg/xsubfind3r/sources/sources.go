@@ -13,6 +13,53 @@ import (
 	hqgohttp "github.com/hueristiq/hq-lib-http-go"
 )
 
+type Configuration struct {
+	Client    *hqgohttp.Client
+	Domain    string
+	Extractor *regexp.Regexp
+}
+
+func (cfg *Configuration) Extract(line string) (subdomains []string) {
+	domain := strings.ToLower(cfg.Domain)
+
+	for _, match := range cfg.Extractor.FindAllStringSubmatchIndex(line, -1) {
+		value := line[match[2]:match[3]]
+		end := match[3]
+
+		// Reject matches that are a prefix of a longer hostname; a single
+		// trailing dot is fine (FQDN form).
+		if end < len(line) && isHostnameChar(line[end]) {
+			if line[end] != '.' || (end+1 < len(line) && isHostnameChar(line[end+1])) {
+				continue
+			}
+		}
+
+		if !strings.HasSuffix(strings.ToLower(value), "."+domain) {
+			continue
+		}
+
+		subdomains = append(subdomains, value)
+	}
+
+	return
+}
+
+type ResultType int
+
+type Result struct {
+	Type   ResultType
+	Source string
+	Value  string
+	Error  error
+}
+
+type Source interface {
+	Name() (name string)
+	Run(ctx context.Context, cfg *Configuration, domain string) <-chan Result
+	NeedsKeys() (needs bool)
+	UseKeys(keys ...string)
+}
+
 type redactedError struct {
 	err     error
 	message string
@@ -25,52 +72,6 @@ func (e *redactedError) Error() (message string) {
 func (e *redactedError) Unwrap() (err error) {
 	return e.err
 }
-
-type Source interface {
-	Name() (name string)
-	Run(ctx context.Context, cfg *Configuration, domain string) <-chan Result
-	NeedsKeys() (needs bool)
-	UseKeys(keys ...string)
-}
-
-type Configuration struct {
-	Client    *hqgohttp.Client
-	Domain    string
-	Extractor *regexp.Regexp
-}
-
-func (cfg *Configuration) Extract(line string) (subdomains []string) {
-	domain := strings.ToLower(cfg.Domain)
-
-	for _, match := range cfg.Extractor.FindAllStringSubmatchIndex(line, -1) {
-		if len(match) < 4 || match[2] < 0 {
-			continue
-		}
-
-		value := line[match[2]:match[3]]
-
-		if match[3] < len(line) && isHostnameChar(line[match[3]]) {
-			continue
-		}
-
-		if !strings.EqualFold(value, cfg.Domain) && !strings.HasSuffix(strings.ToLower(value), "."+domain) {
-			continue
-		}
-
-		subdomains = append(subdomains, value)
-	}
-
-	return
-}
-
-type Result struct {
-	Type   ResultType
-	Source string
-	Value  string
-	Error  error
-}
-
-type ResultType int
 
 type Keys []string
 
@@ -220,7 +221,7 @@ func RedactError(err error, secrets ...string) (redacted error) {
 
 func CompileExtractor(domain string) (extractor *regexp.Regexp) {
 	extractor = regexp.MustCompile(fmt.Sprintf(
-		`(?i)(?:^|[^a-z0-9.-])(((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+)%s)`,
+		`(?i)(?:^|[^a-z0-9_.-])(((?:[a-z0-9_](?:[a-z0-9_-]*[a-z0-9_])?\.)+)%s)`,
 		regexp.QuoteMeta(domain),
 	))
 
@@ -229,7 +230,7 @@ func CompileExtractor(domain string) (extractor *regexp.Regexp) {
 
 func isHostnameChar(c byte) (is bool) {
 	switch {
-	case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '-', c == '.':
+	case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '-', c == '.', c == '_':
 		is = true
 	}
 

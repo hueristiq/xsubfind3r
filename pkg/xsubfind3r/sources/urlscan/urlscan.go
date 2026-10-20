@@ -40,6 +40,16 @@ func (s *Source) Name() (name string) {
 	return
 }
 
+func (s *Source) NeedsKeys() (needs bool) {
+	needs = true
+
+	return
+}
+
+func (s *Source) UseKeys(keys ...string) {
+	s.keys = append(s.keys, keys...)
+}
+
 func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
 
@@ -111,16 +121,10 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			}
 
 			for _, record := range searchResData.Results {
-				subdomain := record.Page.Domain
-
-				if subdomain != domain && !strings.HasSuffix(subdomain, "."+domain) {
-					continue
-				}
-
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
 					Source: s.Name(),
-					Value:  subdomain,
+					Value:  record.Page.Domain,
 				}
 
 				results <- result
@@ -149,16 +153,6 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	}()
 
 	return results
-}
-
-func (s *Source) NeedsKeys() (needs bool) {
-	needs = true
-
-	return
-}
-
-func (s *Source) UseKeys(keys ...string) {
-	s.keys = append(s.keys, keys...)
 }
 
 var _ sources.Source = (*Source)(nil)

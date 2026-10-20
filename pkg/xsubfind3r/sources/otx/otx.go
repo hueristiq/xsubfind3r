@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
@@ -25,6 +24,15 @@ func (s *Source) Name() (name string) {
 	name = sources.OpenThreatExchange
 
 	return
+}
+func (s *Source) NeedsKeys() (needs bool) {
+	needs = true
+
+	return
+}
+
+func (s *Source) UseKeys(keys ...string) {
+	s.keys = append(s.keys, keys...)
 }
 
 func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
@@ -92,16 +100,10 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		}
 
 		for _, record := range getPassiveDNSResData.PassiveDNS {
-			subdomain := record.Hostname
-
-			if subdomain != domain && !strings.HasSuffix(subdomain, "."+domain) {
-				continue
-			}
-
 			result := sources.Result{
 				Type:   sources.ResultSubdomain,
 				Source: s.Name(),
-				Value:  subdomain,
+				Value:  record.Hostname,
 			}
 
 			results <- result
@@ -109,16 +111,6 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	}()
 
 	return results
-}
-
-func (s *Source) NeedsKeys() (needs bool) {
-	needs = true
-
-	return
-}
-
-func (s *Source) UseKeys(keys ...string) {
-	s.keys = append(s.keys, keys...)
 }
 
 var _ sources.Source = (*Source)(nil)
