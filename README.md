@@ -194,7 +194,7 @@ OUTPUT:
 Find subdomains for a single domain:
 
 ```bash
-xsubfind3r -d domain
+xsubfind3r -d domain.com
 ```
 
 #### Multiple domains
