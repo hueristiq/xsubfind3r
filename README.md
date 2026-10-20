@@ -15,6 +15,13 @@
 	- [Install on Docker (With Docker Installed)](#install-on-docker-with-docker-installed)
 - [Post Installation](#post-installation)
 - [Usage](#usage)
+	- [Examples](#examples)
+		- [Basic](#basic)
+		- [Multiple domains](#multiple-domains)
+		- [Using specific sources](#using-specific-sources)
+		- [Excluding sources](#excluding-sources)
+		- [Writing output to a file](#writing-output-to-a-file)
+		- [JSONL output](#jsonl-output)
 - [Contributing](#contributing)
 - [Licensing](#licensing)
 
@@ -178,6 +185,74 @@ OUTPUT:
  -s, --silent bool                    stdout in silent mode
  -v, --verbose bool                   stdout in verbose mode
 
+```
+
+### Examples
+
+#### Basic
+
+Find subdomains for a single domain:
+
+```bash
+xsubfind3r -d domain
+```
+
+#### Multiple domains
+
+Provide multiple domains as a comma(,) separated value with `--domain`:
+
+```bash
+xsubfind3r -d domain,domain
+```
+
+...or, repeat the `--domain` flag:
+
+```bash
+xsubfind3r -d domain -d domain
+```
+
+...load them from a file with `--list`:
+
+```bash
+xsubfind3r -l domains.txt
+```
+
+...or, pipe them in through stdin:
+
+```bash
+cat domains.txt | xsubfind3r
+```
+
+#### Using specific sources
+
+Restrict the sources to use with `--sources-to-use`:
+
+```bash
+xsubfind3r -d domain -u crtsh,certspotter
+```
+
+#### Excluding sources
+
+Exclude sources with `--sources-to-exclude`:
+
+```bash
+xsubfind3r -d domain -e otx
+```
+
+#### Writing output to a file
+
+Write the results to a file with `--output`; add `--silent` to keep stdout free of log messages:
+
+```bash
+xsubfind3r -d domain -s -o subdomains.txt
+```
+
+#### JSONL output
+
+Output the results as JSONL(ines) with `--jsonl`:
+
+```bash
+xsubfind3r -d domain --jsonl
 ```
 
 ## Contributing
