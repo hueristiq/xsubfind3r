@@ -82,6 +82,11 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			subdomains := strings.Split(record.NameValue, "\n")
 
 			for _, subdomain := range subdomains {
+				subdomain, valid := cfg.Validator(subdomain)
+				if !valid {
+					continue
+				}
+
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
 					Source: s.Name(),

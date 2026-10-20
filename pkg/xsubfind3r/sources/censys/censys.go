@@ -139,10 +139,15 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			for _, hit := range certSearchResData.Result.Hits {
 				for _, name := range hit.Names {
+					subdomain, valid := cfg.Validator(name)
+					if !valid {
+						continue
+					}
+
 					result := sources.Result{
 						Type:   sources.ResultSubdomain,
 						Source: s.Name(),
-						Value:  name,
+						Value:  subdomain,
 					}
 
 					results <- result

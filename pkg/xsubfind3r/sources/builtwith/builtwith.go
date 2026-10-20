@@ -122,10 +122,15 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		for _, item := range getDomainInfoResData.Results {
 			for _, path := range item.Result.Paths {
+				subdomain, valid := cfg.Validator(path.SubDomain + "." + path.Domain)
+				if !valid {
+					continue
+				}
+
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
 					Source: s.Name(),
-					Value:  path.SubDomain + "." + path.Domain,
+					Value:  subdomain,
 				}
 
 				results <- result

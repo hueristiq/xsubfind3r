@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
@@ -153,10 +152,15 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				if condition == "" || condition == "ongoing" {
 					if record.Obj.Name != "" {
+						subdomain, valid := cfg.Validator(record.Obj.Name)
+						if !valid {
+							continue
+						}
+
 						result := sources.Result{
 							Type:   sources.ResultSubdomain,
 							Source: s.Name(),
-							Value:  strings.TrimSuffix(record.Obj.Name, "."),
+							Value:  subdomain,
 						}
 
 						results <- result

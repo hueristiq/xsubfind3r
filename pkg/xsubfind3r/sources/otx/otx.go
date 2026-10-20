@@ -25,6 +25,7 @@ func (s *Source) Name() (name string) {
 
 	return
 }
+
 func (s *Source) NeedsKeys() (needs bool) {
 	needs = true
 
@@ -100,10 +101,15 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		}
 
 		for _, record := range getPassiveDNSResData.PassiveDNS {
+			subdomain, valid := cfg.Validator(record.Hostname)
+			if !valid {
+				continue
+			}
+
 			result := sources.Result{
 				Type:   sources.ResultSubdomain,
 				Source: s.Name(),
-				Value:  record.Hostname,
+				Value:  subdomain,
 			}
 
 			results <- result

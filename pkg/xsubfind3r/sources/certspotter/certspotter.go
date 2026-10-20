@@ -99,6 +99,11 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			for _, cert := range getCTLogsSearchResData {
 				for _, subdomain := range cert.DNSNames {
+					subdomain, valid := cfg.Validator(subdomain)
+					if !valid {
+						continue
+					}
+
 					result := sources.Result{
 						Type:   sources.ResultSubdomain,
 						Source: s.Name(),

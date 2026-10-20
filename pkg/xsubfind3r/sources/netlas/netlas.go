@@ -173,10 +173,15 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		_ = getSubdomainsRes.Body.Close()
 
 		for _, item := range getSubdomainsResData {
+			subdomain, valid := cfg.Validator(item.Data.Domain)
+			if !valid {
+				continue
+			}
+
 			result := sources.Result{
 				Type:   sources.ResultSubdomain,
 				Source: s.Name(),
-				Value:  item.Data.Domain,
+				Value:  subdomain,
 			}
 
 			results <- result

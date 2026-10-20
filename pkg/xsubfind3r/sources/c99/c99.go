@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
@@ -104,14 +103,15 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		}
 
 		for _, record := range getSubdomainsResData.Subdomains {
-			if strings.HasPrefix(record.Subdomain, ".") {
+			subdomain, valid := cfg.Validator(record.Subdomain)
+			if !valid {
 				continue
 			}
 
 			result := sources.Result{
 				Type:   sources.ResultSubdomain,
 				Source: s.Name(),
-				Value:  record.Subdomain,
+				Value:  subdomain,
 			}
 
 			results <- result

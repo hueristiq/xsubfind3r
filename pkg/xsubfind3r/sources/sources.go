@@ -15,33 +15,8 @@ import (
 
 type Configuration struct {
 	Client    *hqgohttp.Client
-	Domain    string
 	Extractor *regexp.Regexp
-}
-
-func (cfg *Configuration) Extract(line string) (subdomains []string) {
-	domain := strings.ToLower(cfg.Domain)
-
-	for _, match := range cfg.Extractor.FindAllStringSubmatchIndex(line, -1) {
-		value := line[match[2]:match[3]]
-		end := match[3]
-
-		// Reject matches that are a prefix of a longer hostname; a single
-		// trailing dot is fine (FQDN form).
-		if end < len(line) && isHostnameChar(line[end]) {
-			if line[end] != '.' || (end+1 < len(line) && isHostnameChar(line[end+1])) {
-				continue
-			}
-		}
-
-		if !strings.HasSuffix(strings.ToLower(value), "."+domain) {
-			continue
-		}
-
-		subdomains = append(subdomains, value)
-	}
-
-	return
+	Validator func(target string) (subdomain string, valid bool)
 }
 
 type ResultType int
@@ -55,9 +30,9 @@ type Result struct {
 
 type Source interface {
 	Name() (name string)
-	Run(ctx context.Context, cfg *Configuration, domain string) <-chan Result
 	NeedsKeys() (needs bool)
 	UseKeys(keys ...string)
+	Run(ctx context.Context, cfg *Configuration, domain string) <-chan Result
 }
 
 type redactedError struct {
@@ -193,6 +168,34 @@ var List = []string{
 
 var _ error = (*redactedError)(nil)
 
+func ExtractSubdomains(extractor *regexp.Regexp, text string) (subdomains []string) {
+	subdomains = make([]string, 0)
+
+	for _, match := range extractor.FindAllStringSubmatchIndex(text, -1) {
+		value := text[match[2]:match[3]]
+		end := match[3]
+
+		if end < len(text) && isHostnameChar(text[end]) {
+			if text[end] != '.' || (end+1 < len(text) && isHostnameChar(text[end+1])) {
+				continue
+			}
+		}
+
+		subdomains = append(subdomains, value)
+	}
+
+	return
+}
+
+func isHostnameChar(c byte) (is bool) {
+	switch {
+	case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '-', c == '.', c == '_':
+		is = true
+	}
+
+	return
+}
+
 func RedactError(err error, secrets ...string) (redacted error) {
 	if err == nil || len(secrets) == 0 {
 		return err
@@ -217,22 +220,4 @@ func RedactError(err error, secrets ...string) (redacted error) {
 		err:     err,
 		message: message,
 	}
-}
-
-func CompileExtractor(domain string) (extractor *regexp.Regexp) {
-	extractor = regexp.MustCompile(fmt.Sprintf(
-		`(?i)(?:^|[^a-z0-9_.-])(((?:[a-z0-9_](?:[a-z0-9_-]*[a-z0-9_])?\.)+)%s)`,
-		regexp.QuoteMeta(domain),
-	))
-
-	return
-}
-
-func isHostnameChar(c byte) (is bool) {
-	switch {
-	case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '-', c == '.', c == '_':
-		is = true
-	}
-
-	return
 }

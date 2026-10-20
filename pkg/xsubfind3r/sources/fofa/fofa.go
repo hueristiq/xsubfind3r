@@ -115,9 +115,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		}
 
 		for _, host := range getSubdomainsResData.Results {
-			subdomains := cfg.Extract(host)
+			for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, host) {
+				subdomain, valid := cfg.Validator(candidate)
+				if !valid {
+					continue
+				}
 
-			for _, subdomain := range subdomains {
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
 					Source: s.Name(),

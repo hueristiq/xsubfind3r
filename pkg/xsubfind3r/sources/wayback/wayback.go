@@ -76,9 +76,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			// Slicing as [1:] to skip the header row.
 			for _, record := range data[1:] {
-				subdomains := cfg.Extract(record[1])
+				for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, record[1]) {
+					subdomain, valid := cfg.Validator(candidate)
+					if !valid {
+						continue
+					}
 
-				for _, subdomain := range subdomains {
 					result := sources.Result{
 						Type:   sources.ResultSubdomain,
 						Source: s.Name(),

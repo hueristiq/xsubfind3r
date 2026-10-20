@@ -208,9 +208,12 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 				continue
 			}
 
-			subdomains := cfg.Extract(line)
+			for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, line) {
+				subdomain, valid := cfg.Validator(candidate)
+				if !valid {
+					continue
+				}
 
-			for _, subdomain := range subdomains {
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
 					Source: s.Name(),
@@ -238,9 +241,12 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 		_ = getRawContentRes.Body.Close()
 
 		for _, textMatch := range item.TextMatches {
-			subdomains := cfg.Extract(textMatch.Fragment)
+			for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, textMatch.Fragment) {
+				subdomain, valid := cfg.Validator(candidate)
+				if !valid {
+					continue
+				}
 
-			for _, subdomain := range subdomains {
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
 					Source: s.Name(),

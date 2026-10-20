@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -63,10 +64,29 @@ func (finder *Finder) Find(ctx context.Context, domain string) (results chan sou
 
 	domain = strings.ToLower(domain)
 
+	extractor, err := compileExtractor(domain)
+	if err != nil {
+		result := sources.Result{
+			Type:   sources.ResultError,
+			Source: "xsubfind3r",
+			Error:  err,
+		}
+
+		results <- result
+
+		close(results)
+
+		return results
+	}
+
 	configuration := &sources.Configuration{
 		Client:    finder.client,
-		Domain:    domain,
-		Extractor: sources.CompileExtractor(domain),
+		Extractor: extractor,
+		Validator: func(target string) (subdomain string, valid bool) {
+			subdomain, valid = validateSubdomain(target, domain)
+
+			return
+		},
 	}
 
 	go func() {
@@ -86,15 +106,6 @@ func (finder *Finder) Find(ctx context.Context, domain string) (results chan sou
 
 				for sResult := range sResults {
 					if sResult.Type == sources.ResultSubdomain {
-						sResult.Value = strings.ToLower(sResult.Value)
-						sResult.Value = strings.TrimPrefix(sResult.Value, "*.")
-						sResult.Value = strings.TrimPrefix(sResult.Value, ".")
-						sResult.Value = strings.TrimSuffix(sResult.Value, ".")
-
-						if sResult.Value == domain || !strings.HasSuffix(sResult.Value, "."+domain) {
-							continue
-						}
-
 						if deduper.seen(sResult.Value) {
 							continue
 						}
@@ -111,6 +122,32 @@ func (finder *Finder) Find(ctx context.Context, domain string) (results chan sou
 	return
 }
 
+type deduper struct {
+	shards [dedupShardCount]dedupShard
+}
+
+func (d *deduper) seen(value string) (duplicate bool) {
+	hash := dedupHash(value)
+
+	shard := &d.shards[hash%dedupShardCount]
+
+	shard.mu.Lock()
+	defer shard.mu.Unlock()
+
+	if _, exists := shard.entries[hash]; exists {
+		return true
+	}
+
+	shard.entries[hash] = struct{}{}
+
+	return false
+}
+
+type dedupShard struct {
+	mu      sync.Mutex
+	entries map[uint64]struct{}
+}
+
 type ClientConfiguration struct {
 	UserAgent string
 }
@@ -121,6 +158,8 @@ type Configuration struct {
 	SourcesToExclude []string
 	Keys             map[string]sources.Keys
 }
+
+const dedupShardCount = 32
 
 var registry = map[string]func() sources.Source{
 	sources.Anubis:             anubis.New,
@@ -163,25 +202,6 @@ var registry = map[string]func() sources.Source{
 	sources.Wayback:            wayback.New,
 	sources.WhoisXMLAPI:        whoisxmlapi.New,
 	sources.Zoomeye:            zoomeye.New,
-}
-
-// NewSource returns a fresh instance of the source registered under
-// name.
-//
-// Parameters:
-//   - name (string): the registered source name.
-//
-// Returns:
-//   - source (sources.Source): the new source instance; nil when name
-//     is unknown.
-//   - ok (bool): whether name is registered.
-func NewSource(name string) (source sources.Source, ok bool) {
-	constructor, exists := registry[name]
-	if !exists {
-		return nil, false
-	}
-
-	return constructor(), true
 }
 
 // New returns a finder configured with cfg. Every finder owns fresh
@@ -252,15 +272,48 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 	return
 }
 
-const dedupShardCount = 32
+// NewSource returns a fresh instance of the source registered under
+// name.
+//
+// Parameters:
+//   - name (string): the registered source name.
+//
+// Returns:
+//   - source (sources.Source): the new source instance; nil when name
+//     is unknown.
+//   - ok (bool): whether name is registered.
+func NewSource(name string) (source sources.Source, ok bool) {
+	constructor, exists := registry[name]
+	if !exists {
+		return nil, false
+	}
 
-type deduper struct {
-	shards [dedupShardCount]dedupShard
+	return constructor(), true
 }
 
-type dedupShard struct {
-	mu      sync.Mutex
-	entries map[uint64]struct{}
+func compileExtractor(domain string) (extractor *regexp.Regexp, err error) {
+	extractor, err = regexp.Compile(fmt.Sprintf(
+		`(?i)(?:^|[^a-z0-9_.-])(((?:[a-z0-9_](?:[a-z0-9_-]*[a-z0-9_])?\.)+)%s)`,
+		regexp.QuoteMeta(domain),
+	))
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile subdomain extractor: %w", err)
+	}
+
+	return
+}
+
+func validateSubdomain(target, domain string) (subdomain string, valid bool) {
+	subdomain = strings.ToLower(target)
+	subdomain = strings.TrimPrefix(subdomain, "*.")
+	subdomain = strings.TrimPrefix(subdomain, ".")
+	subdomain = strings.TrimSuffix(subdomain, ".")
+
+	if subdomain == domain || !strings.HasSuffix(subdomain, "."+domain) {
+		return subdomain, false
+	}
+
+	return subdomain, true
 }
 
 func newDeduper() (d *deduper) {
@@ -271,23 +324,6 @@ func newDeduper() (d *deduper) {
 	}
 
 	return
-}
-
-func (d *deduper) seen(value string) (duplicate bool) {
-	hash := dedupHash(value)
-
-	shard := &d.shards[hash%dedupShardCount]
-
-	shard.mu.Lock()
-	defer shard.mu.Unlock()
-
-	if _, exists := shard.entries[hash]; exists {
-		return true
-	}
-
-	shard.entries[hash] = struct{}{}
-
-	return false
 }
 
 func dedupHash(value string) (hash uint64) {

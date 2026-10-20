@@ -174,6 +174,11 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		for _, v := range getResultsResData.Observations.Host.Values {
 			for subdomain := range v {
+				subdomain, valid := cfg.Validator(subdomain)
+				if !valid {
+					continue
+				}
+
 				result := sources.Result{
 					Type:   sources.ResultSubdomain,
 					Source: s.Name(),
@@ -186,7 +191,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		for _, value := range getResultsResData.Observations.SubjectCert.Values {
 			for entry := range value {
-				for _, subdomain := range cfg.Extract(entry) {
+				for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, entry) {
+					subdomain, valid := cfg.Validator(candidate)
+					if !valid {
+						continue
+					}
+
 					result := sources.Result{
 						Type:   sources.ResultSubdomain,
 						Source: s.Name(),

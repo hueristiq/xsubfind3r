@@ -91,10 +91,15 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		_ = getDNSRes.Body.Close()
 
 		for _, subdomain := range getDNSResData.Subdomains {
+			subdomain, valid := cfg.Validator(fmt.Sprintf("%s.%s", subdomain, domain))
+			if !valid {
+				continue
+			}
+
 			result := sources.Result{
 				Type:   sources.ResultSubdomain,
 				Source: s.Name(),
-				Value:  fmt.Sprintf("%s.%s", subdomain, domain),
+				Value:  subdomain,
 			}
 
 			results <- result
