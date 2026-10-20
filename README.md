@@ -202,13 +202,13 @@ xsubfind3r -d domain
 Provide multiple domains as a comma(,) separated value with `--domain`:
 
 ```bash
-xsubfind3r -d domain,domain
+xsubfind3r -d example.com,example.org
 ```
 
 ...or, repeat the `--domain` flag:
 
 ```bash
-xsubfind3r -d domain -d domain
+xsubfind3r -d example.com -d example.org
 ```
 
 ...load them from a file with `--list`:
@@ -228,7 +228,7 @@ cat domains.txt | xsubfind3r
 Restrict the sources to use with `--sources-to-use`:
 
 ```bash
-xsubfind3r -d domain -u crtsh,certspotter
+xsubfind3r -d example.com -u crtsh,certspotter
 ```
 
 #### Excluding sources
@@ -236,7 +236,7 @@ xsubfind3r -d domain -u crtsh,certspotter
 Exclude sources with `--sources-to-exclude`:
 
 ```bash
-xsubfind3r -d domain -e otx
+xsubfind3r -d example.com -e otx
 ```
 
 #### Writing output to a file
@@ -244,7 +244,7 @@ xsubfind3r -d domain -e otx
 Write the results to a file with `--output`; add `--silent` to keep stdout free of log messages:
 
 ```bash
-xsubfind3r -d domain -s -o subdomains.txt
+xsubfind3r -d example.com -s -o subdomains.txt
 ```
 
 #### JSONL output
@@ -252,7 +252,7 @@ xsubfind3r -d domain -s -o subdomains.txt
 Output the results as JSONL(ines) with `--jsonl`:
 
 ```bash
-xsubfind3r -d domain --jsonl
+xsubfind3r -d example.com --jsonl
 ```
 
 ## Contributing
