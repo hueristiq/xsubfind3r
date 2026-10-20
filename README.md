@@ -4,7 +4,7 @@
 
 `xsubfind3r` is a command-line tool for discovering subdomains for a given domain in a simple, efficient way. It works by gathering information from a variety of passive sources, meaning it doesn't interact directly with the target but instead gathers data that is already publicly available. This makes `xsubfind3r` a powerful tool for security researchers, IT professionals, and anyone looking to gain insights into the subdomains associated with a domain.
 
-## Resource
+## Resources
 
 - [Features](#features)
 - [Installation](#installation)
