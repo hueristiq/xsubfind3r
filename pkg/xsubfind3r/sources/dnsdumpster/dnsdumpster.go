@@ -12,9 +12,6 @@ type getSubdomainsResponse struct {
 	A []struct {
 		Host string `json:"host"`
 	} `json:"a"`
-	NS []struct {
-		Host string `json:"host"`
-	} `json:"ns"`
 }
 
 type Source struct {
@@ -82,7 +79,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		_ = getSubdomainsRes.Body.Close()
 
-		for _, record := range append(getSubdomainsResData.A, getSubdomainsResData.NS...) {
+		for _, record := range getSubdomainsResData.A {
 			result := sources.Result{
 				Type:   sources.ResultSubdomain,
 				Source: s.Name(),

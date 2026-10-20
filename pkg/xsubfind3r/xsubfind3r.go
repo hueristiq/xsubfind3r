@@ -88,6 +88,10 @@ func (finder *Finder) Find(ctx context.Context, domain string) (results chan sou
 						sResult.Value = strings.TrimPrefix(sResult.Value, "*.")
 						sResult.Value = strings.TrimPrefix(sResult.Value, ".")
 
+						if sResult.Value != domain && !strings.HasSuffix(sResult.Value, "."+domain) {
+							continue
+						}
+
 						if deduper.seen(sResult.Value) {
 							continue
 						}
