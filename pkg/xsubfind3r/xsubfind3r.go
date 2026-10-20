@@ -306,6 +306,8 @@ func compileExtractor(domain string) (extractor *regexp.Regexp, err error) {
 func validateSubdomain(target, domain string) (subdomain string, valid bool) {
 	subdomain = strings.ToLower(target)
 	subdomain = strings.TrimPrefix(subdomain, "*.")
+	subdomain = strings.TrimPrefix(subdomain, "%2f")
+	subdomain = strings.TrimPrefix(subdomain, "2f")
 	subdomain = strings.TrimPrefix(subdomain, ".")
 	subdomain = strings.TrimSuffix(subdomain, ".")
 
