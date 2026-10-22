@@ -152,6 +152,10 @@ func TestExtractSubdomains(t *testing.T) {
 		{name: "hostname suffix", text: testSubdomain + "-other", want: []string{}},
 		{name: "hostname character", text: testSubdomain + "x", want: []string{}},
 		{name: "inside text", text: "see (" + testSubdomain + ") here", want: []string{testSubdomain}},
+		{name: "encoded slash prefix", text: "%2F" + testSubdomain, want: []string{testSubdomain}},
+		{name: "encoded slash prefix lowercase", text: "%2f" + testSubdomain, want: []string{testSubdomain}},
+		{name: "encoded slash empty label", text: "%2f.example.com", want: []string{}},
+		{name: "legitimate two f label", text: "2f.example.com", want: []string{"2f.example.com"}},
 	}
 
 	for _, test := range tests {

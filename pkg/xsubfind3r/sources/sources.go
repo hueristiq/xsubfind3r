@@ -183,7 +183,11 @@ func ExtractSubdomains(extractor *regexp.Regexp, text string) (subdomains []stri
 	subdomains = make([]string, 0)
 
 	for _, match := range extractor.FindAllStringSubmatchIndex(text, -1) {
-		value := text[match[2]:match[3]]
+		value, ok := trimEncodedSlashPrefix(text, match[2], text[match[2]:match[3]])
+		if !ok {
+			continue
+		}
+
 		end := match[3]
 
 		if end < len(text) && isHostLabelCharacter(text[end]) {
@@ -196,6 +200,24 @@ func ExtractSubdomains(extractor *regexp.Regexp, text string) (subdomains []stri
 	}
 
 	return
+}
+
+// trimEncodedSlashPrefix removes the "2f" left behind when a match starts at
+// the percent-encoded slash in "%2F". The match must be directly preceded by
+// '%'; a remainder that is empty or starts with a dot is not a recoverable
+// hostname and is dropped.
+func trimEncodedSlashPrefix(text string, start int, value string) (trimmed string, ok bool) {
+	if start == 0 || text[start-1] != '%' || len(value) < 3 || !strings.EqualFold(value[:2], "2f") {
+		return value, true
+	}
+
+	trimmed = value[2:]
+
+	if trimmed == "" || trimmed[0] == '.' {
+		return "", false
+	}
+
+	return trimmed, true
 }
 
 func isHostLabelCharacter(character byte) (ok bool) {
