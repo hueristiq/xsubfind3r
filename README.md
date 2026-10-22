@@ -130,7 +130,7 @@ If you have Docker installed, you can use `xsubfind3r` using it's image:
 
 ## Post Installation
 
-`xsubfind3r` will work right after [installation](#installation). However, some sources require API keys to work. These keys can be added to a configuration file at `$HOME/.config/xsubfind3r/config.yaml`, created upon first run, or set as environment variables. The configuration file's `sources:` list selects the sources used by default; it applies when neither `-u` nor `-e` is given.
+`xsubfind3r` will work right after [installation](#installation). However, some sources require API keys to work. These keys can be added to a configuration file at `$HOME/.config/xsubfind3r/config.yaml`, created upon first run, or set as environment variables. The configuration file's `sources:` list selects the sources used by default; it applies when neither `--sources-to-use` nor `--sources-to-exclude` is given.
 
 Example of environment variables for API keys:
 
@@ -174,8 +174,8 @@ INPUT:
 
 SOURCES:
      --sources bool                   list supported sources
- -u, --sources-to-use string[]        comma(,) separated sources to use
- -e, --sources-to-exclude string[]    comma(,) separated sources to exclude
+     --sources-to-use string[]        comma(,) separated sources to use
+     --sources-to-exclude string[]    comma(,) separated sources to exclude
 
 OUTPUT:
      --jsonl bool                     output in JSONL(ines)
@@ -228,7 +228,7 @@ cat domains.txt | xsubfind3r
 Restrict the sources to use with `--sources-to-use`:
 
 ```bash
-xsubfind3r -d example.com -u crtsh,certspotter
+xsubfind3r -d example.com --sources-to-use crtsh,certspotter
 ```
 
 #### Excluding sources
@@ -236,7 +236,7 @@ xsubfind3r -d example.com -u crtsh,certspotter
 Exclude sources with `--sources-to-exclude`:
 
 ```bash
-xsubfind3r -d example.com -e otx
+xsubfind3r -d example.com --sources-to-exclude otx
 ```
 
 #### Writing output to a file
