@@ -64,11 +64,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		key, err := s.keys.PickRandom()
 		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to select key: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to select key: %w", err))
 
 			results <- result
 
@@ -88,11 +84,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				Start:   start,
 			})
 			if err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("failed to marshal search request: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to marshal search request: %w", err))
 
 				results <- result
 
@@ -109,13 +101,19 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				Body(searchReqBody).
 				Do(ctx)
 			if err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("request failed: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 				results <- result
+
+				return
+			}
+
+			if err = sources.CheckResponse(getSubdomainsRes, key); err != nil {
+				result := sources.ErrorResult(s.Name(), err)
+
+				results <- result
+
+				_ = getSubdomainsRes.Body.Close()
 
 				return
 			}
@@ -123,11 +121,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			var getSubdomainsResData searchResponse
 
 			if err = json.NewDecoder(getSubdomainsRes.Body).Decode(&getSubdomainsResData); err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
 
 				results <- result
 
@@ -139,11 +133,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			_ = getSubdomainsRes.Body.Close()
 
 			if getSubdomainsResData.Code != 0 {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("%s", getSubdomainsResData.Message),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("%s", getSubdomainsResData.Message))
 
 				results <- result
 
@@ -168,11 +158,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 					continue
 				}
 
-				result := sources.Result{
-					Type:   sources.ResultSubdomain,
-					Source: s.Name(),
-					Value:  subdomain,
-				}
+				result := sources.SubdomainResult(s.Name(), subdomain)
 
 				results <- result
 			}

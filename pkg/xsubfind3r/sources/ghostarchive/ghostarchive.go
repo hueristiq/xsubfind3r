@@ -48,11 +48,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		for page := uint(0); ; page++ {
 			if err := limiter.Wait(ctx); err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("failed to wait on rate limiter: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to wait on rate limiter: %w", err))
 
 				results <- result
 
@@ -67,11 +63,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				Param("page", cast.ToString(page)).
 				Do(ctx)
 			if err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("request failed: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 				results <- result
 
@@ -82,11 +74,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			body, err := io.ReadAll(getSubdomainsRes.Body)
 			if err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("failed to read response body: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to read response body: %w", err))
 
 				results <- result
 
@@ -98,11 +86,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			_ = getSubdomainsRes.Body.Close()
 
 			if status == hqgohttpstatus.TooManyRequests.Int() || status == hqgohttpstatus.ServiceUnavailable.Int() {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("request failed with status: %v", status),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed with status: %v", status))
 
 				results <- result
 
@@ -121,11 +105,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			previousSrc = src
 
 			if strings.Contains(src, "The site is under maintenance") || strings.Contains(src, "No archives for that site") {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  errors.New("no archives for that site"),
-				}
+				result := sources.ErrorResult(s.Name(), errors.New("no archives for that site"))
 
 				results <- result
 
@@ -145,11 +125,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 						continue
 					}
 
-					result := sources.Result{
-						Type:   sources.ResultSubdomain,
-						Source: s.Name(),
-						Value:  subdomain,
-					}
+					result := sources.SubdomainResult(s.Name(), subdomain)
 
 					results <- result
 				}

@@ -3,6 +3,7 @@ package configuration
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -32,16 +33,24 @@ func (cfg *Configuration) Write(path string) (err error) {
 
 	var file *os.File
 
-	file, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600) //nolint:gosec // path is the user-specified configuration file location.
+	file, err = os.CreateTemp(directory, "."+filepath.Base(path)+".tmp-*")
 	if err != nil {
 		return
 	}
 
+	tempPath := file.Name()
+
 	defer func() {
-		if closeErr := file.Close(); err == nil && closeErr != nil {
-			err = closeErr
+		if err != nil {
+			_ = file.Close()
+
+			_ = os.Remove(tempPath)
 		}
 	}()
+
+	if err = file.Chmod(0o600); err != nil {
+		return
+	}
 
 	enc := yaml.NewEncoder(file)
 
@@ -52,6 +61,14 @@ func (cfg *Configuration) Write(path string) (err error) {
 	}
 
 	if err = enc.Close(); err != nil {
+		return
+	}
+
+	if err = file.Close(); err != nil {
+		return
+	}
+
+	if err = os.Rename(tempPath, path); err != nil {
 		return
 	}
 
@@ -148,13 +165,16 @@ func CreateOrUpdate(path string) (err error) {
 			return
 		}
 
-		if cfg.Version != Version || len(cfg.Sources) != len(sources.List) || hasMissingKeySlots(&cfg) {
+		if cfg.Version != Version || len(cfg.Sources) == 0 || hasMissingKeySlots(&cfg) {
 			if err = mergo.Merge(&cfg, DefaultConfiguration); err != nil {
 				return
 			}
 
 			cfg.Version = Version
-			cfg.Sources = sources.List
+
+			if len(cfg.Sources) == 0 {
+				cfg.Sources = sources.List
+			}
 
 			if err = cfg.Write(path); err != nil {
 				return
@@ -176,7 +196,7 @@ func hasMissingKeySlots(cfg *Configuration) (missing bool) {
 }
 
 func Read(path string) (cfg Configuration, err error) {
-	file, err := os.Open(path) //nolint:gosec // path is the user-specified configuration file location.
+	file, err := os.Open(path)
 	if err != nil {
 		return
 	}
@@ -188,6 +208,10 @@ func Read(path string) (cfg Configuration, err error) {
 	}()
 
 	if err = yaml.NewDecoder(file).Decode(&cfg); err != nil {
+		if errors.Is(err, io.EOF) {
+			err = nil
+		}
+
 		return
 	}
 

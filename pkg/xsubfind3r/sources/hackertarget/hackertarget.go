@@ -38,11 +38,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			Param("q", domain).
 			Do(ctx)
 		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("request failed: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 			results <- result
 
@@ -64,22 +60,14 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 					continue
 				}
 
-				result := sources.Result{
-					Type:   sources.ResultSubdomain,
-					Source: s.Name(),
-					Value:  subdomain,
-				}
+				result := sources.SubdomainResult(s.Name(), subdomain)
 
 				results <- result
 			}
 		}
 
 		if err = scanner.Err(); err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to read response body: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to read response body: %w", err))
 
 			results <- result
 

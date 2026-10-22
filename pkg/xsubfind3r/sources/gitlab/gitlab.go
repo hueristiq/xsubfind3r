@@ -48,11 +48,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		key, err := s.keys.PickRandom()
 		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to select key: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to select key: %w", err))
 
 			results <- result
 
@@ -77,13 +73,19 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 					_ = searchRes.Body.Close()
 				}
 
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("request failed: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 				results <- result
+
+				return
+			}
+
+			if err = sources.CheckResponse(searchRes, key); err != nil {
+				result := sources.ErrorResult(s.Name(), err)
+
+				results <- result
+
+				_ = searchRes.Body.Close()
 
 				return
 			}
@@ -93,11 +95,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			var items []searchResponseItem
 
 			if err = json.NewDecoder(searchRes.Body).Decode(&items); err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
 
 				results <- result
 
@@ -125,11 +123,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 						_ = getRawContentRes.Body.Close()
 					}
 
-					result := sources.Result{
-						Type:   sources.ResultError,
-						Source: s.Name(),
-						Error:  fmt.Errorf("request failed: %w", err),
-					}
+					result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 					results <- result
 
@@ -159,22 +153,14 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 							continue
 						}
 
-						result := sources.Result{
-							Type:   sources.ResultSubdomain,
-							Source: s.Name(),
-							Value:  subdomain,
-						}
+						result := sources.SubdomainResult(s.Name(), subdomain)
 
 						results <- result
 					}
 				}
 
 				if err = scanner.Err(); err != nil {
-					result := sources.Result{
-						Type:   sources.ResultError,
-						Source: s.Name(),
-						Error:  fmt.Errorf("failed to read response body: %w", err),
-					}
+					result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to read response body: %w", err))
 
 					results <- result
 

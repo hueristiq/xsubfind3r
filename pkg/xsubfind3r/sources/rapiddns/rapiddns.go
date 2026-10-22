@@ -44,11 +44,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			Param("full", "1").
 			Do(ctx)
 		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("request failed: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 			results <- result
 
@@ -57,11 +53,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		body, err := io.ReadAll(getSubdomainsRes.Body)
 		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to read response body: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to read response body: %w", err))
 
 			results <- result
 
@@ -80,11 +72,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				continue
 			}
 
-			result := sources.Result{
-				Type:   sources.ResultSubdomain,
-				Source: s.Name(),
-				Value:  subdomain,
-			}
+			result := sources.SubdomainResult(s.Name(), subdomain)
 
 			results <- result
 		}
@@ -103,11 +91,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		rows := len(rowPattern.FindAllString(src, -1))
 
 		if total > 0 && rows < total {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("results truncated to %d of %d rows; authenticate for full data", rows, total),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("results truncated to %d of %d rows; authenticate for full data", rows, total))
 
 			results <- result
 		}

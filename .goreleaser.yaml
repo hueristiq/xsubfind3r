@@ -5,7 +5,7 @@ before:
 builds:
     -
         id: xsubfind3r-cli
-        main: cmd/xsubfind3r/main.go
+        main: ./cmd/xsubfind3r
         binary: xsubfind3r
 
         env:

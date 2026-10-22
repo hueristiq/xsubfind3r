@@ -59,13 +59,19 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getPassiveDNSRes, err := getPassiveDNSReq.Do(ctx)
 		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("request failed: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 			results <- result
+
+			return
+		}
+
+		if err = sources.CheckResponse(getPassiveDNSRes, key); err != nil {
+			result := sources.ErrorResult(s.Name(), err)
+
+			results <- result
+
+			_ = getPassiveDNSRes.Body.Close()
 
 			return
 		}
@@ -73,11 +79,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		var getPassiveDNSResData getPassiveDNSResponse
 
 		if err = json.NewDecoder(getPassiveDNSRes.Body).Decode(&getPassiveDNSResData); err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
 
 			results <- result
 
@@ -89,11 +91,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		_ = getPassiveDNSRes.Body.Close()
 
 		if getPassiveDNSResData.Error != "" {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("domain error: %s, %s", getPassiveDNSResData.Detail, getPassiveDNSResData.Error),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("domain error: %s, %s", getPassiveDNSResData.Detail, getPassiveDNSResData.Error))
 
 			results <- result
 
@@ -106,11 +104,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				continue
 			}
 
-			result := sources.Result{
-				Type:   sources.ResultSubdomain,
-				Source: s.Name(),
-				Value:  subdomain,
-			}
+			result := sources.SubdomainResult(s.Name(), subdomain)
 
 			results <- result
 		}

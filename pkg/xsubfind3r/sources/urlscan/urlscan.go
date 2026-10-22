@@ -58,11 +58,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		key, err := s.keys.PickRandom()
 		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to select key: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to select key: %w", err))
 
 			results <- result
 
@@ -71,7 +67,9 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		var after string
 
-		for {
+		page := 0
+
+		for ; page < sources.MaxPages; page++ {
 			searchReqURL := "https://urlscan.io/api/v1/search"
 
 			searchReq := cfg.Client.NewRequest().
@@ -87,13 +85,19 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			searchRes, err := searchReq.Do(ctx)
 			if err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("request failed: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 				results <- result
+
+				break
+			}
+
+			if err = sources.CheckResponse(searchRes, key); err != nil {
+				result := sources.ErrorResult(s.Name(), err)
+
+				results <- result
+
+				_ = searchRes.Body.Close()
 
 				break
 			}
@@ -101,11 +105,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			var searchResData searchResponse
 
 			if err = json.NewDecoder(searchRes.Body).Decode(&searchResData); err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
 
 				results <- result
 
@@ -117,11 +117,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			_ = searchRes.Body.Close()
 
 			if searchResData.Status == hqgohttpstatus.TooManyRequests.Int() {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("request failed with status: %v", searchResData.Status),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed with status: %v", searchResData.Status))
 
 				results <- result
 
@@ -134,11 +130,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 					continue
 				}
 
-				result := sources.Result{
-					Type:   sources.ResultSubdomain,
-					Source: s.Name(),
-					Value:  subdomain,
-				}
+				result := sources.SubdomainResult(s.Name(), subdomain)
 
 				results <- result
 			}
@@ -165,7 +157,21 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				sortValues = append(sortValues, cast.ToString(lastResult.Sort[index]))
 			}
 
-			after = strings.Join(sortValues, ",")
+			nextAfter := strings.Join(sortValues, ",")
+
+			// A repeated cursor would page through the same results
+			// forever.
+			if nextAfter == after || nextAfter == "" {
+				break
+			}
+
+			after = nextAfter
+		}
+
+		if page == sources.MaxPages {
+			result := sources.WarningResult(s.Name(), fmt.Sprintf("pagination capped at %d pages", sources.MaxPages))
+
+			results <- result
 		}
 	}()
 

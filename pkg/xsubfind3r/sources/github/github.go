@@ -107,24 +107,27 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 		SetHeader(hqgohttpheader.Authorization.String(), "token "+token.Value).
 		Do(ctx)
 
-	isForbidden := codeSearchRes != nil && codeSearchRes.StatusCode == hqgohttpstatus.Forbidden.Int()
-
-	if err != nil && !isForbidden {
+	if err != nil && (codeSearchRes == nil || codeSearchRes.StatusCode != hqgohttpstatus.Forbidden.Int()) {
 		if codeSearchRes != nil {
 			_ = codeSearchRes.Body.Close()
 		}
 
-		result := sources.Result{
-			Type:   sources.ResultError,
-			Source: s.Name(),
-			Error:  fmt.Errorf("request failed: %w", err),
-		}
+		result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 		results <- result
 
 		return
 	}
 
+	if codeSearchRes == nil {
+		result := sources.ErrorResult(s.Name(), errors.New("request failed: empty response"))
+
+		results <- result
+
+		return
+	}
+
+	isForbidden := codeSearchRes.StatusCode == hqgohttpstatus.Forbidden.Int()
 	ratelimitRemaining := cast.ToInt64(codeSearchRes.Header.Get(hqgohttpheader.XRateLimitRemaining.String()))
 
 	if isForbidden && ratelimitRemaining == 0 {
@@ -137,11 +140,7 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 		if retryAfterSeconds <= 0 {
 			_ = codeSearchRes.Body.Close()
 
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  errors.New("rate limit reached with no recovery hint; try again later"),
-			}
+			result := sources.ErrorResult(s.Name(), errors.New("rate limit reached with no recovery hint; try again later"))
 
 			results <- result
 
@@ -157,14 +156,30 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 		return
 	}
 
+	if err != nil {
+		_ = codeSearchRes.Body.Close()
+
+		result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
+
+		results <- result
+
+		return
+	}
+
+	if err = sources.CheckResponse(codeSearchRes, token.Value); err != nil {
+		result := sources.ErrorResult(s.Name(), err)
+
+		results <- result
+
+		_ = codeSearchRes.Body.Close()
+
+		return
+	}
+
 	var codeSearchResData codeSearchResponse
 
 	if err = json.NewDecoder(codeSearchRes.Body).Decode(&codeSearchResData); err != nil {
-		result := sources.Result{
-			Type:   sources.ResultError,
-			Source: s.Name(),
-			Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-		}
+		result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
 
 		results <- result
 
@@ -189,11 +204,7 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 				_ = getRawContentRes.Body.Close()
 			}
 
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("request failed: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 			results <- result
 
@@ -223,22 +234,14 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 					continue
 				}
 
-				result := sources.Result{
-					Type:   sources.ResultSubdomain,
-					Source: s.Name(),
-					Value:  subdomain,
-				}
+				result := sources.SubdomainResult(s.Name(), subdomain)
 
 				results <- result
 			}
 		}
 
 		if err = scanner.Err(); err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to read response body: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to read response body: %w", err))
 
 			results <- result
 
@@ -256,11 +259,7 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 					continue
 				}
 
-				result := sources.Result{
-					Type:   sources.ResultSubdomain,
-					Source: s.Name(),
-					Value:  subdomain,
-				}
+				result := sources.SubdomainResult(s.Name(), subdomain)
 
 				results <- result
 			}
@@ -276,11 +275,7 @@ func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *source
 
 		nextURL, err := url.Parse(link.URL)
 		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  err,
-			}
+			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result
 

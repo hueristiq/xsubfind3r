@@ -49,13 +49,19 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			Param("domain", domain).
 			Do(ctx)
 		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("request failed: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 			results <- result
+
+			return
+		}
+
+		if err = sources.CheckResponse(getSubdomainsRes); err != nil {
+			result := sources.ErrorResult(s.Name(), err)
+
+			results <- result
+
+			_ = getSubdomainsRes.Body.Close()
 
 			return
 		}
@@ -63,11 +69,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		var getSubdomainsResData getSubdomainsResponse
 
 		if err = json.NewDecoder(getSubdomainsRes.Body).Decode(&getSubdomainsResData); err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
 
 			results <- result
 
@@ -85,11 +87,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 					continue
 				}
 
-				result := sources.Result{
-					Type:   sources.ResultSubdomain,
-					Source: s.Name(),
-					Value:  subdomain,
-				}
+				result := sources.SubdomainResult(s.Name(), subdomain)
 
 				results <- result
 			}

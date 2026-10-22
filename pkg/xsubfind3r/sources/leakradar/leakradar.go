@@ -50,18 +50,18 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		key, err := s.keys.PickRandom()
 		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to select key: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to select key: %w", err))
 
 			results <- result
 
 			return
 		}
 
-		for page := 1; ; page++ {
+		page := 1
+		lastPage := 0
+		lastTotal := -1
+
+		for ; page <= sources.MaxPages; page++ {
 			getURLsReqURL := fmt.Sprintf("https://api.leakradar.io/search/domain/%s/urls", domain)
 
 			getURLsRes, err := cfg.Client.NewRequest().
@@ -71,13 +71,19 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				SetHeader("Authorization", "Bearer "+key).
 				Do(ctx)
 			if err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("request failed: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 				results <- result
+
+				return
+			}
+
+			if err = sources.CheckResponse(getURLsRes, key); err != nil {
+				result := sources.ErrorResult(s.Name(), err)
+
+				results <- result
+
+				_ = getURLsRes.Body.Close()
 
 				return
 			}
@@ -85,11 +91,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			var getURLsResData getURLsResponse
 
 			if err = json.NewDecoder(getURLsRes.Body).Decode(&getURLsResData); err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
 
 				results <- result
 
@@ -109,19 +111,30 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 						continue
 					}
 
-					result := sources.Result{
-						Type:   sources.ResultSubdomain,
-						Source: s.Name(),
-						Value:  subdomain,
-					}
+					result := sources.SubdomainResult(s.Name(), subdomain)
 
 					results <- result
 				}
 			}
 
+			// A repeated page and total means the server is serving the
+			// same page again.
+			if getURLsResData.Page == lastPage && getURLsResData.Total == lastTotal {
+				break
+			}
+
+			lastPage = getURLsResData.Page
+			lastTotal = getURLsResData.Total
+
 			if len(getURLsResData.Items) < 1 || getURLsResData.PageSize*getURLsResData.Page >= getURLsResData.Total {
 				break
 			}
+		}
+
+		if page > sources.MaxPages {
+			result := sources.WarningResult(s.Name(), fmt.Sprintf("pagination capped at %d pages", sources.MaxPages))
+
+			results <- result
 		}
 	}()
 

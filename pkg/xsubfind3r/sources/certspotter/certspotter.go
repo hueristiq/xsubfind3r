@@ -64,13 +64,19 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			getCTLogsSearchRes, err := req.Do(ctx)
 			if err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("request failed: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 				results <- result
+
+				break
+			}
+
+			if err = sources.CheckResponse(getCTLogsSearchRes, key); err != nil {
+				result := sources.ErrorResult(s.Name(), err)
+
+				results <- result
+
+				_ = getCTLogsSearchRes.Body.Close()
 
 				break
 			}
@@ -78,11 +84,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			var getCTLogsSearchResData []getCTLogsSearchResponse
 
 			if err = json.NewDecoder(getCTLogsSearchRes.Body).Decode(&getCTLogsSearchResData); err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
 
 				results <- result
 
@@ -104,11 +106,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 						continue
 					}
 
-					result := sources.Result{
-						Type:   sources.ResultSubdomain,
-						Source: s.Name(),
-						Value:  subdomain,
-					}
+					result := sources.SubdomainResult(s.Name(), subdomain)
 
 					results <- result
 				}

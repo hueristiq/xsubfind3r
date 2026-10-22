@@ -2,6 +2,7 @@ package dnsdb
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,15 +10,19 @@ import (
 	"io"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
-const baseReqURL = "https://api.dnsdb.info/dnsdb/v2"
+const (
+	baseReqURL = "https://api.dnsdb.info/dnsdb/v2"
+	jsonNull   = "null"
+)
 
 type rateLimitResponse struct {
 	Rate struct {
-		OffsetMax json.Number `json:"offset_max"`
+		OffsetMax json.RawMessage `json:"offset_max"`
 	} `json:"rate"`
 }
 
@@ -56,11 +61,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		key, err := s.keys.PickRandom()
 		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to select key: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to select key: %w", err))
 
 			results <- result
 
@@ -69,11 +70,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		offsetMax, err := getMaxOffset(ctx, cfg, key)
 		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to get rate limit: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to get rate limit: %w", err))
 
 			results <- result
 
@@ -95,15 +92,21 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				URL(getSubdomainsReqURL).
 				SetHeader("X-API-KEY", key).
 				SetHeader("Accept", "application/x-ndjson").
-				Do(ctx)
+				Do(ctx) //nolint:bodyclose // closed by the reader goroutine and every cancellation path below.
 			if err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("request failed: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 				results <- result
+
+				return
+			}
+
+			if err = sources.CheckResponse(getSubdomainsRes, key); err != nil {
+				result := sources.ErrorResult(s.Name(), err)
+
+				results <- result
+
+				_ = getSubdomainsRes.Body.Close()
 
 				return
 			}
@@ -119,66 +122,72 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 				reader := bufio.NewReader(getSubdomainsRes.Body)
 
-				for {
-					line, err := reader.ReadBytes('\n')
-					if errors.Is(err, io.EOF) {
-						return
-					}
+				processLine := func(line []byte) (stop bool) {
+					line = bytes.TrimSpace(line)
 
-					if err != nil {
-						if ctx.Err() == nil {
-							result := sources.Result{
-								Type:   sources.ResultError,
-								Source: s.Name(),
-								Error:  fmt.Errorf("failed to read response body: %w", err),
-							}
-
-							results <- result
-
-							aborted = true
-						}
-
-						return
+					if len(line) == 0 {
+						return false
 					}
 
 					var record lookupResponse
 
-					if err = json.Unmarshal(line, &record); err != nil {
-						result := sources.Result{
-							Type:   sources.ResultError,
-							Source: s.Name(),
-							Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-						}
+					if parseErr := json.Unmarshal(line, &record); parseErr != nil {
+						result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", parseErr))
 
 						results <- result
 
 						aborted = true
 
-						return
+						return true
 					}
 
 					condition = record.Condition
 
-					if condition == "" || condition == "ongoing" || condition == "begin" {
-						if record.Obj.Name != "" {
-							subdomain, valid := cfg.Validator(record.Obj.Name)
-							if !valid {
-								continue
-							}
+					if condition != "" && condition != "ongoing" && condition != "begin" {
+						return true
+					}
 
-							result := sources.Result{
-								Type:   sources.ResultSubdomain,
-								Source: s.Name(),
-								Value:  subdomain,
-							}
-
-							results <- result
-
-							emitted++
+					if record.Obj.Name != "" {
+						subdomain, valid := cfg.Validator(record.Obj.Name)
+						if !valid {
+							return false
 						}
-					} else {
+
+						result := sources.SubdomainResult(s.Name(), subdomain)
+
+						results <- result
+
+						emitted++
+					}
+
+					return false
+				}
+
+				for {
+					line, readErr := reader.ReadBytes('\n')
+
+					// The final record may not be newline-terminated.
+					if len(line) > 0 && processLine(line) {
 						return
 					}
+
+					if readErr == nil {
+						continue
+					}
+
+					if errors.Is(readErr, io.EOF) {
+						return
+					}
+
+					if ctx.Err() == nil {
+						result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to read response body: %w", readErr))
+
+						results <- result
+
+						aborted = true
+					}
+
+					return
 				}
 			}()
 
@@ -205,19 +214,11 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 					continue
 				}
 
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  errors.New("lookup truncated: pagination limit reached"),
-				}
+				result := sources.ErrorResult(s.Name(), errors.New("lookup truncated: pagination limit reached"))
 
 				results <- result
 			} else if condition != "succeeded" {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("lookup terminated with condition: %s", condition),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("lookup terminated with condition: %s", condition))
 
 				results <- result
 			}
@@ -244,18 +245,46 @@ func getMaxOffset(ctx context.Context, cfg *sources.Configuration, key string) (
 		_ = getRateLimitRes.Body.Close()
 	}()
 
+	if err = sources.CheckResponse(getRateLimitRes, key); err != nil {
+		return
+	}
+
 	var getRateLimitResData rateLimitResponse
 
 	if err = json.NewDecoder(getRateLimitRes.Body).Decode(&getRateLimitResData); err != nil {
 		return
 	}
 
-	if getRateLimitResData.Rate.OffsetMax.String() != "n/a" {
-		offsetMax, err = strconv.ParseUint(getRateLimitResData.Rate.OffsetMax.String(), 10, 64)
-		if err != nil {
+	offsetMax = parseOffsetMax(getRateLimitResData.Rate.OffsetMax)
+
+	return
+}
+
+// parseOffsetMax tolerates the API returning the offset as a number, a
+// numeric string, "n/a", or omitting it entirely. Anything that cannot be
+// parsed is treated as unlimited (zero).
+func parseOffsetMax(raw json.RawMessage) (offsetMax uint64) {
+	value := strings.TrimSpace(string(raw))
+
+	if value == "" || value == jsonNull {
+		return
+	}
+
+	if value[0] == '"' {
+		var text string
+
+		if err := json.Unmarshal(raw, &text); err != nil {
 			return
 		}
+
+		value = strings.TrimSpace(text)
 	}
+
+	if strings.EqualFold(value, "n/a") {
+		return
+	}
+
+	offsetMax, _ = strconv.ParseUint(value, 10, 64)
 
 	return
 }

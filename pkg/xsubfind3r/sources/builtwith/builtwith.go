@@ -52,11 +52,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		key, err := s.keys.PickRandom()
 		if key == "" || err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to select key: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to select key: %w", err))
 
 			results <- result
 
@@ -77,13 +73,19 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			Param("LOOKUP", domain).
 			Do(ctx)
 		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("request failed: %w", sources.RedactError(err, key)),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", sources.RedactError(err, key)))
 
 			results <- result
+
+			return
+		}
+
+		if err = sources.CheckResponse(getDomainInfoRes, key); err != nil {
+			result := sources.ErrorResult(s.Name(), err)
+
+			results <- result
+
+			_ = getDomainInfoRes.Body.Close()
 
 			return
 		}
@@ -91,11 +93,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		var getDomainInfoResData getDomainInfoResponse
 
 		if err = json.NewDecoder(getDomainInfoRes.Body).Decode(&getDomainInfoResData); err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
 
 			results <- result
 
@@ -108,11 +106,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		if len(getDomainInfoResData.Errors) > 0 {
 			for _, entry := range getDomainInfoResData.Errors {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("domain error: %s", entry.Message),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("domain error: %s", entry.Message))
 
 				results <- result
 			}
@@ -127,11 +121,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 					continue
 				}
 
-				result := sources.Result{
-					Type:   sources.ResultSubdomain,
-					Source: s.Name(),
-					Value:  subdomain,
-				}
+				result := sources.SubdomainResult(s.Name(), subdomain)
 
 				results <- result
 			}

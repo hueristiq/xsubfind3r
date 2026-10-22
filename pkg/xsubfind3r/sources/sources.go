@@ -5,7 +5,9 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -84,7 +86,10 @@ func (k Keys) PickRandom() (key string, err error) {
 const (
 	ResultSubdomain ResultType = iota + 1
 	ResultError
+	ResultWarning
 )
+
+const MaxPages = 100
 
 const (
 	Anubis             = "anubis"
@@ -181,8 +186,8 @@ func ExtractSubdomains(extractor *regexp.Regexp, text string) (subdomains []stri
 		value := text[match[2]:match[3]]
 		end := match[3]
 
-		if end < len(text) && isHostnameChar(text[end]) {
-			if text[end] != '.' || (end+1 < len(text) && isHostnameChar(text[end+1])) {
+		if end < len(text) && isHostLabelCharacter(text[end]) {
+			if text[end] != '.' || (end+1 < len(text) && isHostLabelCharacter(text[end+1])) {
 				continue
 			}
 		}
@@ -193,10 +198,10 @@ func ExtractSubdomains(extractor *regexp.Regexp, text string) (subdomains []stri
 	return
 }
 
-func isHostnameChar(c byte) (is bool) {
+func isHostLabelCharacter(character byte) (ok bool) {
 	switch {
-	case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '.', c == '-', c == '_':
-		is = true
+	case character >= 'a' && character <= 'z', character >= 'A' && character <= 'Z', character >= '0' && character <= '9', character == '.', character == '-', character == '_':
+		ok = true
 	}
 
 	return
@@ -226,4 +231,65 @@ func RedactError(err error, secrets ...string) (redacted error) {
 		err:     err,
 		message: message,
 	}
+}
+
+func CheckResponse(res *http.Response, secrets ...string) (err error) {
+	if res == nil {
+		err = errors.New("empty response")
+
+		return
+	}
+
+	if res.StatusCode >= http.StatusOK && res.StatusCode < http.StatusMultipleChoices {
+		return
+	}
+
+	snippet := ""
+
+	if res.Body != nil {
+		var body []byte
+
+		body, _ = io.ReadAll(io.LimitReader(res.Body, 4*1024))
+		snippet = strings.TrimSpace(string(body))
+	}
+
+	if snippet == "" {
+		err = fmt.Errorf("unexpected status %s", res.Status)
+	} else {
+		err = fmt.Errorf("unexpected status %s: %s", res.Status, snippet)
+	}
+
+	err = RedactError(err, secrets...)
+
+	return
+}
+
+func ErrorResult(source string, err error) (result Result) {
+	result = Result{
+		Type:   ResultError,
+		Source: source,
+		Error:  err,
+	}
+
+	return
+}
+
+func WarningResult(source, value string) (result Result) {
+	result = Result{
+		Type:   ResultWarning,
+		Source: source,
+		Value:  value,
+	}
+
+	return
+}
+
+func SubdomainResult(source, value string) (result Result) {
+	result = Result{
+		Type:   ResultSubdomain,
+		Source: source,
+		Value:  value,
+	}
+
+	return
 }

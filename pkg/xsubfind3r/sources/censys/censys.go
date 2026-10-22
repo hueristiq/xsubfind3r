@@ -67,11 +67,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		key, err := s.keys.PickRandom()
 		if key == "" || err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to select key: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to select key: %w", err))
 
 			results <- result
 
@@ -96,13 +92,19 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			certSearchRes, err := certSearchReq.Do(ctx)
 			if err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("request failed: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 				results <- result
+
+				return
+			}
+
+			if err = sources.CheckResponse(certSearchRes, key); err != nil {
+				result := sources.ErrorResult(s.Name(), err)
+
+				results <- result
+
+				_ = certSearchRes.Body.Close()
 
 				return
 			}
@@ -110,11 +112,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			var certSearchResData certSearchResponse
 
 			if err = json.NewDecoder(certSearchRes.Body).Decode(&certSearchResData); err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
 
 				results <- result
 
@@ -126,11 +124,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			_ = certSearchRes.Body.Close()
 
 			if certSearchResData.Error != "" {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("domain error: %s, %s", certSearchResData.Status, certSearchResData.Error),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("domain error: %s, %s", certSearchResData.Status, certSearchResData.Error))
 
 				results <- result
 
@@ -144,11 +138,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 						continue
 					}
 
-					result := sources.Result{
-						Type:   sources.ResultSubdomain,
-						Source: s.Name(),
-						Value:  subdomain,
-					}
+					result := sources.SubdomainResult(s.Name(), subdomain)
 
 					results <- result
 				}

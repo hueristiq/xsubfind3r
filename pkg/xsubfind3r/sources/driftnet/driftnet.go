@@ -143,13 +143,19 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			SetHeader(hqgohttpheader.Authorization.String(), "Bearer anon").
 			Do(ctx)
 		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("request failed: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 			results <- result
+
+			return
+		}
+
+		if err = sources.CheckResponse(getResultsRes); err != nil {
+			result := sources.ErrorResult(s.Name(), err)
+
+			results <- result
+
+			_ = getResultsRes.Body.Close()
 
 			return
 		}
@@ -157,11 +163,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		var getResultsResData getResultsResponse
 
 		if err = json.NewDecoder(getResultsRes.Body).Decode(&getResultsResData); err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
 
 			results <- result
 
@@ -179,11 +181,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 					continue
 				}
 
-				result := sources.Result{
-					Type:   sources.ResultSubdomain,
-					Source: s.Name(),
-					Value:  subdomain,
-				}
+				result := sources.SubdomainResult(s.Name(), subdomain)
 
 				results <- result
 			}
@@ -197,11 +195,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 						continue
 					}
 
-					result := sources.Result{
-						Type:   sources.ResultSubdomain,
-						Source: s.Name(),
-						Value:  subdomain,
-					}
+					result := sources.SubdomainResult(s.Name(), subdomain)
 
 					results <- result
 				}

@@ -2,6 +2,7 @@ package xsubfind3r
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"regexp"
@@ -60,19 +61,13 @@ type Finder struct {
 }
 
 func (finder *Finder) Find(ctx context.Context, domain string) (results chan sources.Result) {
-	results = make(chan sources.Result)
+	results = make(chan sources.Result, 1)
 
 	domain = strings.ToLower(domain)
 
 	extractor, err := compileExtractor(domain)
 	if err != nil {
-		result := sources.Result{
-			Type:   sources.ResultError,
-			Source: "xsubfind3r",
-			Error:  err,
-		}
-
-		results <- result
+		results <- sources.ErrorResult("xsubfind3r", err)
 
 		close(results)
 
@@ -102,17 +97,7 @@ func (finder *Finder) Find(ctx context.Context, domain string) (results chan sou
 			go func(source sources.Source) {
 				defer wg.Done()
 
-				sResults := source.Run(ctx, configuration, domain)
-
-				for sResult := range sResults {
-					if sResult.Type == sources.ResultSubdomain {
-						if deduper.seen(sResult.Value) {
-							continue
-						}
-					}
-
-					results <- sResult
-				}
+				relayResults(ctx, source.Run(ctx, configuration, domain), deduper, results)
 			}(source)
 		}
 
@@ -120,6 +105,38 @@ func (finder *Finder) Find(ctx context.Context, domain string) (results chan sou
 	}()
 
 	return
+}
+
+func relayResults(ctx context.Context, sourceResults <-chan sources.Result, deduper *deduper, results chan<- sources.Result) {
+	for {
+		select {
+		case <-ctx.Done():
+			drainResults(sourceResults)
+
+			return
+		case result, ok := <-sourceResults:
+			if !ok {
+				return
+			}
+
+			if result.Type == sources.ResultSubdomain && deduper.seen(result.Value) {
+				continue
+			}
+
+			select {
+			case results <- result:
+			case <-ctx.Done():
+				drainResults(sourceResults)
+
+				return
+			}
+		}
+	}
+}
+
+func drainResults(sourceResults <-chan sources.Result) {
+	for range sourceResults {
+	}
 }
 
 type deduper struct {
@@ -157,9 +174,14 @@ type Configuration struct {
 	SourcesToUse     []string
 	SourcesToExclude []string
 	Keys             map[string]sources.Keys
+	Timeout          time.Duration
 }
 
-const dedupShardCount = 32
+const (
+	dedupShardCount = 32
+
+	defaultTimeout = 30 * time.Second
+)
 
 var registry = map[string]func() sources.Source{
 	sources.Anubis:             anubis.New,
@@ -204,25 +226,25 @@ var registry = map[string]func() sources.Source{
 	sources.Zoomeye:            zoomeye.New,
 }
 
-// New returns a finder configured with cfg. Every finder owns fresh
-// source instances, so finders are safe to construct and use
-// concurrently.
-//
-// Parameters:
-//   - cfg (*Configuration): the finder configuration.
-//
-// Returns:
-//   - finder (*Finder): the configured finder.
-//   - err (error): non-nil when the HTTP client cannot be initialized
-//     or a requested source name is unknown.
 func New(cfg *Configuration) (finder *Finder, err error) {
+	if cfg == nil {
+		err = errors.New("configuration is nil")
+
+		return
+	}
+
 	finder = &Finder{
 		sources: make(map[string]sources.Source, len(sources.List)),
 	}
 
+	timeout := cfg.Timeout
+	if timeout <= 0 {
+		timeout = defaultTimeout
+	}
+
 	ofs := []hqgohttp.ClientOptionFunc{
-		hqgohttp.WithHTTPClient(hqgohttp.DefaultHTTPClient()),
-		hqgohttp.WithTimeout(1 * time.Hour),
+		hqgohttp.WithHTTPClient(hqgohttp.DefaultHTTPPooledClient()),
+		hqgohttp.WithTimeout(timeout),
 		hqgohttp.WithMaxRetries(3),
 		hqgohttp.WithRetryWaitMin(1 * time.Second),
 		hqgohttp.WithRetryWaitMax(30 * time.Second),
@@ -260,7 +282,19 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 	}
 
 	for _, name := range cfg.SourcesToExclude {
+		if _, ok := registry[name]; !ok {
+			err = fmt.Errorf("unknown source %q in sources to exclude", name)
+
+			return
+		}
+
 		delete(finder.sources, name)
+	}
+
+	if len(finder.sources) == 0 {
+		err = errors.New("no sources left after applying exclusions")
+
+		return
 	}
 
 	for _, source := range finder.sources {
@@ -272,16 +306,6 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 	return
 }
 
-// NewSource returns a fresh instance of the source registered under
-// name.
-//
-// Parameters:
-//   - name (string): the registered source name.
-//
-// Returns:
-//   - source (sources.Source): the new source instance; nil when name
-//     is unknown.
-//   - ok (bool): whether name is registered.
 func NewSource(name string) (source sources.Source, ok bool) {
 	constructor, exists := registry[name]
 	if !exists {
@@ -304,18 +328,66 @@ func compileExtractor(domain string) (extractor *regexp.Regexp, err error) {
 }
 
 func validateSubdomain(target, domain string) (subdomain string, valid bool) {
-	subdomain = strings.ToLower(target)
+	subdomain = strings.ToLower(strings.TrimSpace(target))
 	subdomain = strings.TrimPrefix(subdomain, "*.")
-	subdomain = strings.TrimPrefix(subdomain, "%2f")
-	subdomain = strings.TrimPrefix(subdomain, "2f")
-	subdomain = strings.TrimPrefix(subdomain, ".")
 	subdomain = strings.TrimSuffix(subdomain, ".")
+
+	if !validHostname(subdomain) {
+		return subdomain, false
+	}
 
 	if subdomain == domain || !strings.HasSuffix(subdomain, "."+domain) {
 		return subdomain, false
 	}
 
 	return subdomain, true
+}
+
+func validHostname(hostname string) (valid bool) {
+	if hostname == "" || len(hostname) > 253 {
+		return false
+	}
+
+	for _, label := range strings.Split(hostname, ".") {
+		if label == "" || len(label) > 63 {
+			return false
+		}
+
+		for index := range len(label) {
+			if !isHostnameChar(label[index]) {
+				return false
+			}
+		}
+
+		if !isHostnameEdge(label[0]) || !isHostnameEdge(label[len(label)-1]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isHostnameChar(char byte) (valid bool) {
+	switch {
+	case char >= 'a' && char <= 'z',
+		char >= '0' && char <= '9',
+		char == '-',
+		char == '_':
+		valid = true
+	}
+
+	return
+}
+
+func isHostnameEdge(char byte) (valid bool) {
+	switch {
+	case char >= 'a' && char <= 'z',
+		char >= '0' && char <= '9',
+		char == '_':
+		valid = true
+	}
+
+	return
 }
 
 func newDeduper() (d *deduper) {

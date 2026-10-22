@@ -45,11 +45,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		key, err := s.keys.PickRandom()
 		if err != nil {
-			result := sources.Result{
-				Type:   sources.ResultError,
-				Source: s.Name(),
-				Error:  fmt.Errorf("failed to select key: %w", err),
-			}
+			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to select key: %w", err))
 
 			results <- result
 
@@ -58,8 +54,11 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		processed := 0
 		total := 0
+		lastCount := -1
 
-		for page := 0; ; page++ {
+		page := 0
+
+		for ; page < sources.MaxPages; page++ {
 			getSubdomainsReqURL := "https://api.merklemap.com/v1/search"
 
 			getSubdomainsRes, err := cfg.Client.NewRequest().
@@ -70,13 +69,19 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				SetHeader("Authorization", "Bearer "+key).
 				Do(ctx)
 			if err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("request failed: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
 				results <- result
+
+				return
+			}
+
+			if err = sources.CheckResponse(getSubdomainsRes, key); err != nil {
+				result := sources.ErrorResult(s.Name(), err)
+
+				results <- result
+
+				_ = getSubdomainsRes.Body.Close()
 
 				return
 			}
@@ -84,11 +89,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			var getSubdomainsResData getSubdomainsResponse
 
 			if err = json.NewDecoder(getSubdomainsRes.Body).Decode(&getSubdomainsResData); err != nil {
-				result := sources.Result{
-					Type:   sources.ResultError,
-					Source: s.Name(),
-					Error:  fmt.Errorf("failed to parse JSON response: %w", err),
-				}
+				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
 
 				results <- result
 
@@ -107,26 +108,38 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				break
 			}
 
+			before := processed
+
 			for _, record := range getSubdomainsResData.Results {
 				subdomain, valid := cfg.Validator(record.Hostname)
 				if !valid {
 					continue
 				}
 
-				result := sources.Result{
-					Type:   sources.ResultSubdomain,
-					Source: s.Name(),
-					Value:  subdomain,
-				}
+				result := sources.SubdomainResult(s.Name(), subdomain)
 
 				results <- result
 
 				processed++
 			}
 
+			// A repeated total with no progress means the server is
+			// serving the same page again.
+			if page > 0 && getSubdomainsResData.Count == lastCount && processed == before {
+				break
+			}
+
+			lastCount = getSubdomainsResData.Count
+
 			if processed >= total {
 				break
 			}
+		}
+
+		if page == sources.MaxPages {
+			result := sources.WarningResult(s.Name(), fmt.Sprintf("pagination capped at %d pages", sources.MaxPages))
+
+			results <- result
 		}
 	}()
 
