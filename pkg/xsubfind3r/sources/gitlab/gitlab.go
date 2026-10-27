@@ -60,14 +60,14 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		for page > 0 {
 			searchReqURL := "https://gitlab.com/api/v4/search"
 
-			searchRes, err := cfg.Client.NewRequest().
+			searchRes, err := cfg.Client.Request().
 				URL(searchReqURL).
 				Param("scope", "blobs").
 				Param("search", domain).
 				Param("per_page", "100").
 				Param("page", cast.ToString(page)).
 				SetHeader("PRIVATE-TOKEN", key).
-				Do(ctx)
+				Context(ctx).Do()
 			if err != nil {
 				if searchRes != nil {
 					_ = searchRes.Body.Close()
@@ -80,7 +80,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				return
 			}
 
-			if err = sources.CheckResponse(searchRes, key); err != nil {
+			if err = sources.CheckResponse(searchRes.Std(), key); err != nil {
 				result := sources.ErrorResult(s.Name(), err)
 
 				results <- result
@@ -114,10 +114,10 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 					url.Values{"ref": {item.Ref}}.Encode(),
 				)
 
-				getRawContentRes, err := cfg.Client.NewRequest().
+				getRawContentRes, err := cfg.Client.Request().
 					URL(getRawContentReqURL).
 					SetHeader("PRIVATE-TOKEN", key).
-					Do(ctx)
+					Context(ctx).Do()
 				if err != nil {
 					if getRawContentRes != nil {
 						_ = getRawContentRes.Body.Close()

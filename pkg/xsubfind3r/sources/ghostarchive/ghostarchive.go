@@ -57,11 +57,11 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			getSubdomainsReqURL := "https://ghostarchive.org/search"
 
-			getSubdomainsRes, err := cfg.Client.NewRequest().
+			getSubdomainsRes, err := cfg.Client.Request().
 				URL(getSubdomainsReqURL).
 				Param("term", term).
 				Param("page", cast.ToString(page)).
-				Do(ctx)
+				Context(ctx).Do()
 			if err != nil {
 				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 

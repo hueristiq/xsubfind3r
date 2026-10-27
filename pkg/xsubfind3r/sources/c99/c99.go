@@ -53,9 +53,9 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getSubdomainsReqURL := fmt.Sprintf("https://api.c99.nl/subdomainfinder?key=%s&domain=%s&json", key, domain)
 
-		getSubdomainsRes, err := cfg.Client.NewRequest().
+		getSubdomainsRes, err := cfg.Client.Request().
 			URL(getSubdomainsReqURL).
-			Do(ctx)
+			Context(ctx).Do()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", sources.RedactError(err, key)))
 
@@ -64,7 +64,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getSubdomainsRes, key); err != nil {
+		if err = sources.CheckResponse(getSubdomainsRes.Std(), key); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result

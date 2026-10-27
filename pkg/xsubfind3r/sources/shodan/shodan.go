@@ -52,10 +52,10 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getDNSReqURL := "https://api.shodan.io/dns/domain/" + domain
 
-		getDNSRes, err := cfg.Client.NewRequest().
+		getDNSRes, err := cfg.Client.Request().
 			URL(getDNSReqURL).
 			Param("key", key).
-			Do(ctx)
+			Context(ctx).Do()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", sources.RedactError(err, key)))
 
@@ -64,7 +64,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getDNSRes, key); err != nil {
+		if err = sources.CheckResponse(getDNSRes.Std(), key); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result

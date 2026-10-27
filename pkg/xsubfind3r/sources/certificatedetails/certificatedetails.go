@@ -35,9 +35,9 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getCertificateDetailsReqURL := "https://certificatedetails.com/" + domain
 
-		getCertificateDetailsRes, err := cfg.Client.NewRequest().
+		getCertificateDetailsRes, err := cfg.Client.Request().
 			URL(getCertificateDetailsReqURL).
-			Do(ctx)
+			Context(ctx).Do()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 

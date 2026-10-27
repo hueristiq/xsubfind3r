@@ -48,7 +48,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		for range maxPages {
 			getCTLogsSearchReqURL := "https://api.certspotter.com/v1/issuances"
 
-			req := cfg.Client.NewRequest().
+			req := cfg.Client.Request().
 				URL(getCTLogsSearchReqURL).
 				Param("domain", domain).
 				Param("include_subdomains", "true").
@@ -62,7 +62,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				req = req.Param("after", after)
 			}
 
-			getCTLogsSearchRes, err := req.Do(ctx)
+			getCTLogsSearchRes, err := req.Context(ctx).Do()
 			if err != nil {
 				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -71,7 +71,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				break
 			}
 
-			if err = sources.CheckResponse(getCTLogsSearchRes, key); err != nil {
+			if err = sources.CheckResponse(getCTLogsSearchRes.Std(), key); err != nil {
 				result := sources.ErrorResult(s.Name(), err)
 
 				results <- result

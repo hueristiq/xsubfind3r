@@ -93,13 +93,13 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			getSubdomainsReqURL := "https://quake.360.net/api/v3/search/quake_service"
 
-			getSubdomainsRes, err := cfg.Client.NewRequest().
+			getSubdomainsRes, err := cfg.Client.Request().
 				Method(hqgohttpmethod.POST).
 				URL(getSubdomainsReqURL).
 				SetHeader("Content-Type", "application/json").
 				SetHeader("X-QuakeToken", key).
 				Body(searchReqBody).
-				Do(ctx)
+				Context(ctx).Do()
 			if err != nil {
 				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -108,7 +108,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				return
 			}
 
-			if err = sources.CheckResponse(getSubdomainsRes, key); err != nil {
+			if err = sources.CheckResponse(getSubdomainsRes.Std(), key); err != nil {
 				result := sources.ErrorResult(s.Name(), err)
 
 				results <- result

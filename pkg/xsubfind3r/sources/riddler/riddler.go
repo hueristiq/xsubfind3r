@@ -33,11 +33,11 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getSubdomainsReqURL := "https://riddler.io/search"
 
-		getSubdomainsRes, err := cfg.Client.NewRequest().
+		getSubdomainsRes, err := cfg.Client.Request().
 			URL(getSubdomainsReqURL).
 			Param("q", "pld:"+domain).
 			Param("view_type", "data_table").
-			Do(ctx)
+			Context(ctx).Do()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 

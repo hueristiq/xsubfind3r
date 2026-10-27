@@ -33,10 +33,10 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		hostSearchReqURL := "https://api.hackertarget.com/hostsearch"
 
-		hostSearchRes, err := cfg.Client.NewRequest().
+		hostSearchRes, err := cfg.Client.Request().
 			URL(hostSearchReqURL).
 			Param("q", domain).
-			Do(ctx)
+			Context(ctx).Do()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 

@@ -50,14 +50,14 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getPassiveDNSReqURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/passive_dns", domain)
 
-		getPassiveDNSReq := cfg.Client.NewRequest().
+		getPassiveDNSReq := cfg.Client.Request().
 			URL(getPassiveDNSReqURL)
 
 		if key != "" {
 			getPassiveDNSReq = getPassiveDNSReq.SetHeader("X-OTX-API-KEY", key)
 		}
 
-		getPassiveDNSRes, err := getPassiveDNSReq.Do(ctx)
+		getPassiveDNSRes, err := getPassiveDNSReq.Context(ctx).Do()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -66,7 +66,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getPassiveDNSRes, key); err != nil {
+		if err = sources.CheckResponse(getPassiveDNSRes.Std(), key); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result

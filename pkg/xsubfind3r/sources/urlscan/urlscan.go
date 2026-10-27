@@ -72,7 +72,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		for ; page < sources.MaxPages; page++ {
 			searchReqURL := "https://urlscan.io/api/v1/search"
 
-			searchReq := cfg.Client.NewRequest().
+			searchReq := cfg.Client.Request().
 				URL(searchReqURL).
 				Param("q", "domain:"+domain).
 				Param("size", "10000").
@@ -83,7 +83,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				searchReq = searchReq.Param("search_after", after)
 			}
 
-			searchRes, err := searchReq.Do(ctx)
+			searchRes, err := searchReq.Context(ctx).Do()
 			if err != nil {
 				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -92,7 +92,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				break
 			}
 
-			if err = sources.CheckResponse(searchRes, key); err != nil {
+			if err = sources.CheckResponse(searchRes.Std(), key); err != nil {
 				result := sources.ErrorResult(s.Name(), err)
 
 				results <- result

@@ -61,7 +61,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getDomainInfoReqURL := "https://api.builtwith.com/v21/api.json"
 
-		getDomainInfoRes, err := cfg.Client.NewRequest().
+		getDomainInfoRes, err := cfg.Client.Request().
 			URL(getDomainInfoReqURL).
 			Param("KEY", key).
 			Param("HIDETEXT", "yes").
@@ -71,7 +71,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			Param("NOPII", "yes").
 			Param("NOATTR", "yes").
 			Param("LOOKUP", domain).
-			Do(ctx)
+			Context(ctx).Do()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", sources.RedactError(err, key)))
 
@@ -80,7 +80,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getDomainInfoRes, key); err != nil {
+		if err = sources.CheckResponse(getDomainInfoRes.Std(), key); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result

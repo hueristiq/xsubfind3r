@@ -42,12 +42,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getNameValuesReqURL := "https://crt.sh"
 
-		getNameValuesRes, err := cfg.Client.NewRequest().
+		getNameValuesRes, err := cfg.Client.Request().
 			URL(getNameValuesReqURL).
 			Param("q", "%."+domain).
 			Param("output", "json").
 			SetHeader(hqgohttpheader.ContentType.String(), hqgohttpmime.JSON.String()).
-			Do(ctx)
+			Context(ctx).Do()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -56,7 +56,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getNameValuesRes); err != nil {
+		if err = sources.CheckResponse(getNameValuesRes.Std()); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result

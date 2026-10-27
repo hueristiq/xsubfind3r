@@ -38,14 +38,14 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getSubdomainsReqURL := "https://arquivo.pt/wayback/cdx"
 
-		getSubdomainsRes, err := cfg.Client.NewRequest().
+		getSubdomainsRes, err := cfg.Client.Request().
 			URL(getSubdomainsReqURL).
 			Param("url", "*."+domain+"/*").
 			Param("output", "json").
 			Param("fl", "url").
 			Param("collapse", "urlkey").
 			Param("limit", "100000").
-			Do(ctx)
+			Context(ctx).Do()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 

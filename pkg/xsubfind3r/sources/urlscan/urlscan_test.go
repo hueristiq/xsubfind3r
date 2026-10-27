@@ -114,14 +114,10 @@ func runSource(t *testing.T, server *httptest.Server) (values []string, warnings
 		t.Fatalf("parse server URL: %v", err)
 	}
 
-	client, err := hqgohttp.NewClient(
+	client := hqgohttp.New(
 		hqgohttp.WithHTTPClient(&http.Client{Transport: &rewriteTransport{target: target}}),
-		hqgohttp.WithMaxRetries(0),
 		hqgohttp.WithTimeout(5*time.Second),
 	)
-	if err != nil {
-		t.Fatalf("NewClient: %v", err)
-	}
 
 	source := urlscan.New()
 	source.UseKeys("test-key")

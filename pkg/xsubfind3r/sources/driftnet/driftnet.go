@@ -133,7 +133,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		to := time.Now().UTC()
 		from := to.AddDate(0, 0, -30)
 
-		getResultsRes, err := cfg.Client.NewRequest().
+		getResultsRes, err := cfg.Client.Request().
 			URL(getResultsReqURL).
 			Param("summary_limit", "10").
 			Param("timeout", "30").
@@ -141,7 +141,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			Param("to", to.Format("2006-01-02")).
 			Param("field", "host:"+domain).
 			SetHeader(hqgohttpheader.Authorization.String(), "Bearer anon").
-			Do(ctx)
+			Context(ctx).Do()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -150,7 +150,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getResultsRes); err != nil {
+		if err = sources.CheckResponse(getResultsRes.Std()); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result

@@ -88,11 +88,11 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			before := emitted
 			getSubdomainsReqURL := fmt.Sprintf("%s/lookup/rrset/name/*.%s?%s", baseReqURL, domain, params.Encode())
 
-			getSubdomainsRes, err := cfg.Client.NewRequest().
+			getSubdomainsRes, err := cfg.Client.Request().
 				URL(getSubdomainsReqURL).
 				SetHeader("X-API-KEY", key).
 				SetHeader("Accept", "application/x-ndjson").
-				Do(ctx) //nolint:bodyclose // closed by the reader goroutine and every cancellation path below.
+				Context(ctx).Do()
 			if err != nil {
 				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -101,7 +101,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				return
 			}
 
-			if err = sources.CheckResponse(getSubdomainsRes, key); err != nil {
+			if err = sources.CheckResponse(getSubdomainsRes.Std(), key); err != nil { //nolint:bodyclose // the body belongs to getSubdomainsRes and is closed by its reader goroutine.
 				result := sources.ErrorResult(s.Name(), err)
 
 				results <- result
@@ -233,10 +233,10 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 func getMaxOffset(ctx context.Context, cfg *sources.Configuration, key string) (offsetMax uint64, err error) {
 	getRateLimitReqURL := baseReqURL + "/rate_limit"
 
-	getRateLimitRes, err := cfg.Client.NewRequest().
+	getRateLimitRes, err := cfg.Client.Request().
 		URL(getRateLimitReqURL).
 		SetHeader("X-API-KEY", key).
-		Do(ctx)
+		Context(ctx).Do()
 	if err != nil {
 		return
 	}
@@ -245,7 +245,7 @@ func getMaxOffset(ctx context.Context, cfg *sources.Configuration, key string) (
 		_ = getRateLimitRes.Body.Close()
 	}()
 
-	if err = sources.CheckResponse(getRateLimitRes, key); err != nil {
+	if err = sources.CheckResponse(getRateLimitRes.Std(), key); err != nil { //nolint:bodyclose // the body belongs to getRateLimitRes and is closed by the deferred call above.
 		return
 	}
 

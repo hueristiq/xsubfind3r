@@ -75,7 +75,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			getSubdomainsReqURL := fmt.Sprintf("https://www.virustotal.com/api/v3/domains/%s/subdomains", domain)
 
-			getSubdomainsReq := cfg.Client.NewRequest().
+			getSubdomainsReq := cfg.Client.Request().
 				URL(getSubdomainsReqURL).
 				Param("limit", "40").
 				SetHeader("x-apikey", key)
@@ -84,7 +84,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				getSubdomainsReq = getSubdomainsReq.Param("cursor", cursor)
 			}
 
-			getSubdomainsRes, err := getSubdomainsReq.Do(ctx)
+			getSubdomainsRes, err := getSubdomainsReq.Context(ctx).Do()
 			if err != nil {
 				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", sources.RedactError(err, key)))
 
@@ -93,7 +93,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				break
 			}
 
-			if err = sources.CheckResponse(getSubdomainsRes, key); err != nil {
+			if err = sources.CheckResponse(getSubdomainsRes.Std(), key); err != nil {
 				result := sources.ErrorResult(s.Name(), err)
 
 				results <- result

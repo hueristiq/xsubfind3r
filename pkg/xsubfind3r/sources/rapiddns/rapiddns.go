@@ -39,10 +39,10 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getSubdomainsReqURL := "https://rapiddns.io/subdomain/" + domain
 
-		getSubdomainsRes, err := cfg.Client.NewRequest().
+		getSubdomainsRes, err := cfg.Client.Request().
 			URL(getSubdomainsReqURL).
 			Param("full", "1").
-			Do(ctx)
+			Context(ctx).Do()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 

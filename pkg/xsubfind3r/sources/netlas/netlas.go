@@ -68,12 +68,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getCountReqURL := "https://app.netlas.io/api/domains_count/"
 
-		getCountRes, err := cfg.Client.NewRequest().
+		getCountRes, err := cfg.Client.Request().
 			URL(getCountReqURL).
 			Param("q", query).
 			SetHeader("Accept", "application/json").
 			SetHeader("X-API-Key", key).
-			Do(ctx)
+			Context(ctx).Do()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -82,7 +82,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getCountRes, key); err != nil {
+		if err = sources.CheckResponse(getCountRes.Std(), key); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result
@@ -128,14 +128,14 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getSubdomainsReqURL := "https://app.netlas.io/api/domains/download/"
 
-		getSubdomainsRes, err := cfg.Client.NewRequest().
+		getSubdomainsRes, err := cfg.Client.Request().
 			Method(hqgohttpmethod.POST).
 			URL(getSubdomainsReqURL).
 			SetHeader("Accept", "application/json").
 			SetHeader("X-API-Key", key).
 			SetHeader("Content-Type", "application/json").
 			Body(downloadReqBody).
-			Do(ctx)
+			Context(ctx).Do()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -144,7 +144,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getSubdomainsRes, key); err != nil {
+		if err = sources.CheckResponse(getSubdomainsRes.Std(), key); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result

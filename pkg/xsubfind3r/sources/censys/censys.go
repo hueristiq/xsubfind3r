@@ -80,7 +80,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		certSearchReqURL := "https://search.censys.io/api/v2/certificates/search"
 
 		for {
-			certSearchReq := cfg.Client.NewRequest().
+			certSearchReq := cfg.Client.Request().
 				URL(certSearchReqURL).
 				Param("q", domain).
 				Param("per_page", cast.ToString(maxPerPage)).
@@ -90,7 +90,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				certSearchReq = certSearchReq.Param("cursor", cursor)
 			}
 
-			certSearchRes, err := certSearchReq.Do(ctx)
+			certSearchRes, err := certSearchReq.Context(ctx).Do()
 			if err != nil {
 				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -99,7 +99,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				return
 			}
 
-			if err = sources.CheckResponse(certSearchRes, key); err != nil {
+			if err = sources.CheckResponse(certSearchRes.Std(), key); err != nil {
 				result := sources.ErrorResult(s.Name(), err)
 
 				results <- result

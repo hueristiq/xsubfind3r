@@ -64,12 +64,12 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		for ; page <= sources.MaxPages; page++ {
 			getURLsReqURL := fmt.Sprintf("https://api.leakradar.io/search/domain/%s/urls", domain)
 
-			getURLsRes, err := cfg.Client.NewRequest().
+			getURLsRes, err := cfg.Client.Request().
 				URL(getURLsReqURL).
 				Param("page", cast.ToString(page)).
 				Param("page_size", "100").
 				SetHeader("Authorization", "Bearer "+key).
-				Do(ctx)
+				Context(ctx).Do()
 			if err != nil {
 				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -78,7 +78,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				return
 			}
 
-			if err = sources.CheckResponse(getURLsRes, key); err != nil {
+			if err = sources.CheckResponse(getURLsRes.Std(), key); err != nil {
 				result := sources.ErrorResult(s.Name(), err)
 
 				results <- result
