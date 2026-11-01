@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
@@ -51,10 +52,16 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getSubdomainsReqURL := fmt.Sprintf("https://fullhunt.io/api/v1/domain/%s/subdomains", domain)
 
-		getSubdomainsRes, err := cfg.Client.Request().
-			URL(getSubdomainsReqURL).
-			SetHeader("X-API-KEY", key).
-			Context(ctx).Do()
+		getSubdomainsRes, err := func() (*http.Response, error) {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, getSubdomainsReqURL, http.NoBody)
+			if err != nil {
+				return nil, fmt.Errorf("build request: %w", err)
+			}
+
+			req.Header.Set("X-Api-Key", key)
+
+			return cfg.Client.Do(req)
+		}()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -63,7 +70,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getSubdomainsRes.Std(), key); err != nil {
+		if err = sources.CheckResponse(getSubdomainsRes, key); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result

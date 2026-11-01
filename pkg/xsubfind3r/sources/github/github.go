@@ -1,56 +1,25 @@
 package github
 
 import (
-	"bufio"
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"net/url"
-	"strings"
-	"sync"
-	"time"
+	"net/http"
 
-	hqgohttp "github.com/hueristiq/hq-lib-http-go"
-	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
-	hqgohttplink "github.com/hueristiq/hq-lib-http-go/header/link"
-	hqgohttpstatus "github.com/hueristiq/hq-lib-http-go/status"
-	"github.com/spf13/cast"
-
+	hqgosource "github.com/hueristiq/xsubfind3r/internal/source"
+	"github.com/hueristiq/xsubfind3r/internal/source/github"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
-
-const (
-	searchAPIURL = "https://api.github.com/search/code"
-
-	maxScanTokenSize = 16 << 20
-)
-
-type codeSearchResponse struct {
-	TotalCount int `json:"total_count"`
-	Items      []struct {
-		Name        string `json:"name"`
-		HTMLURL     string `json:"html_url"`
-		TextMatches []struct {
-			Fragment string `json:"fragment"`
-		} `json:"text_matches"`
-	} `json:"items"`
-}
 
 type Source struct {
 	keys sources.Keys
 }
 
-func (s *Source) Name() (name string) {
-	name = sources.Github
-
-	return
+func (s *Source) Name() string {
+	return sources.Github
 }
 
-func (s *Source) NeedsKeys() (needs bool) {
-	needs = true
-
-	return
+func (s *Source) NeedsKeys() bool {
+	return true
 }
 
 func (s *Source) UseKeys(keys ...string) {
@@ -63,354 +32,59 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	go func() {
 		defer close(results)
 
-		if len(s.keys) == 0 {
+		emit := func(result sources.Result) bool {
+			select {
+			case results <- result:
+				return true
+			case <-ctx.Done():
+				return false
+			}
+		}
+
+		client, err := github.New(hqgosource.DoerFunc(func(request *http.Request) (*http.Response, error) {
+			return cfg.Client.Do(request)
+		}), s.keys)
+		if err != nil {
+			emit(sources.ErrorResult(s.Name(), err))
+
 			return
 		}
 
-		keysManager := NewKeyManager(s.keys)
+		for result := range client.Search(ctx, github.Query{Term: fmt.Sprintf("%q", domain)}) {
+			if result.Err != nil {
+				if !emit(sources.ErrorResult(s.Name(), result.Err)) {
+					return
+				}
 
-		parameters := url.Values{}
-		parameters.Set("per_page", "100")
-		parameters.Set("q", fmt.Sprintf("%q", domain))
-		parameters.Set("sort", "created")
-		parameters.Set("order", "asc")
+				continue
+			}
 
-		searchReqURL := searchAPIURL + "?" + parameters.Encode()
+			if result.Warning != "" {
+				if !emit(sources.WarningResult(s.Name(), result.Warning)) {
+					return
+				}
 
-		s.Enumerate(ctx, searchReqURL, cfg, results, keysManager)
+				continue
+			}
+
+			for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, result.Value) {
+				subdomain, valid := cfg.Validator(candidate)
+				if !valid {
+					continue
+				}
+
+				if !emit(sources.SubdomainResult(s.Name(), subdomain)) {
+					return
+				}
+			}
+		}
 	}()
 
 	return results
 }
 
-func (s *Source) Enumerate(ctx context.Context, searchReqURL string, cfg *sources.Configuration, results chan sources.Result, keysManager *KeysManager) {
-	token, index := keysManager.GetCurrentKey()
-
-	for token.RetryAfter > 0 {
-		wait, allExceeded := keysManager.WaitForRecovery()
-		if !allExceeded {
-			token, index = keysManager.GetCurrentKey()
-
-			continue
-		}
-
-		if !waitSleep(ctx, wait) {
-			return
-		}
-
-		token, index = keysManager.GetCurrentKey()
-	}
-
-	codeSearchRes, err := cfg.Client.Request().
-		URL(searchReqURL).
-		SetHeader(hqgohttpheader.Accept.String(), "application/vnd.github.v3.text-match+json").
-		SetHeader(hqgohttpheader.Authorization.String(), "token "+token.Value).
-		Context(ctx).Do()
-
-	if err != nil && (codeSearchRes == nil || codeSearchRes.StatusCode != hqgohttpstatus.Forbidden.Int()) {
-		if codeSearchRes != nil {
-			_ = codeSearchRes.Body.Close()
-		}
-
-		result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
-
-		results <- result
-
-		return
-	}
-
-	if codeSearchRes == nil {
-		result := sources.ErrorResult(s.Name(), errors.New("request failed: empty response"))
-
-		results <- result
-
-		return
-	}
-
-	isForbidden := codeSearchRes.StatusCode == hqgohttpstatus.Forbidden.Int()
-	ratelimitRemaining := cast.ToInt64(codeSearchRes.Header.Get(hqgohttpheader.XRateLimitRemaining.String()))
-
-	if isForbidden && ratelimitRemaining == 0 {
-		retryAfterSeconds := cast.ToInt64(codeSearchRes.Header.Get(hqgohttpheader.RetryAfter.String()))
-
-		if retryAfterSeconds <= 0 {
-			retryAfterSeconds = rateLimitResetRemaining(codeSearchRes.Header.Get("X-Ratelimit-Reset"))
-		}
-
-		if retryAfterSeconds <= 0 {
-			_ = codeSearchRes.Body.Close()
-
-			result := sources.ErrorResult(s.Name(), errors.New("rate limit reached with no recovery hint; try again later"))
-
-			results <- result
-
-			return
-		}
-
-		keysManager.SetKeyExceeded(index, retryAfterSeconds)
-
-		_ = codeSearchRes.Body.Close()
-
-		s.Enumerate(ctx, searchReqURL, cfg, results, keysManager)
-
-		return
-	}
-
-	if err != nil {
-		_ = codeSearchRes.Body.Close()
-
-		result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
-
-		results <- result
-
-		return
-	}
-
-	if err = sources.CheckResponse(codeSearchRes.Std(), token.Value); err != nil {
-		result := sources.ErrorResult(s.Name(), err)
-
-		results <- result
-
-		_ = codeSearchRes.Body.Close()
-
-		return
-	}
-
-	var codeSearchResData codeSearchResponse
-
-	if err = json.NewDecoder(codeSearchRes.Body).Decode(&codeSearchResData); err != nil {
-		result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
-
-		results <- result
-
-		_ = codeSearchRes.Body.Close()
-
-		return
-	}
-
-	_ = codeSearchRes.Body.Close()
-
-	for _, item := range codeSearchResData.Items {
-		getRawContentReqURL := strings.ReplaceAll(item.HTMLURL, "https://github.com/", "https://raw.githubusercontent.com/")
-		getRawContentReqURL = strings.ReplaceAll(getRawContentReqURL, "/blob/", "/")
-
-		var getRawContentRes *hqgohttp.Response
-
-		getRawContentRes, err = cfg.Client.Request().
-			URL(getRawContentReqURL).
-			Context(ctx).Do()
-		if err != nil {
-			if getRawContentRes != nil {
-				_ = getRawContentRes.Body.Close()
-			}
-
-			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
-
-			results <- result
-
-			continue
-		}
-
-		if getRawContentRes.StatusCode != hqgohttpstatus.OK.Int() {
-			_ = getRawContentRes.Body.Close()
-
-			continue
-		}
-
-		scanner := bufio.NewScanner(getRawContentRes.Body)
-
-		scanner.Buffer(make([]byte, 0, 64*1024), maxScanTokenSize)
-
-		for scanner.Scan() {
-			line := scanner.Text()
-
-			if line == "" {
-				continue
-			}
-
-			for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, line) {
-				subdomain, valid := cfg.Validator(candidate)
-				if !valid {
-					continue
-				}
-
-				result := sources.SubdomainResult(s.Name(), subdomain)
-
-				results <- result
-			}
-		}
-
-		if err = scanner.Err(); err != nil {
-			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to read response body: %w", err))
-
-			results <- result
-
-			_ = getRawContentRes.Body.Close()
-
-			continue
-		}
-
-		_ = getRawContentRes.Body.Close()
-
-		for _, textMatch := range item.TextMatches {
-			for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, textMatch.Fragment) {
-				subdomain, valid := cfg.Validator(candidate)
-				if !valid {
-					continue
-				}
-
-				result := sources.SubdomainResult(s.Name(), subdomain)
-
-				results <- result
-			}
-		}
-	}
-
-	links := hqgohttplink.Parse(codeSearchRes.Header.Get(hqgohttpheader.Link.String()))
-
-	for _, link := range links {
-		if link.Rel != "next" {
-			continue
-		}
-
-		nextURL, err := url.Parse(link.URL)
-		if err != nil {
-			result := sources.ErrorResult(s.Name(), err)
-
-			results <- result
-
-			return
-		}
-
-		nextURL.RawQuery = nextURL.Query().Encode()
-
-		s.Enumerate(ctx, nextURL.String(), cfg, results, keysManager)
-	}
-}
-
-type ManagedKey struct {
-	ExceededTime time.Time
-	RetryAfter   int64
-	Value        string
-}
-
-type KeysManager struct {
-	mu      sync.Mutex
-	current int
-	pool    []ManagedKey
-}
-
-func NewKeyManager(keys []string) (manager *KeysManager) {
-	pool := make([]ManagedKey, len(keys))
-
-	for i, key := range keys {
-		pool[i] = ManagedKey{Value: key}
-	}
-
-	manager = &KeysManager{
-		pool: pool,
-	}
-
-	return
-}
-
-func (m *KeysManager) GetCurrentKey() (key *ManagedKey, index int) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	for i := range m.pool {
-		poolKey := &m.pool[i]
-
-		if poolKey.RetryAfter > 0 && time.Since(poolKey.ExceededTime) > time.Duration(poolKey.RetryAfter)*time.Second {
-			poolKey.ExceededTime = time.Time{}
-			poolKey.RetryAfter = 0
-		}
-	}
-
-	if m.current >= len(m.pool) {
-		m.current %= len(m.pool)
-	}
-
-	index = m.current
-	key = &m.pool[index]
-
-	m.current++
-
-	return
-}
-
-// WaitForRecovery returns how long to wait before the earliest
-// rate-limited key becomes usable again. ok is false when at least one
-// key is usable now.
-func (m *KeysManager) WaitForRecovery() (wait time.Duration, ok bool) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	for i := range m.pool {
-		key := &m.pool[i]
-
-		if key.RetryAfter <= 0 {
-			return 0, false
-		}
-
-		remaining := time.Until(key.ExceededTime.Add(time.Duration(key.RetryAfter) * time.Second))
-
-		if remaining <= 0 {
-			return 0, false
-		}
-
-		if wait == 0 || remaining < wait {
-			wait = remaining
-		}
-	}
-
-	return wait, true
-}
-
-func (m *KeysManager) SetKeyExceeded(index int, retryAfter int64) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if index >= len(m.pool) {
-		return
-	}
-
-	key := &m.pool[index]
-
-	if key.RetryAfter == 0 {
-		key.ExceededTime = time.Now()
-		key.RetryAfter = retryAfter
-	}
-}
-
-func rateLimitResetRemaining(raw string) (remaining int64) {
-	reset := cast.ToInt64(raw)
-
-	if reset > 0 {
-		remaining = reset - time.Now().Unix()
-	}
-
-	return
-}
-
-func waitSleep(ctx context.Context, d time.Duration) (completed bool) {
-	timer := time.NewTimer(d)
-	defer timer.Stop()
-
-	select {
-	case <-ctx.Done():
-		return false
-	case <-timer.C:
-		return true
-	}
-}
-
 var _ sources.Source = (*Source)(nil)
 
-func New() (source sources.Source) {
-	source = &Source{
-		keys: make(sources.Keys, 0),
-	}
-
-	return
+func New() sources.Source {
+	return &Source{keys: make(sources.Keys, 0)}
 }

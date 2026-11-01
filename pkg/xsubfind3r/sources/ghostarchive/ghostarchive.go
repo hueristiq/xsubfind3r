@@ -2,35 +2,24 @@ package ghostarchive
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"io"
-	"regexp"
-	"strings"
+	"net/http"
 
-	hqgohttpstatus "github.com/hueristiq/hq-lib-http-go/status"
-	hqgolimiter "github.com/hueristiq/hq-lib-limiter-go"
-	"github.com/spf13/cast"
-
+	hqgosource "github.com/hueristiq/xsubfind3r/internal/source"
+	"github.com/hueristiq/xsubfind3r/internal/source/ghostarchive"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
 type Source struct{}
 
-func (s *Source) Name() (name string) {
-	name = sources.Ghostarchive
-
-	return
+func (s *Source) Name() string {
+	return sources.Ghostarchive
 }
 
-func (s *Source) NeedsKeys() (needs bool) {
-	needs = false
-
-	return
+func (s *Source) NeedsKeys() bool {
+	return false
 }
 
-func (s *Source) UseKeys(keys ...string) {
-}
+func (s *Source) UseKeys(...string) {}
 
 func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
@@ -38,101 +27,50 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	go func() {
 		defer close(results)
 
-		term := domain
-
-		if strings.Count(domain, ".") == 1 {
-			term = "." + domain
+		emit := func(result sources.Result) bool {
+			select {
+			case results <- result:
+				return true
+			case <-ctx.Done():
+				return false
+			}
 		}
 
-		var previousSrc string
+		client, err := ghostarchive.New(hqgosource.DoerFunc(func(request *http.Request) (*http.Response, error) {
+			return cfg.Client.Do(request)
+		}))
+		if err != nil {
+			emit(sources.ErrorResult(s.Name(), err))
 
-		for page := uint(0); ; page++ {
-			if err := limiter.Wait(ctx); err != nil {
-				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to wait on rate limiter: %w", err))
+			return
+		}
 
-				results <- result
-
-				break
-			}
-
-			getSubdomainsReqURL := "https://ghostarchive.org/search"
-
-			getSubdomainsRes, err := cfg.Client.Request().
-				URL(getSubdomainsReqURL).
-				Param("term", term).
-				Param("page", cast.ToString(page)).
-				Context(ctx).Do()
-			if err != nil {
-				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
-
-				results <- result
-
-				break
-			}
-
-			status := getSubdomainsRes.StatusCode
-
-			body, err := io.ReadAll(getSubdomainsRes.Body)
-			if err != nil {
-				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to read response body: %w", err))
-
-				results <- result
-
-				_ = getSubdomainsRes.Body.Close()
-
-				break
-			}
-
-			_ = getSubdomainsRes.Body.Close()
-
-			if status == hqgohttpstatus.TooManyRequests.Int() || status == hqgohttpstatus.ServiceUnavailable.Int() {
-				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed with status: %v", status))
-
-				results <- result
-
-				break
-			}
-
-			src := string(body)
-
-			// The search API repeats the last available page for any
-			// out-of-range page number, so an unchanged page means the
-			// results are exhausted.
-			if src == previousSrc {
-				break
-			}
-
-			previousSrc = src
-
-			if strings.Contains(src, "The site is under maintenance") || strings.Contains(src, "No archives for that site") {
-				result := sources.ErrorResult(s.Name(), errors.New("no archives for that site"))
-
-				results <- result
-
-				break
-			}
-
-			matches := resultPattern.FindAllStringSubmatch(src, -1)
-
-			if len(matches) == 0 {
-				break
-			}
-
-			for _, match := range matches {
-				for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, match[1]) {
-					subdomain, valid := cfg.Validator(candidate)
-					if !valid {
-						continue
-					}
-
-					result := sources.SubdomainResult(s.Name(), subdomain)
-
-					results <- result
+		for result := range client.Search(ctx, domain) {
+			if result.Err != nil {
+				if !emit(sources.ErrorResult(s.Name(), result.Err)) {
+					return
 				}
+
+				continue
 			}
 
-			if !strings.Contains(src, "Next Page") && !strings.Contains(src, ">»</a>") {
-				break
+			if result.Warning != "" {
+				if !emit(sources.WarningResult(s.Name(), result.Warning)) {
+					return
+				}
+
+				continue
+			}
+
+			for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, result.Value) {
+				subdomain, valid := cfg.Validator(candidate)
+				if !valid {
+					continue
+				}
+
+				if !emit(sources.SubdomainResult(s.Name(), subdomain)) {
+					return
+				}
 			}
 		}
 	}()
@@ -140,16 +78,8 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	return results
 }
 
-var resultPattern = regexp.MustCompile(`<a href="/archive/[^"]*">([^<]+)</a>`)
-
-var limiter = hqgolimiter.New(
-	hqgolimiter.WithRequestsPerMinute(30),
-)
-
 var _ sources.Source = (*Source)(nil)
 
-func New() (source sources.Source) {
-	source = &Source{}
-
-	return
+func New() sources.Source {
+	return &Source{}
 }

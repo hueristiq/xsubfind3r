@@ -1,61 +1,25 @@
 package intelx
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"strings"
-	"time"
+	"net/http"
 
-	hqgohttp "github.com/hueristiq/hq-lib-http-go"
-	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
-	hqgohttpmethod "github.com/hueristiq/hq-lib-http-go/method"
-	hqgohttpmime "github.com/hueristiq/hq-lib-http-go/mime"
-
+	hqgosource "github.com/hueristiq/xsubfind3r/internal/source"
+	intelxclient "github.com/hueristiq/xsubfind3r/internal/source/intelx"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
-type searchRequestBody struct {
-	Term       string `json:"term"`
-	MaxResults int    `json:"maxresults"`
-	Media      int    `json:"media"`
-	Target     int    `json:"target"`
-	Timeout    int    `json:"timeout"`
-}
-
-type searchResponse struct {
-	ID                string `json:"id"`
-	SelfSelectWarning bool   `json:"selfselectwarning"`
-	Status            int    `json:"status"`
-	AltTerm           string `json:"altterm"`
-	AltTermH          string `json:"alttermh"`
-}
-
-type getResultsResponse struct {
-	Selectors []struct {
-		Selectvalue string `json:"selectorvalue"`
-	} `json:"selectors"`
-	Status int `json:"status"`
-}
-
 type Source struct {
-	keys            sources.Keys
-	pollInterval    time.Duration
-	pollAttemptsMax int
+	keys sources.Keys
 }
 
-func (s *Source) Name() (name string) {
-	name = sources.IntelligenceX
-
-	return
+func (s *Source) Name() string {
+	return sources.IntelligenceX
 }
 
-func (s *Source) NeedsKeys() (needs bool) {
-	needs = true
-
-	return
+func (s *Source) NeedsKeys() bool {
+	return true
 }
 
 func (s *Source) UseKeys(keys ...string) {
@@ -68,197 +32,56 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	go func() {
 		defer close(results)
 
+		emit := func(result sources.Result) bool {
+			select {
+			case results <- result:
+				return true
+			case <-ctx.Done():
+				return false
+			}
+		}
+
 		key, err := s.keys.PickRandom()
 		if err != nil {
-			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to select key: %w", err))
-
-			results <- result
+			emit(sources.ErrorResult(s.Name(), fmt.Errorf("failed to select key: %w", err)))
 
 			return
 		}
 
-		if key == "" {
-			result := sources.ErrorResult(s.Name(), errors.New("failed to select key: selected key is empty"))
-
-			results <- result
-
-			return
-		}
-
-		parts := strings.Split(key, ":")
-		if len(parts) != 2 {
-			result := sources.ErrorResult(s.Name(), errors.New("failed to parse key: expected host:key format"))
-
-			results <- result
-
-			return
-		}
-
-		intelXHost := parts[0]
-		intelXKey := parts[1]
-
-		if intelXKey == "" || intelXHost == "" {
-			result := sources.ErrorResult(s.Name(), errors.New("failed to parse key: host or key is empty"))
-
-			results <- result
-
-			return
-		}
-
-		searchReqURL := "https://" + intelXHost + "/phonebook/search"
-		searchReqBody := searchRequestBody{
-			Term:       domain,
-			MaxResults: 100000,
-			Media:      0,
-			Target:     1, // 1 = Domains | 2 = Emails | 3 = URLs
-			Timeout:    defaultSearchTimeout,
-		}
-
-		var searchReqBodyBytes []byte
-
-		searchReqBodyBytes, err = json.Marshal(searchReqBody)
+		client, err := intelxclient.New(hqgosource.DoerFunc(func(request *http.Request) (*http.Response, error) {
+			return cfg.Client.Do(request)
+		}), key)
 		if err != nil {
-			result := sources.ErrorResult(s.Name(), err)
-
-			results <- result
+			emit(sources.ErrorResult(s.Name(), err))
 
 			return
 		}
 
-		searchReqBodyReader := bytes.NewBuffer(searchReqBodyBytes)
-
-		var searchRes *hqgohttp.Response
-
-		searchRes, err = cfg.Client.Request().
-			Method(hqgohttpmethod.POST).
-			URL(searchReqURL).
-			Param("k", intelXKey).
-			SetHeader(hqgohttpheader.ContentType.String(), hqgohttpmime.JSON.String()).
-			Body(searchReqBodyReader).
-			Context(ctx).Do()
-		if err != nil {
-			if searchRes != nil {
-				_ = searchRes.Body.Close()
-			}
-
-			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", sources.RedactError(err, intelXKey)))
-
-			results <- result
-
-			return
-		}
-
-		if err = sources.CheckResponse(searchRes.Std(), intelXKey); err != nil {
-			result := sources.ErrorResult(s.Name(), err)
-
-			results <- result
-
-			_ = searchRes.Body.Close()
-
-			return
-		}
-
-		var searchResData searchResponse
-
-		if err = json.NewDecoder(searchRes.Body).Decode(&searchResData); err != nil {
-			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
-
-			results <- result
-
-			_ = searchRes.Body.Close()
-
-			return
-		}
-
-		_ = searchRes.Body.Close()
-
-		getResultsReqURL := "https://" + intelXHost + "/phonebook/search/result"
-		status := 0
-		seenSelectors := make(map[string]struct{})
-
-		for attempts := 0; status == 0 || status == 3; attempts++ {
-			if attempts >= s.pollAttemptsMax {
-				result := sources.ErrorResult(s.Name(), fmt.Errorf("giving up after %d result polls", attempts))
-
-				results <- result
-
-				return
-			}
-
-			if attempts > 0 {
-				timer := time.NewTimer(s.pollInterval)
-
-				select {
-				case <-ctx.Done():
-					timer.Stop()
-
+		for result := range client.Search(ctx, domain, intelxclient.Domains) {
+			if result.Err != nil {
+				if !emit(sources.ErrorResult(s.Name(), result.Err)) {
 					return
-				case <-timer.C:
-				}
-			}
-
-			var getResultsRes *hqgohttp.Response
-
-			getResultsRes, err = cfg.Client.Request().
-				URL(getResultsReqURL).
-				Param("k", intelXKey).
-				Param("id", searchResData.ID).
-				Param("limit", "10000").
-				Context(ctx).Do()
-			if err != nil {
-				if getResultsRes != nil {
-					_ = getResultsRes.Body.Close()
 				}
 
-				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", sources.RedactError(err, intelXKey)))
-
-				results <- result
-
-				return
+				continue
 			}
 
-			if err = sources.CheckResponse(getResultsRes.Std(), intelXKey); err != nil {
-				result := sources.ErrorResult(s.Name(), err)
+			if result.Warning != "" {
+				if !emit(sources.WarningResult(s.Name(), result.Warning)) {
+					return
+				}
 
-				results <- result
-
-				_ = getResultsRes.Body.Close()
-
-				return
+				continue
 			}
 
-			var getResultsResData getResultsResponse
-
-			if err = json.NewDecoder(getResultsRes.Body).Decode(&getResultsResData); err != nil {
-				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
-
-				results <- result
-
-				_ = getResultsRes.Body.Close()
-
-				return
-			}
-
-			_ = getResultsRes.Body.Close()
-
-			status = getResultsResData.Status
-
-			for _, selector := range getResultsResData.Selectors {
-				if _, seen := seenSelectors[selector.Selectvalue]; seen {
+			for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, result.Value) {
+				subdomain, valid := cfg.Validator(candidate)
+				if !valid {
 					continue
 				}
 
-				seenSelectors[selector.Selectvalue] = struct{}{}
-
-				for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, selector.Selectvalue) {
-					subdomain, valid := cfg.Validator(candidate)
-					if !valid {
-						continue
-					}
-
-					result := sources.SubdomainResult(s.Name(), subdomain)
-
-					results <- result
+				if !emit(sources.SubdomainResult(s.Name(), subdomain)) {
+					return
 				}
 			}
 		}
@@ -269,18 +92,6 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 var _ sources.Source = (*Source)(nil)
 
-const (
-	defaultPollInterval    = 10 * time.Second
-	defaultPollAttemptsMax = 30
-	defaultSearchTimeout   = 20
-)
-
-func New() (source sources.Source) {
-	source = &Source{
-		keys:            make(sources.Keys, 0),
-		pollInterval:    defaultPollInterval,
-		pollAttemptsMax: defaultPollAttemptsMax,
-	}
-
-	return
+func New() sources.Source {
+	return &Source{keys: make(sources.Keys, 0)}
 }

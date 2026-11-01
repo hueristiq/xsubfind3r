@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
 	"github.com/spf13/cast"
@@ -80,17 +81,25 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		certSearchReqURL := "https://search.censys.io/api/v2/certificates/search"
 
 		for {
-			certSearchReq := cfg.Client.Request().
-				URL(certSearchReqURL).
-				Param("q", domain).
-				Param("per_page", cast.ToString(maxPerPage)).
-				SetHeader(hqgohttpheader.Authorization.String(), "Basic "+base64.StdEncoding.EncodeToString([]byte(key)))
+			certSearchRes, err := func() (*http.Response, error) {
+				req, err := http.NewRequestWithContext(ctx, http.MethodGet, certSearchReqURL, http.NoBody)
+				if err != nil {
+					return nil, fmt.Errorf("build request: %w", err)
+				}
 
-			if cursor != "" {
-				certSearchReq = certSearchReq.Param("cursor", cursor)
-			}
+				queryValues := req.URL.Query()
+				queryValues.Set("q", domain)
+				queryValues.Set("per_page", cast.ToString(maxPerPage))
 
-			certSearchRes, err := certSearchReq.Context(ctx).Do()
+				if cursor != "" {
+					queryValues.Set("cursor", cursor)
+				}
+
+				req.URL.RawQuery = queryValues.Encode()
+				req.Header.Set(hqgohttpheader.Authorization.String(), "Basic "+base64.StdEncoding.EncodeToString([]byte(key)))
+
+				return cfg.Client.Do(req)
+			}()
 			if err != nil {
 				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -99,7 +108,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				return
 			}
 
-			if err = sources.CheckResponse(certSearchRes.Std(), key); err != nil {
+			if err = sources.CheckResponse(certSearchRes, key); err != nil {
 				result := sources.ErrorResult(s.Name(), err)
 
 				results <- result

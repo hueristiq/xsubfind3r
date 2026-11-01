@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"net/http"
 
 	hqgohttpstatus "github.com/hueristiq/hq-lib-http-go/status"
 
@@ -35,9 +36,14 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getCertificateDetailsReqURL := "https://certificatedetails.com/" + domain
 
-		getCertificateDetailsRes, err := cfg.Client.Request().
-			URL(getCertificateDetailsReqURL).
-			Context(ctx).Do()
+		getCertificateDetailsRes, err := func() (*http.Response, error) {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, getCertificateDetailsReqURL, http.NoBody)
+			if err != nil {
+				return nil, fmt.Errorf("build request: %w", err)
+			}
+
+			return cfg.Client.Do(req)
+		}() //nolint:bodyclose // The caller closes the response body.
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 

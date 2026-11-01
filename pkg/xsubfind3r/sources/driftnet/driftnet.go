@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
@@ -133,15 +134,23 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		to := time.Now().UTC()
 		from := to.AddDate(0, 0, -30)
 
-		getResultsRes, err := cfg.Client.Request().
-			URL(getResultsReqURL).
-			Param("summary_limit", "10").
-			Param("timeout", "30").
-			Param("from", from.Format("2006-01-02")).
-			Param("to", to.Format("2006-01-02")).
-			Param("field", "host:"+domain).
-			SetHeader(hqgohttpheader.Authorization.String(), "Bearer anon").
-			Context(ctx).Do()
+		getResultsRes, err := func() (*http.Response, error) {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, getResultsReqURL, http.NoBody)
+			if err != nil {
+				return nil, fmt.Errorf("build request: %w", err)
+			}
+
+			req.Header.Set(hqgohttpheader.Authorization.String(), "Bearer anon")
+			queryValues := req.URL.Query()
+			queryValues.Add("summary_limit", "10")
+			queryValues.Add("timeout", "30")
+			queryValues.Add("from", from.Format("2006-01-02"))
+			queryValues.Add("to", to.Format("2006-01-02"))
+			queryValues.Add("field", "host:"+domain)
+			req.URL.RawQuery = queryValues.Encode()
+
+			return cfg.Client.Do(req)
+		}()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -150,7 +159,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getResultsRes.Std()); err != nil {
+		if err = sources.CheckResponse(getResultsRes); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result

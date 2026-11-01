@@ -1,11 +1,13 @@
 package netlas
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-
-	hqgohttpmethod "github.com/hueristiq/hq-lib-http-go/method"
+	"io"
+	"net/http"
+	"strings"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
@@ -68,12 +70,20 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getCountReqURL := "https://app.netlas.io/api/domains_count/"
 
-		getCountRes, err := cfg.Client.Request().
-			URL(getCountReqURL).
-			Param("q", query).
-			SetHeader("Accept", "application/json").
-			SetHeader("X-API-Key", key).
-			Context(ctx).Do()
+		getCountRes, err := func() (*http.Response, error) {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, getCountReqURL, http.NoBody)
+			if err != nil {
+				return nil, fmt.Errorf("build request: %w", err)
+			}
+
+			req.Header.Set("Accept", "application/json")
+			req.Header.Set("X-Api-Key", key)
+			queryValues := req.URL.Query()
+			queryValues.Add("q", query)
+			req.URL.RawQuery = queryValues.Encode()
+
+			return cfg.Client.Do(req)
+		}()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -82,7 +92,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getCountRes.Std(), key); err != nil {
+		if err = sources.CheckResponse(getCountRes, key); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result
@@ -128,14 +138,39 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getSubdomainsReqURL := "https://app.netlas.io/api/domains/download/"
 
-		getSubdomainsRes, err := cfg.Client.Request().
-			Method(hqgohttpmethod.POST).
-			URL(getSubdomainsReqURL).
-			SetHeader("Accept", "application/json").
-			SetHeader("X-API-Key", key).
-			SetHeader("Content-Type", "application/json").
-			Body(downloadReqBody).
-			Context(ctx).Do()
+		getSubdomainsRes, err := func() (*http.Response, error) {
+			var body io.Reader
+
+			switch bodyValue := any(downloadReqBody).(type) {
+			case nil:
+			case string:
+				body = strings.NewReader(bodyValue)
+			case []byte:
+				body = bytes.NewReader(bodyValue)
+			case func() (io.Reader, error):
+				var err error
+
+				body, err = bodyValue()
+				if err != nil {
+					return nil, fmt.Errorf("build request: %w", err)
+				}
+			case io.Reader:
+				body = bodyValue
+			default:
+				return nil, fmt.Errorf("unsupported request body type %T", bodyValue)
+			}
+
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, getSubdomainsReqURL, body)
+			if err != nil {
+				return nil, fmt.Errorf("build request: %w", err)
+			}
+
+			req.Header.Set("Accept", "application/json")
+			req.Header.Set("X-Api-Key", key)
+			req.Header.Set("Content-Type", "application/json")
+
+			return cfg.Client.Do(req)
+		}()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -144,7 +179,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getSubdomainsRes.Std(), key); err != nil {
+		if err = sources.CheckResponse(getSubdomainsRes, key); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result

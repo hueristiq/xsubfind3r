@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
@@ -58,16 +59,24 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getSubdomainsReqURL := "https://fofa.info/api/v1/search/all"
 
-		getSubdomainsRes, err := cfg.Client.Request().
-			URL(getSubdomainsReqURL).
-			Param("full", "true").
-			Param("fields", "host").
-			Param("page", "1").
-			Param("size", "10000").
-			Param("email", email).
-			Param("key", key).
-			Param("qbase64", qbase64).
-			Context(ctx).Do()
+		getSubdomainsRes, err := func() (*http.Response, error) {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, getSubdomainsReqURL, http.NoBody)
+			if err != nil {
+				return nil, fmt.Errorf("build request: %w", err)
+			}
+
+			queryValues := req.URL.Query()
+			queryValues.Add("full", "true")
+			queryValues.Add("fields", "host")
+			queryValues.Add("page", "1")
+			queryValues.Add("size", "10000")
+			queryValues.Add("email", email)
+			queryValues.Add("key", key)
+			queryValues.Add("qbase64", qbase64)
+			req.URL.RawQuery = queryValues.Encode()
+
+			return cfg.Client.Do(req)
+		}()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", sources.RedactError(err, email, key)))
 
@@ -76,7 +85,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getSubdomainsRes.Std(), email, key); err != nil {
+		if err = sources.CheckResponse(getSubdomainsRes, email, key); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
@@ -42,12 +43,20 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getNameValuesReqURL := "https://crt.sh"
 
-		getNameValuesRes, err := cfg.Client.Request().
-			URL(getNameValuesReqURL).
-			Param("q", "%."+domain).
-			Param("output", "json").
-			SetHeader(hqgohttpheader.ContentType.String(), hqgohttpmime.JSON.String()).
-			Context(ctx).Do()
+		getNameValuesRes, err := func() (*http.Response, error) {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, getNameValuesReqURL, http.NoBody)
+			if err != nil {
+				return nil, fmt.Errorf("build request: %w", err)
+			}
+
+			req.Header.Set(hqgohttpheader.ContentType.String(), hqgohttpmime.JSON.String())
+			queryValues := req.URL.Query()
+			queryValues.Add("q", "%."+domain)
+			queryValues.Add("output", "json")
+			req.URL.RawQuery = queryValues.Encode()
+
+			return cfg.Client.Do(req)
+		}()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -56,7 +65,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getNameValuesRes.Std()); err != nil {
+		if err = sources.CheckResponse(getNameValuesRes); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result

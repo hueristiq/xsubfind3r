@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	hqgotuiansi "github.com/hueristiq/hq-lib-tui-go/ansi"
+
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -132,6 +134,44 @@ func TestWriteTXT(t *testing.T) {
 
 	if got, want := buffer.String(), "[crtsh] "+testSubdomain+"\n"; got != want {
 		t.Fatalf("TXT output with source = %q, want %q", got, want)
+	}
+}
+
+func TestWriteWithSourceProfile(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		profile hqgotuiansi.Profile
+		want    string
+	}{
+		{name: "none", profile: hqgotuiansi.ProfileNone, want: "[crtsh] " + testSubdomain + "\n"},
+		{name: "ansi", profile: hqgotuiansi.ProfileANSI, want: "[\x1b[96mcrtsh\x1b[0m] " + testSubdomain + "\n"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			var buffer bytes.Buffer
+
+			writer := NewWriter()
+			writer.SetSourceProfile(test.profile)
+
+			result := sources.SubdomainResult(sources.Crtsh, testSubdomain)
+
+			if err := writer.WriteWithSource(&buffer, exampleDomain, result); err != nil {
+				t.Fatalf("WriteWithSource() error: %v", err)
+			}
+
+			if err := writer.Flush(&buffer); err != nil {
+				t.Fatalf("Flush() error: %v", err)
+			}
+
+			if got := buffer.String(); got != test.want {
+				t.Fatalf("output = %q, want %q", got, test.want)
+			}
+		})
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
@@ -52,10 +53,18 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getDNSReqURL := "https://api.shodan.io/dns/domain/" + domain
 
-		getDNSRes, err := cfg.Client.Request().
-			URL(getDNSReqURL).
-			Param("key", key).
-			Context(ctx).Do()
+		getDNSRes, err := func() (*http.Response, error) {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, getDNSReqURL, http.NoBody)
+			if err != nil {
+				return nil, fmt.Errorf("build request: %w", err)
+			}
+
+			queryValues := req.URL.Query()
+			queryValues.Add("key", key)
+			req.URL.RawQuery = queryValues.Encode()
+
+			return cfg.Client.Do(req)
+		}()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", sources.RedactError(err, key)))
 
@@ -64,7 +73,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getDNSRes.Std(), key); err != nil {
+		if err = sources.CheckResponse(getDNSRes, key); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result

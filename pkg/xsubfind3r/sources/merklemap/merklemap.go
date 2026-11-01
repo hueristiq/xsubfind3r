@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/spf13/cast"
 
@@ -61,13 +62,21 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		for ; page < sources.MaxPages; page++ {
 			getSubdomainsReqURL := "https://api.merklemap.com/v1/search"
 
-			getSubdomainsRes, err := cfg.Client.Request().
-				URL(getSubdomainsReqURL).
-				Param("query", "*."+domain).
-				Param("page", cast.ToString(page)).
-				SetHeader("Accept", "application/json").
-				SetHeader("Authorization", "Bearer "+key).
-				Context(ctx).Do()
+			getSubdomainsRes, err := func() (*http.Response, error) {
+				req, err := http.NewRequestWithContext(ctx, http.MethodGet, getSubdomainsReqURL, http.NoBody)
+				if err != nil {
+					return nil, fmt.Errorf("build request: %w", err)
+				}
+
+				req.Header.Set("Accept", "application/json")
+				req.Header.Set("Authorization", "Bearer "+key)
+				queryValues := req.URL.Query()
+				queryValues.Add("query", "*."+domain)
+				queryValues.Add("page", cast.ToString(page))
+				req.URL.RawQuery = queryValues.Encode()
+
+				return cfg.Client.Do(req)
+			}()
 			if err != nil {
 				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -76,7 +85,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				return
 			}
 
-			if err = sources.CheckResponse(getSubdomainsRes.Std(), key); err != nil {
+			if err = sources.CheckResponse(getSubdomainsRes, key); err != nil {
 				result := sources.ErrorResult(s.Name(), err)
 
 				results <- result

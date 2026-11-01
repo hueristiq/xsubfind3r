@@ -2,39 +2,24 @@ package hudsonrock
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
+	"net/http"
 
+	hqgosource "github.com/hueristiq/xsubfind3r/internal/source"
+	"github.com/hueristiq/xsubfind3r/internal/source/hudsonrock"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
-type getSubdomainsResponse struct {
-	Data struct {
-		EmployeesUrls []struct {
-			URL string `json:"url"`
-		} `json:"employees_urls"`
-		ClientsUrls []struct {
-			URL string `json:"url"`
-		} `json:"clients_urls"`
-	} `json:"data"`
-}
-
 type Source struct{}
 
-func (s *Source) Name() (name string) {
-	name = sources.Hudsonrock
-
-	return
+func (s *Source) Name() string {
+	return sources.Hudsonrock
 }
 
-func (s *Source) NeedsKeys() (needs bool) {
-	needs = false
-
-	return
+func (s *Source) NeedsKeys() bool {
+	return false
 }
 
-func (s *Source) UseKeys(keys ...string) {
-}
+func (s *Source) UseKeys(...string) {}
 
 func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain string) <-chan sources.Result {
 	results := make(chan sources.Result)
@@ -42,54 +27,50 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	go func() {
 		defer close(results)
 
-		getSubdomainsReqURL := "https://cavalier.hudsonrock.com/api/json/v2/osint-tools/urls-by-domain"
+		emit := func(result sources.Result) bool {
+			select {
+			case results <- result:
+				return true
+			case <-ctx.Done():
+				return false
+			}
+		}
 
-		getSubdomainsRes, err := cfg.Client.Request().
-			URL(getSubdomainsReqURL).
-			Param("domain", domain).
-			Context(ctx).Do()
+		client, err := hudsonrock.New(hqgosource.DoerFunc(func(request *http.Request) (*http.Response, error) {
+			return cfg.Client.Do(request)
+		}))
 		if err != nil {
-			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
-
-			results <- result
+			emit(sources.ErrorResult(s.Name(), err))
 
 			return
 		}
 
-		if err = sources.CheckResponse(getSubdomainsRes.Std()); err != nil {
-			result := sources.ErrorResult(s.Name(), err)
+		for result := range client.Search(ctx, domain) {
+			if result.Err != nil {
+				if !emit(sources.ErrorResult(s.Name(), result.Err)) {
+					return
+				}
 
-			results <- result
+				continue
+			}
 
-			_ = getSubdomainsRes.Body.Close()
+			if result.Warning != "" {
+				if !emit(sources.WarningResult(s.Name(), result.Warning)) {
+					return
+				}
 
-			return
-		}
+				continue
+			}
 
-		var getSubdomainsResData getSubdomainsResponse
-
-		if err = json.NewDecoder(getSubdomainsRes.Body).Decode(&getSubdomainsResData); err != nil {
-			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
-
-			results <- result
-
-			_ = getSubdomainsRes.Body.Close()
-
-			return
-		}
-
-		_ = getSubdomainsRes.Body.Close()
-
-		for _, record := range append(getSubdomainsResData.Data.EmployeesUrls, getSubdomainsResData.Data.ClientsUrls...) {
-			for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, record.URL) {
+			for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, result.Value) {
 				subdomain, valid := cfg.Validator(candidate)
 				if !valid {
 					continue
 				}
 
-				result := sources.SubdomainResult(s.Name(), subdomain)
-
-				results <- result
+				if !emit(sources.SubdomainResult(s.Name(), subdomain)) {
+					return
+				}
 			}
 		}
 	}()
@@ -99,8 +80,6 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 var _ sources.Source = (*Source)(nil)
 
-func New() (source sources.Source) {
-	source = &Source{}
-
-	return
+func New() sources.Source {
+	return &Source{}
 }

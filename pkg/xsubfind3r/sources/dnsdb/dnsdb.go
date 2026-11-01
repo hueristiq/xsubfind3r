@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -88,11 +89,17 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			before := emitted
 			getSubdomainsReqURL := fmt.Sprintf("%s/lookup/rrset/name/*.%s?%s", baseReqURL, domain, params.Encode())
 
-			getSubdomainsRes, err := cfg.Client.Request().
-				URL(getSubdomainsReqURL).
-				SetHeader("X-API-KEY", key).
-				SetHeader("Accept", "application/x-ndjson").
-				Context(ctx).Do()
+			getSubdomainsRes, err := func() (*http.Response, error) {
+				req, err := http.NewRequestWithContext(ctx, http.MethodGet, getSubdomainsReqURL, http.NoBody)
+				if err != nil {
+					return nil, fmt.Errorf("build request: %w", err)
+				}
+
+				req.Header.Set("X-Api-Key", key)
+				req.Header.Set("Accept", "application/x-ndjson")
+
+				return cfg.Client.Do(req)
+			}() //nolint:bodyclose // The caller closes the response body.
 			if err != nil {
 				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -101,7 +108,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				return
 			}
 
-			if err = sources.CheckResponse(getSubdomainsRes.Std(), key); err != nil { //nolint:bodyclose // the body belongs to getSubdomainsRes and is closed by its reader goroutine.
+			if err = sources.CheckResponse(getSubdomainsRes, key); err != nil {
 				result := sources.ErrorResult(s.Name(), err)
 
 				results <- result
@@ -233,10 +240,16 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 func getMaxOffset(ctx context.Context, cfg *sources.Configuration, key string) (offsetMax uint64, err error) {
 	getRateLimitReqURL := baseReqURL + "/rate_limit"
 
-	getRateLimitRes, err := cfg.Client.Request().
-		URL(getRateLimitReqURL).
-		SetHeader("X-API-KEY", key).
-		Context(ctx).Do()
+	getRateLimitRes, err := func() (*http.Response, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getRateLimitReqURL, http.NoBody)
+		if err != nil {
+			return nil, fmt.Errorf("build request: %w", err)
+		}
+
+		req.Header.Set("X-Api-Key", key)
+
+		return cfg.Client.Do(req)
+	}()
 	if err != nil {
 		return
 	}
@@ -245,7 +258,7 @@ func getMaxOffset(ctx context.Context, cfg *sources.Configuration, key string) (
 		_ = getRateLimitRes.Body.Close()
 	}()
 
-	if err = sources.CheckResponse(getRateLimitRes.Std(), key); err != nil { //nolint:bodyclose // the body belongs to getRateLimitRes and is closed by the deferred call above.
+	if err = sources.CheckResponse(getRateLimitRes, key); err != nil {
 		return
 	}
 

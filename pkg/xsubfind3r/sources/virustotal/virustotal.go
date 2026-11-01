@@ -2,45 +2,24 @@ package virustotal
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"net/http"
 
-	hqgolimiter "github.com/hueristiq/hq-lib-limiter-go"
-
+	hqgosource "github.com/hueristiq/xsubfind3r/internal/source"
+	"github.com/hueristiq/xsubfind3r/internal/source/virustotal"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
-
-type getSubdomainsResponse struct {
-	Error struct {
-		Code    string `json:"code"`
-		Message string `json:"message"`
-	} `json:"error"`
-	Data []struct {
-		ID    string `json:"id"`
-		Type  string `json:"type"`
-		Links struct {
-			Self string `json:"self"`
-		} `json:"links"`
-	} `json:"data"`
-	Meta struct {
-		Cursor string `json:"cursor"`
-	} `json:"meta"`
-}
 
 type Source struct {
 	keys sources.Keys
 }
 
-func (s *Source) Name() (name string) {
-	name = sources.Virustotal
-
-	return
+func (s *Source) Name() string {
+	return sources.Virustotal
 }
 
-func (s *Source) NeedsKeys() (needs bool) {
-	needs = true
-
-	return
+func (s *Source) NeedsKeys() bool {
+	return true
 }
 
 func (s *Source) UseKeys(keys ...string) {
@@ -53,93 +32,55 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	go func() {
 		defer close(results)
 
+		emit := func(result sources.Result) bool {
+			select {
+			case results <- result:
+				return true
+			case <-ctx.Done():
+				return false
+			}
+		}
+
 		key, err := s.keys.PickRandom()
 		if err != nil {
-			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to select key: %w", err))
-
-			results <- result
+			emit(sources.ErrorResult(s.Name(), fmt.Errorf("failed to select key: %w", err)))
 
 			return
 		}
 
-		var cursor string
+		client, err := virustotal.New(hqgosource.DoerFunc(func(request *http.Request) (*http.Response, error) {
+			return cfg.Client.Do(request)
+		}), key)
+		if err != nil {
+			emit(sources.ErrorResult(s.Name(), err))
 
-		for {
-			if err := limiter.Wait(ctx); err != nil {
-				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to wait on rate limiter: %w", err))
+			return
+		}
 
-				results <- result
-
-				break
-			}
-
-			getSubdomainsReqURL := fmt.Sprintf("https://www.virustotal.com/api/v3/domains/%s/subdomains", domain)
-
-			getSubdomainsReq := cfg.Client.Request().
-				URL(getSubdomainsReqURL).
-				Param("limit", "40").
-				SetHeader("x-apikey", key)
-
-			if cursor != "" {
-				getSubdomainsReq = getSubdomainsReq.Param("cursor", cursor)
-			}
-
-			getSubdomainsRes, err := getSubdomainsReq.Context(ctx).Do()
-			if err != nil {
-				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", sources.RedactError(err, key)))
-
-				results <- result
-
-				break
-			}
-
-			if err = sources.CheckResponse(getSubdomainsRes.Std(), key); err != nil {
-				result := sources.ErrorResult(s.Name(), err)
-
-				results <- result
-
-				_ = getSubdomainsRes.Body.Close()
-
-				break
-			}
-
-			var getSubdomainsResData getSubdomainsResponse
-
-			if err = json.NewDecoder(getSubdomainsRes.Body).Decode(&getSubdomainsResData); err != nil {
-				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
-
-				results <- result
-
-				_ = getSubdomainsRes.Body.Close()
-
-				break
-			}
-
-			_ = getSubdomainsRes.Body.Close()
-
-			if getSubdomainsResData.Error.Message != "" {
-				result := sources.ErrorResult(s.Name(), fmt.Errorf("domain error: %s, %s", getSubdomainsResData.Error.Code, getSubdomainsResData.Error.Message))
-
-				results <- result
-
-				break
-			}
-
-			for _, record := range getSubdomainsResData.Data {
-				subdomain, valid := cfg.Validator(record.ID)
-				if !valid {
-					continue
+		for result := range client.Subdomains(ctx, domain) {
+			if result.Err != nil {
+				if !emit(sources.ErrorResult(s.Name(), result.Err)) {
+					return
 				}
 
-				result := sources.SubdomainResult(s.Name(), subdomain)
-
-				results <- result
+				continue
 			}
 
-			cursor = getSubdomainsResData.Meta.Cursor
+			if result.Warning != "" {
+				if !emit(sources.WarningResult(s.Name(), result.Warning)) {
+					return
+				}
 
-			if cursor == "" {
-				break
+				continue
+			}
+
+			subdomain, valid := cfg.Validator(result.Value)
+			if !valid {
+				continue
+			}
+
+			if !emit(sources.SubdomainResult(s.Name(), subdomain)) {
+				return
 			}
 		}
 	}()
@@ -147,16 +88,8 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	return results
 }
 
-var limiter = hqgolimiter.New(
-	hqgolimiter.WithRequestsPerMinute(4),
-)
-
 var _ sources.Source = (*Source)(nil)
 
-func New() (source sources.Source) {
-	source = &Source{
-		keys: make(sources.Keys, 0),
-	}
-
-	return
+func New() sources.Source {
+	return &Source{keys: make(sources.Keys, 0)}
 }

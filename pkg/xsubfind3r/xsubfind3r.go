@@ -5,16 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
-	"net/http"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
 
 	hqgohttp "github.com/hueristiq/hq-lib-http-go"
 	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
-	hqgoretrier "github.com/hueristiq/hq-lib-retrier-go"
-	hqgoretrierbackoff "github.com/hueristiq/hq-lib-retrier-go/backoff"
+	hqgourlparser "github.com/hueristiq/hq-lib-url-go/parser"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/anubis"
@@ -69,18 +66,9 @@ func (finder *Finder) Find(ctx context.Context, domain string) (results chan sou
 
 	domain = strings.ToLower(domain)
 
-	extractor, err := compileExtractor(domain)
-	if err != nil {
-		results <- sources.ErrorResult("xsubfind3r", err)
-
-		close(results)
-
-		return results
-	}
-
 	configuration := &sources.Configuration{
 		Client:    finder.client,
-		Extractor: extractor,
+		Extractor: sources.NewSubdomainExtractor(domain),
 		Validator: func(target string) (subdomain string, valid bool) {
 			subdomain, valid = validateSubdomain(target, domain)
 
@@ -247,9 +235,8 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 	}
 
 	ofs := []hqgohttp.ClientOptionFunc{
-		hqgohttp.WithHTTPClient(hqgohttp.DefaultHTTPPooledClient()),
 		hqgohttp.WithTimeout(timeout),
-		hqgohttp.WithRetrier(newRetrier()),
+		hqgohttp.WithRetryMaxAttempts(4),
 		hqgohttp.WithResponseReadLimit(4096),
 	}
 
@@ -257,7 +244,12 @@ func New(cfg *Configuration) (finder *Finder, err error) {
 		ofs = append(ofs, hqgohttp.WithHeader(hqgohttpheader.UserAgent.String(), cfg.Client.UserAgent))
 	}
 
-	finder.client = hqgohttp.New(ofs...)
+	finder.client, err = hqgohttp.New(ofs...)
+	if err != nil {
+		err = fmt.Errorf("xsubfind3r.New: building client: %w", err)
+
+		return
+	}
 
 	sourcesToUse := cfg.SourcesToUse
 
@@ -312,24 +304,12 @@ func NewSource(name string) (source sources.Source, ok bool) {
 	return constructor(), true
 }
 
-func compileExtractor(domain string) (extractor *regexp.Regexp, err error) {
-	extractor, err = regexp.Compile(fmt.Sprintf(
-		`(?i)(?:^|[^a-z0-9_.-])(((?:[a-z0-9_](?:[a-z0-9_-]*[a-z0-9_])?\.)+)%s)`,
-		regexp.QuoteMeta(domain),
-	))
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile subdomain extractor: %w", err)
-	}
-
-	return
-}
-
 func validateSubdomain(target, domain string) (subdomain string, valid bool) {
 	subdomain = strings.ToLower(strings.TrimSpace(target))
 	subdomain = strings.TrimPrefix(subdomain, "*.")
 	subdomain = strings.TrimSuffix(subdomain, ".")
 
-	if !validHostname(subdomain) {
+	if _, normalizeErr := hqgourlparser.NormalizeDNSName(subdomain); normalizeErr != nil {
 		return subdomain, false
 	}
 
@@ -338,53 +318,6 @@ func validateSubdomain(target, domain string) (subdomain string, valid bool) {
 	}
 
 	return subdomain, true
-}
-
-func validHostname(hostname string) (valid bool) {
-	if hostname == "" || len(hostname) > 253 {
-		return false
-	}
-
-	for _, label := range strings.Split(hostname, ".") {
-		if label == "" || len(label) > 63 {
-			return false
-		}
-
-		for index := range len(label) {
-			if !isHostnameChar(label[index]) {
-				return false
-			}
-		}
-
-		if !isHostnameEdge(label[0]) || !isHostnameEdge(label[len(label)-1]) {
-			return false
-		}
-	}
-
-	return true
-}
-
-func isHostnameChar(char byte) (valid bool) {
-	switch {
-	case char >= 'a' && char <= 'z',
-		char >= '0' && char <= '9',
-		char == '-',
-		char == '_':
-		valid = true
-	}
-
-	return
-}
-
-func isHostnameEdge(char byte) (valid bool) {
-	switch {
-	case char >= 'a' && char <= 'z',
-		char >= '0' && char <= '9',
-		char == '_':
-		valid = true
-	}
-
-	return
 }
 
 func newDeduper() (d *deduper) {
@@ -403,33 +336,6 @@ func dedupHash(value string) (hash uint64) {
 	_, _ = hasher.Write([]byte(value))
 
 	hash = hasher.Sum64()
-
-	return
-}
-
-func newRetrier() (retrier hqgohttp.Retrier) {
-	retrier = hqgohttp.RetrierFunc(func(ctx context.Context, operation hqgohttp.RetryOperation, options hqgohttp.RetrierOptions) (*http.Response, error) {
-		return hqgoretrier.RetryWithData(ctx, operation,
-			hqgoretrier.WithMaxAttempts(4),
-			hqgoretrier.WithWaitMin(1*time.Second),
-			hqgoretrier.WithWaitMax(30*time.Second),
-			hqgoretrier.WithBackoff(func(minDelay, maxDelay time.Duration) hqgoretrierbackoff.Backoff {
-				base := hqgoretrierbackoff.ExponentialWithDecorrelatedJitter(minDelay, maxDelay)
-
-				return func(attempt int) time.Duration {
-					if wait, ok := options.RetryAfter(); ok {
-						return min(wait, maxDelay)
-					}
-
-					return base(attempt)
-				}
-			}),
-			hqgoretrier.WithRetryOn(options.RetryOn),
-			hqgoretrier.WithOnRetry(func(event hqgoretrier.RetryEvent) {
-				options.OnRetry(hqgohttp.RetrierEvent{Attempt: event.Attempt, Err: event.Err, Wait: event.Wait})
-			}),
-		)
-	})
 
 	return
 }

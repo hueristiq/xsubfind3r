@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/spf13/cast"
@@ -141,13 +142,21 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		for {
 			getSubdomainsReqURL := "https://www.onyphe.io/api/v2/search/"
 
-			getSubdomainsRes, err := cfg.Client.Request().
-				URL(getSubdomainsReqURL).
-				Param("q", "category:resolver domain:"+domain).
-				Param("page", cast.ToString(page)).
-				Param("size", "1000").
-				SetHeader("Authorization", "bearer "+key).
-				Context(ctx).Do()
+			getSubdomainsRes, err := func() (*http.Response, error) {
+				req, err := http.NewRequestWithContext(ctx, http.MethodGet, getSubdomainsReqURL, http.NoBody)
+				if err != nil {
+					return nil, fmt.Errorf("build request: %w", err)
+				}
+
+				req.Header.Set("Authorization", "bearer "+key)
+				queryValues := req.URL.Query()
+				queryValues.Add("q", "category:resolver domain:"+domain)
+				queryValues.Add("page", cast.ToString(page))
+				queryValues.Add("size", "1000")
+				req.URL.RawQuery = queryValues.Encode()
+
+				return cfg.Client.Do(req)
+			}()
 			if err != nil {
 				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -156,7 +165,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				return
 			}
 
-			if err = sources.CheckResponse(getSubdomainsRes.Std(), key); err != nil {
+			if err = sources.CheckResponse(getSubdomainsRes, key); err != nil {
 				result := sources.ErrorResult(s.Name(), err)
 
 				results <- result

@@ -1,39 +1,25 @@
 package gitlab
 
 import (
-	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/url"
+	"net/http"
 
-	hqgohttpstatus "github.com/hueristiq/hq-lib-http-go/status"
-	"github.com/spf13/cast"
-
+	hqgosource "github.com/hueristiq/xsubfind3r/internal/source"
+	"github.com/hueristiq/xsubfind3r/internal/source/gitlab"
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
-
-type searchResponseItem struct {
-	Data      string `json:"data"`
-	ProjectID int    `json:"project_id"`
-	Path      string `json:"path"`
-	Ref       string `json:"ref"`
-}
 
 type Source struct {
 	keys sources.Keys
 }
 
-func (s *Source) Name() (name string) {
-	name = sources.Gitlab
-
-	return
+func (s *Source) Name() string {
+	return sources.Gitlab
 }
 
-func (s *Source) NeedsKeys() (needs bool) {
-	needs = true
-
-	return
+func (s *Source) NeedsKeys() bool {
+	return true
 }
 
 func (s *Source) UseKeys(keys ...string) {
@@ -46,147 +32,66 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 	go func() {
 		defer close(results)
 
+		emit := func(result sources.Result) bool {
+			select {
+			case results <- result:
+				return true
+			case <-ctx.Done():
+				return false
+			}
+		}
+
 		key, err := s.keys.PickRandom()
 		if err != nil {
-			result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to select key: %w", err))
-
-			results <- result
+			emit(sources.ErrorResult(s.Name(), fmt.Errorf("failed to select key: %w", err)))
 
 			return
 		}
 
-		page := 1
+		client, err := gitlab.New(hqgosource.DoerFunc(func(request *http.Request) (*http.Response, error) {
+			return cfg.Client.Do(request)
+		}), key)
+		if err != nil {
+			emit(sources.ErrorResult(s.Name(), err))
 
-		for page > 0 {
-			searchReqURL := "https://gitlab.com/api/v4/search"
+			return
+		}
 
-			searchRes, err := cfg.Client.Request().
-				URL(searchReqURL).
-				Param("scope", "blobs").
-				Param("search", domain).
-				Param("per_page", "100").
-				Param("page", cast.ToString(page)).
-				SetHeader("PRIVATE-TOKEN", key).
-				Context(ctx).Do()
-			if err != nil {
-				if searchRes != nil {
-					_ = searchRes.Body.Close()
-				}
-
-				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
-
-				results <- result
-
-				return
-			}
-
-			if err = sources.CheckResponse(searchRes.Std(), key); err != nil {
-				result := sources.ErrorResult(s.Name(), err)
-
-				results <- result
-
-				_ = searchRes.Body.Close()
-
-				return
-			}
-
-			nextPage := searchRes.Header.Get("X-Next-Page")
-
-			var items []searchResponseItem
-
-			if err = json.NewDecoder(searchRes.Body).Decode(&items); err != nil {
-				result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to parse JSON response: %w", err))
-
-				results <- result
-
-				_ = searchRes.Body.Close()
-
-				return
-			}
-
-			_ = searchRes.Body.Close()
-
-			for _, item := range items {
-				getRawContentReqURL := fmt.Sprintf(
-					"https://gitlab.com/api/v4/projects/%d/repository/files/%s/raw?%s",
-					item.ProjectID,
-					url.PathEscape(item.Path),
-					url.Values{"ref": {item.Ref}}.Encode(),
-				)
-
-				getRawContentRes, err := cfg.Client.Request().
-					URL(getRawContentReqURL).
-					SetHeader("PRIVATE-TOKEN", key).
-					Context(ctx).Do()
-				if err != nil {
-					if getRawContentRes != nil {
-						_ = getRawContentRes.Body.Close()
-					}
-
-					result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
-
-					results <- result
-
-					continue
-				}
-
-				if getRawContentRes.StatusCode != hqgohttpstatus.OK.Int() {
-					_ = getRawContentRes.Body.Close()
-
-					continue
-				}
-
-				scanner := bufio.NewScanner(getRawContentRes.Body)
-
-				scanner.Buffer(make([]byte, 0, 64*1024), maxScanTokenSize)
-
-				for scanner.Scan() {
-					line := scanner.Text()
-
-					if line == "" {
-						continue
-					}
-
-					for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, line) {
-						subdomain, valid := cfg.Validator(candidate)
-						if !valid {
-							continue
-						}
-
-						result := sources.SubdomainResult(s.Name(), subdomain)
-
-						results <- result
-					}
-				}
-
-				if err = scanner.Err(); err != nil {
-					result := sources.ErrorResult(s.Name(), fmt.Errorf("failed to read response body: %w", err))
-
-					results <- result
-
-					_ = getRawContentRes.Body.Close()
-
+		for result := range client.Search(ctx, domain) {
+			if result.Err != nil {
+				if !emit(sources.ErrorResult(s.Name(), result.Err)) {
 					return
 				}
 
-				_ = getRawContentRes.Body.Close()
+				continue
 			}
 
-			page = cast.ToInt(nextPage)
+			if result.Warning != "" {
+				if !emit(sources.WarningResult(s.Name(), result.Warning)) {
+					return
+				}
+
+				continue
+			}
+
+			for _, candidate := range sources.ExtractSubdomains(cfg.Extractor, result.Value) {
+				subdomain, valid := cfg.Validator(candidate)
+				if !valid {
+					continue
+				}
+
+				if !emit(sources.SubdomainResult(s.Name(), subdomain)) {
+					return
+				}
+			}
 		}
 	}()
 
 	return results
 }
 
-const maxScanTokenSize = 16 << 20
-
 var _ sources.Source = (*Source)(nil)
 
-func New() (source sources.Source) {
-	source = &Source{
-		keys: make(sources.Keys, 0),
-	}
-
-	return
+func New() sources.Source {
+	return &Source{keys: make(sources.Keys, 0)}
 }

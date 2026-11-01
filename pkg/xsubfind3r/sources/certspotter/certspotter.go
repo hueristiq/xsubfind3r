@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	hqgohttpheader "github.com/hueristiq/hq-lib-http-go/header"
 
@@ -48,21 +49,28 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 		for range maxPages {
 			getCTLogsSearchReqURL := "https://api.certspotter.com/v1/issuances"
 
-			req := cfg.Client.Request().
-				URL(getCTLogsSearchReqURL).
-				Param("domain", domain).
-				Param("include_subdomains", "true").
-				Param("expand", "dns_names")
+			getCTLogsSearchRes, err := func() (*http.Response, error) {
+				req, err := http.NewRequestWithContext(ctx, http.MethodGet, getCTLogsSearchReqURL, http.NoBody)
+				if err != nil {
+					return nil, fmt.Errorf("build request: %w", err)
+				}
 
-			if key != "" {
-				req = req.SetHeader(hqgohttpheader.Authorization.String(), "Bearer "+key)
-			}
+				queryValues := req.URL.Query()
+				queryValues.Set("domain", domain)
+				queryValues.Set("include_subdomains", "true")
+				queryValues.Set("expand", "dns_names")
 
-			if after != "" {
-				req = req.Param("after", after)
-			}
+				if after != "" {
+					queryValues.Set("after", after)
+				}
 
-			getCTLogsSearchRes, err := req.Context(ctx).Do()
+				req.URL.RawQuery = queryValues.Encode()
+				if key != "" {
+					req.Header.Set(hqgohttpheader.Authorization.String(), "Bearer "+key)
+				}
+
+				return cfg.Client.Do(req)
+			}()
 			if err != nil {
 				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -71,7 +79,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				break
 			}
 
-			if err = sources.CheckResponse(getCTLogsSearchRes.Std(), key); err != nil {
+			if err = sources.CheckResponse(getCTLogsSearchRes, key); err != nil {
 				result := sources.ErrorResult(s.Name(), err)
 
 				results <- result

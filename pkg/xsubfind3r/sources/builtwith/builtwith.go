@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
@@ -61,17 +62,25 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getDomainInfoReqURL := "https://api.builtwith.com/v21/api.json"
 
-		getDomainInfoRes, err := cfg.Client.Request().
-			URL(getDomainInfoReqURL).
-			Param("KEY", key).
-			Param("HIDETEXT", "yes").
-			Param("HIDEDL", "yes").
-			Param("NOLIVE", "yes").
-			Param("NOMETA", "yes").
-			Param("NOPII", "yes").
-			Param("NOATTR", "yes").
-			Param("LOOKUP", domain).
-			Context(ctx).Do()
+		getDomainInfoRes, err := func() (*http.Response, error) {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, getDomainInfoReqURL, http.NoBody)
+			if err != nil {
+				return nil, fmt.Errorf("build request: %w", err)
+			}
+
+			queryValues := req.URL.Query()
+			queryValues.Add("KEY", key)
+			queryValues.Add("HIDETEXT", "yes")
+			queryValues.Add("HIDEDL", "yes")
+			queryValues.Add("NOLIVE", "yes")
+			queryValues.Add("NOMETA", "yes")
+			queryValues.Add("NOPII", "yes")
+			queryValues.Add("NOATTR", "yes")
+			queryValues.Add("LOOKUP", domain)
+			req.URL.RawQuery = queryValues.Encode()
+
+			return cfg.Client.Do(req)
+		}()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", sources.RedactError(err, key)))
 
@@ -80,7 +89,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 			return
 		}
 
-		if err = sources.CheckResponse(getDomainInfoRes.Std(), key); err != nil {
+		if err = sources.CheckResponse(getDomainInfoRes, key); err != nil {
 			result := sources.ErrorResult(s.Name(), err)
 
 			results <- result

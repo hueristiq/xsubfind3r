@@ -9,15 +9,27 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 
 	hqgohttp "github.com/hueristiq/hq-lib-http-go"
+	hqgourlextractor "github.com/hueristiq/hq-lib-url-go/extractor"
 )
+
+// SubdomainExtractor binds a parent domain to the shared extractor
+// implementation. Sources call [ExtractSubdomains] with the value carried in
+// [Configuration.Extractor].
+type SubdomainExtractor struct {
+	domain string
+}
+
+// NewSubdomainExtractor creates a subdomain extractor for domain.
+func NewSubdomainExtractor(domain string) (extractor *SubdomainExtractor) {
+	return &SubdomainExtractor{domain: domain}
+}
 
 type Configuration struct {
 	Client    *hqgohttp.Client
-	Extractor *regexp.Regexp
+	Extractor *SubdomainExtractor
 	Validator func(target string) (subdomain string, valid bool)
 }
 
@@ -179,52 +191,12 @@ var List = []string{
 
 var _ error = (*redactedError)(nil)
 
-func ExtractSubdomains(extractor *regexp.Regexp, text string) (subdomains []string) {
-	subdomains = make([]string, 0)
-
-	for _, match := range extractor.FindAllStringSubmatchIndex(text, -1) {
-		value, ok := trimEncodedSlashPrefix(text, match[2], text[match[2]:match[3]])
-		if !ok {
-			continue
-		}
-
-		end := match[3]
-
-		if end < len(text) && isHostLabelCharacter(text[end]) {
-			if text[end] != '.' || (end+1 < len(text) && isHostLabelCharacter(text[end+1])) {
-				continue
-			}
-		}
-
-		subdomains = append(subdomains, value)
+func ExtractSubdomains(extractor *SubdomainExtractor, text string) (subdomains []string) {
+	if extractor == nil {
+		return nil
 	}
 
-	return
-}
-
-// trimEncodedSlashPrefix removes the "2f" left behind when a match starts at
-// the percent-encoded slash in "%2F". The match must be directly preceded by
-// '%'; a remainder that is empty or starts with a dot is not a recoverable
-// hostname and is dropped.
-func trimEncodedSlashPrefix(text string, start int, value string) (trimmed string, ok bool) {
-	if start == 0 || text[start-1] != '%' || len(value) < 3 || !strings.EqualFold(value[:2], "2f") {
-		return value, true
-	}
-
-	trimmed = value[2:]
-
-	if trimmed == "" || trimmed[0] == '.' {
-		return "", false
-	}
-
-	return trimmed, true
-}
-
-func isHostLabelCharacter(character byte) (ok bool) {
-	switch {
-	case character >= 'a' && character <= 'z', character >= 'A' && character <= 'Z', character >= '0' && character <= '9', character == '.', character == '-', character == '_':
-		ok = true
-	}
+	subdomains, _ = hqgourlextractor.ExtractSubdomains(text, extractor.domain)
 
 	return
 }

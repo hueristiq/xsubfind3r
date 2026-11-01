@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
@@ -33,11 +34,19 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getSubdomainsReqURL := "https://riddler.io/search"
 
-		getSubdomainsRes, err := cfg.Client.Request().
-			URL(getSubdomainsReqURL).
-			Param("q", "pld:"+domain).
-			Param("view_type", "data_table").
-			Context(ctx).Do()
+		getSubdomainsRes, err := func() (*http.Response, error) {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, getSubdomainsReqURL, http.NoBody)
+			if err != nil {
+				return nil, fmt.Errorf("build request: %w", err)
+			}
+
+			queryValues := req.URL.Query()
+			queryValues.Add("q", "pld:"+domain)
+			queryValues.Add("view_type", "data_table")
+			req.URL.RawQuery = queryValues.Encode()
+
+			return cfg.Client.Do(req)
+		}()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 

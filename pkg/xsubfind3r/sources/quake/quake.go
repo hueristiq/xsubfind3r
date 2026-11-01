@@ -1,12 +1,13 @@
 package quake
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
-
-	hqgohttpmethod "github.com/hueristiq/hq-lib-http-go/method"
 
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
@@ -93,13 +94,38 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 			getSubdomainsReqURL := "https://quake.360.net/api/v3/search/quake_service"
 
-			getSubdomainsRes, err := cfg.Client.Request().
-				Method(hqgohttpmethod.POST).
-				URL(getSubdomainsReqURL).
-				SetHeader("Content-Type", "application/json").
-				SetHeader("X-QuakeToken", key).
-				Body(searchReqBody).
-				Context(ctx).Do()
+			getSubdomainsRes, err := func() (*http.Response, error) {
+				var body io.Reader
+
+				switch bodyValue := any(searchReqBody).(type) {
+				case nil:
+				case string:
+					body = strings.NewReader(bodyValue)
+				case []byte:
+					body = bytes.NewReader(bodyValue)
+				case func() (io.Reader, error):
+					var err error
+
+					body, err = bodyValue()
+					if err != nil {
+						return nil, fmt.Errorf("build request: %w", err)
+					}
+				case io.Reader:
+					body = bodyValue
+				default:
+					return nil, fmt.Errorf("unsupported request body type %T", bodyValue)
+				}
+
+				req, err := http.NewRequestWithContext(ctx, http.MethodPost, getSubdomainsReqURL, body)
+				if err != nil {
+					return nil, fmt.Errorf("build request: %w", err)
+				}
+
+				req.Header.Set("Content-Type", "application/json")
+				req.Header.Set("X-Quaketoken", key)
+
+				return cfg.Client.Do(req)
+			}()
 			if err != nil {
 				result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
@@ -108,7 +134,7 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 				return
 			}
 
-			if err = sources.CheckResponse(getSubdomainsRes.Std(), key); err != nil {
+			if err = sources.CheckResponse(getSubdomainsRes, key); err != nil {
 				result := sources.ErrorResult(s.Name(), err)
 
 				results <- result

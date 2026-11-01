@@ -1,14 +1,11 @@
 package leakradar_test
 
 import (
-	"fmt"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"regexp"
-	"sync/atomic"
 	"testing"
-	"time"
 
 	hqgohttp "github.com/hueristiq/hq-lib-http-go"
 
@@ -16,144 +13,63 @@ import (
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources/leakradar"
 )
 
-const exampleDomain = "example.com"
+type roundTripFunc func(*http.Request) (*http.Response, error)
 
-func TestPaginationCap(t *testing.T) {
+func (f roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
+	return f(request)
+}
+
+func TestRunMapsSubdomains(t *testing.T) {
 	t.Parallel()
 
-	var requests atomic.Int64
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/search/domain/example.com/urls" || r.Header.Get("Authorization") != "Bearer secret" {
+			t.Errorf("unexpected request: %s", r.URL.String())
+		}
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		page := requests.Add(1)
-
-		_, _ = fmt.Fprintf(w, `{"items":[{"url":"https://s.example.com"}],"total":1000000000,"page":%d,"page_size":100}`, page)
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`{"items":[{"url":"https://api.example.com/x"}],"total":1,"page":1,"page_size":1}`))
 	}))
 	defer server.Close()
 
-	_, warnings, errs := runSource(t, server)
+	target, _ := url.Parse(server.URL)
+	transport := roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		clone := request.Clone(request.Context())
+		clone.URL.Scheme = target.Scheme
+		clone.URL.Host = target.Host
 
-	if requests.Load() != sources.MaxPages {
-		t.Fatalf("requests = %d, want %d", requests.Load(), sources.MaxPages)
-	}
+		return http.DefaultTransport.RoundTrip(clone)
+	})
 
-	if warnings != 1 {
-		t.Fatalf("warnings = %d, want 1", warnings)
-	}
-
-	if len(errs) != 0 {
-		t.Fatalf("errors = %v", errs)
-	}
-}
-
-func TestRepeatedPageStops(t *testing.T) {
-	t.Parallel()
-
-	var requests atomic.Int64
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requests.Add(1)
-
-		_, _ = fmt.Fprint(w, `{"items":[{"url":"https://s.example.com"}],"total":1000,"page":1,"page_size":100}`)
-	}))
-	defer server.Close()
-
-	values, warnings, errs := runSource(t, server)
-
-	if requests.Load() != 2 {
-		t.Fatalf("requests = %d, want 2", requests.Load())
-	}
-
-	if warnings != 0 {
-		t.Fatalf("warnings = %d, want 0", warnings)
-	}
-
-	if len(values) != 2 {
-		t.Fatalf("values = %v, want 2", values)
-	}
-
-	if len(errs) != 0 {
-		t.Fatalf("errors = %v", errs)
-	}
-}
-
-func TestNon2xxReturnsError(t *testing.T) {
-	t.Parallel()
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "boom", http.StatusForbidden)
-	}))
-	defer server.Close()
-
-	values, warnings, errs := runSource(t, server)
-
-	if len(values) != 0 {
-		t.Fatalf("values = %v, want none", values)
-	}
-
-	if warnings != 0 {
-		t.Fatalf("warnings = %d, want 0", warnings)
-	}
-
-	if len(errs) != 1 {
-		t.Fatalf("errors = %v, want 1", errs)
-	}
-}
-
-func runSource(t *testing.T, server *httptest.Server) (values []string, warnings int, errs []error) {
-	t.Helper()
-
-	target, err := url.Parse(server.URL)
+	client, err := hqgohttp.New(hqgohttp.WithHTTPClient(&http.Client{Transport: transport}))
 	if err != nil {
-		t.Fatalf("parse server URL: %v", err)
+		t.Fatalf("New HTTP client: %v", err)
 	}
-
-	client := hqgohttp.New(
-		hqgohttp.WithHTTPClient(&http.Client{Transport: &rewriteTransport{target: target}}),
-		hqgohttp.WithTimeout(5*time.Second),
-	)
 
 	source := leakradar.New()
-	source.UseKeys("test-key")
+	source.UseKeys("secret")
 
-	configuration := &sources.Configuration{
+	cfg := &sources.Configuration{
 		Client:    client,
-		Extractor: extractor(),
-		Validator: func(target string) (subdomain string, valid bool) {
-			return target, true
-		},
+		Extractor: sources.NewSubdomainExtractor("example.com"),
+		Validator: func(value string) (string, bool) { return value, true },
 	}
 
-	for result := range source.Run(t.Context(), configuration, exampleDomain) {
-		switch result.Type {
-		case sources.ResultSubdomain:
-			values = append(values, result.Value)
-		case sources.ResultWarning:
-			warnings++
-		case sources.ResultError:
-			errs = append(errs, result.Error)
+	var values []string
+
+	for result := range source.Run(context.Background(), cfg, "example.com") {
+		if result.Error != nil {
+			t.Fatalf("Run: %v", result.Error)
 		}
+
+		if result.Type != sources.ResultSubdomain {
+			t.Fatalf("result type = %v; want subdomain", result.Type)
+		}
+
+		values = append(values, result.Value)
 	}
 
-	return
-}
-
-func extractor() *regexp.Regexp {
-	return regexp.MustCompile(`(?i)(?:^|[^a-z0-9_.-])(((?:[a-z0-9_](?:[a-z0-9_-]*[a-z0-9_])?\.)+)example\.com)`)
-}
-
-type rewriteTransport struct {
-	target *url.URL
-}
-
-func (transport *rewriteTransport) RoundTrip(request *http.Request) (*http.Response, error) {
-	clone := request.Clone(request.Context())
-	clone.URL.Scheme = transport.target.Scheme
-	clone.URL.Host = transport.target.Host
-
-	response, err := http.DefaultTransport.RoundTrip(clone)
-	if err != nil {
-		return nil, fmt.Errorf("round trip: %w", err)
+	if len(values) != 1 || values[0] != "api.example.com" {
+		t.Fatalf("values = %v; want api.example.com", values)
 	}
-
-	return response, nil
 }

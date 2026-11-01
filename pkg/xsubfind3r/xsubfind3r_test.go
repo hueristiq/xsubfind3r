@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	hqgourlparser "github.com/hueristiq/hq-lib-url-go/parser"
+
 	"github.com/hueristiq/xsubfind3r/pkg/xsubfind3r/sources"
 )
 
@@ -79,8 +81,9 @@ func TestValidHostname(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			if valid := validHostname(test.hostname); valid != test.valid {
-				t.Fatalf("validHostname(len=%d) = %v, want %v", len(test.hostname), valid, test.valid)
+			valid := hqgourlparser.ValidateHost(test.hostname) == nil
+			if valid != test.valid {
+				t.Fatalf("ValidateHost(len=%d) = %v, want %v", len(test.hostname), valid, test.valid)
 			}
 		})
 	}

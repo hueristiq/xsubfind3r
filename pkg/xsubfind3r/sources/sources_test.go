@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -135,7 +134,7 @@ func TestResultConstructors(t *testing.T) {
 func TestExtractSubdomains(t *testing.T) {
 	t.Parallel()
 
-	extractor := regexp.MustCompile(`(?i)(?:^|[^a-z0-9_.-])(((?:[a-z0-9_](?:[a-z0-9_-]*[a-z0-9_])?\.)+)example\.com)`)
+	extractor := sources.NewSubdomainExtractor("example.com")
 
 	tests := []struct {
 		name string

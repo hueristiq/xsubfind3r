@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"regexp"
 	"strconv"
 
@@ -39,10 +40,18 @@ func (s *Source) Run(ctx context.Context, cfg *sources.Configuration, domain str
 
 		getSubdomainsReqURL := "https://rapiddns.io/subdomain/" + domain
 
-		getSubdomainsRes, err := cfg.Client.Request().
-			URL(getSubdomainsReqURL).
-			Param("full", "1").
-			Context(ctx).Do()
+		getSubdomainsRes, err := func() (*http.Response, error) {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, getSubdomainsReqURL, http.NoBody)
+			if err != nil {
+				return nil, fmt.Errorf("build request: %w", err)
+			}
+
+			queryValues := req.URL.Query()
+			queryValues.Add("full", "1")
+			req.URL.RawQuery = queryValues.Encode()
+
+			return cfg.Client.Do(req)
+		}()
 		if err != nil {
 			result := sources.ErrorResult(s.Name(), fmt.Errorf("request failed: %w", err))
 
